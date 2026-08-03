@@ -20,7 +20,11 @@
 > - **Windows ARM64**：aqtinstall 目前不提供 ARM64 架构的 Qt 预编译包，静态编译也因 vcpkg 的 `qtdeclarative` 依赖问题受阻
 > - **macOS x86_64 (Intel)**：`macos-13` runner 资源极度紧张，几乎无法调度到，Apple 已全面转向 ARM
 
-每次推送到 `main`/`master` 分支或发起 Pull Request 时自动触发构建，产物可在 Actions 页面下载。
+### 发布正式版
+
+推送 `v` 开头的标签（如 `v1.0.0`）自动触发全平台构建并创建 GitHub Release。也可在 Actions 页面手动触发。
+
+> 正式发布时手动上传 Windows x64 静态编译版本到 Release。
 
 ## 静态编译版本
 
