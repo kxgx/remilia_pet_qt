@@ -22,9 +22,11 @@ jobs:
 
       - name: Download pre-built vcpkg cache
         run: |
-          curl -L -o vcpkg-cache.7z `
-            https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-win-x64-static.7z
-          7z x vcpkg-cache.7z -oC:/vcpkg/ -y
+          curl -L -o vcpkg-cache.7z.001 https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-cache.7z.001
+          curl -L -o vcpkg-cache.7z.002 https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-cache.7z.002
+          curl -L -o vcpkg-cache.7z.003 https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-cache.7z.003
+          curl -L -o vcpkg-cache.7z.004 https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-cache.7z.004
+          7z x vcpkg-cache.7z.001 -oC:/vcpkg/ -y
 
       - name: Configure
         run: |
