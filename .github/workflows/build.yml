@@ -144,14 +144,14 @@ jobs:
           path: build/RemiliaPet
 
   # ═══════════════════════════════════════════════════════════════════
-  # Linux ARM64 — aarch64 (Raspberry Pi, cloud ARM instances)
+  # Linux ARM64 — apt Qt6 (avoids vcpkg arm64-linux triplet issues)
   # ═══════════════════════════════════════════════════════════════════
   linux-arm64:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system deps
+      - name: Install system deps + Qt6
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -159,40 +159,15 @@ jobs:
             libxcb-image0-dev libxcb-keysyms1-dev \
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
-            autoconf autoconf-archive automake libtool pkg-config
-
-      - name: Restore vcpkg cache
-        uses: actions/cache@v4
-        with:
-          path: ~/vcpkg-cache
-          key: vcpkg-linux-arm64-${{ hashFiles('vcpkg.json') }}-v1
-
-      - name: Install vcpkg
-        run: |
-          if [ ! -d ~/vcpkg ]; then
-            git clone --depth 1 https://github.com/Microsoft/vcpkg.git ~/vcpkg
-            ~/vcpkg/bootstrap-vcpkg.sh
-          fi
-          if [ -d ~/vcpkg-cache ]; then
-            cp -R ~/vcpkg-cache/* ~/vcpkg/ 2>/dev/null || true
-          fi
+            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev
 
       - name: Configure
         run: |
           cmake -B build -S . -G "Ninja" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DVCPKG_TARGET_TRIPLET=arm64-linux \
-            -DCMAKE_TOOLCHAIN_FILE="$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --parallel
-
-      - name: Save vcpkg cache
-        run: |
-          mkdir -p ~/vcpkg-cache
-          cp -R ~/vcpkg/packages ~/vcpkg-cache/ 2>/dev/null || true
-          cp -R ~/vcpkg/buildtrees ~/vcpkg-cache/ 2>/dev/null || true
-          cp -R ~/vcpkg/downloads ~/vcpkg-cache/ 2>/dev/null || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
