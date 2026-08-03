@@ -6,82 +6,57 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ═══════════════════════════════════════════════════════════════════
-  # Windows x64 — aqtinstall Qt6 → windeployqt
-  # ═══════════════════════════════════════════════════════════════════
+  # ===================================================================
+  # Windows x64
+  # ===================================================================
   win-x64:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Qt6 via aqtinstall
         run: |
           pip install aqtinstall
           aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m qtmultimedia -O C:/Qt
-
       - name: Configure
         run: |
           cmake -B build -S . -G "Visual Studio 17 2022" `
             -DCMAKE_PREFIX_PATH="C:/Qt/6.8.2/msvc2022_64"
-
       - name: Build
         run: cmake --build build --config Release --parallel
-
       - name: windeployqt
         run: |
           C:/Qt/6.8.2/msvc2022_64/bin/windeployqt build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
-
       - name: Zip package
         run: |
           New-Item -ItemType Directory -Force -Path dist
           Compress-Archive -Path build/Release/* -DestinationPath dist/蕾米埃尔桌宠_Qt6-win-x64.zip
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-win-x64
           path: dist/
 
-  # ═══════════════════════════════════════════════════════════════════
-  # [DISABLED] Windows ARM64 — aqtinstall does not provide ARM64 Qt
-  # ═══════════════════════════════════════════════════════════════════
-  # win-arm64:
-  #   runs-on: windows-11-arm
-  #   ...
-
-  # ═══════════════════════════════════════════════════════════════════
-  # [DISABLED] macOS x86_64 — macos-13 runner unavailable
-  # ═══════════════════════════════════════════════════════════════════
-  # mac-x64:
-  #   runs-on: macos-13
-  #   ...
-
-  # ═══════════════════════════════════════════════════════════════════
-  # macOS ARM64 (Apple Silicon) — Homebrew Qt → .dmg
-  # ═══════════════════════════════════════════════════════════════════
+  # ===================================================================
+  # macOS ARM64
+  # ===================================================================
   mac-arm64:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Qt6 via Homebrew
         run: |
           brew install ninja qt6
           echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
-
       - name: Configure
         run: |
           cmake -B build -S . -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
-
       - name: Build
         run: cmake --build build --parallel
-
       - name: Package .app with macdeployqt
         run: |
           ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
-
       - name: Create DMG
         run: |
           brew install create-dmg
@@ -91,22 +66,20 @@ jobs:
             --hide-extension "蕾米埃尔桌宠_Qt6.app" \
             --app-drop-link 350 150 \
             "dist/蕾米埃尔桌宠_Qt6-mac-arm64.dmg" build/蕾米埃尔桌宠_Qt6.app/
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-mac-arm64
           path: dist/
 
-  # ═══════════════════════════════════════════════════════════════════
-  # Linux x86_64 — apt Qt6 → AppImage + tar.gz
-  # ═══════════════════════════════════════════════════════════════════
+  # ===================================================================
+  # Linux x86_64
+  # ===================================================================
   linux-x64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install system deps + Qt6
+      - name: Install deps + Qt6 + GStreamer
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -114,83 +87,73 @@ jobs:
             libxcb-image0-dev libxcb-keysyms1-dev \
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
-            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev
-
+            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
       - name: Configure
         run: |
-          cmake -B build -S . -G "Ninja" \
-            -DCMAKE_BUILD_TYPE=Release
-
+          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build --parallel
-
       - name: Create AppImage + tar.gz
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage appimagetool*.AppImage
-
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-
-          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'DESKTOPEOF'
+          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'EOF'
           [Desktop Entry]
           Type=Application
-          Name=蕾米埃尔桌宠
-          Comment=蕾米埃尔桌宠 Qt6
-          Exec=蕾米埃尔桌宠_Qt6
+          Name=Remilia Pet
+          Comment=Remilia Pet Qt6
+          Exec=RemiliaPet
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
-          DESKTOPEOF
-
+          EOF
           python3 -c "
-          import struct, zlib
-          w, h = 256, 256
-          raw = b''
+          import struct,zlib
+          w,h=256,256
+          raw=b''
           for y in range(h):
-              raw += b'\x00'
-              raw += b'\xff\x99\xcc\xff' * w
-          def chunk(t, d):
-              c = t + d
-              return struct.pack('>I', len(d)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
-          ihdr = struct.pack('>IIBBBBB', w, h, 8, 6, 0, 0, 0)
-          png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
-          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png', 'wb').write(png)
+            raw+=b'\x00'+b'\xff\x99\xcc\xff'*w
+          def c(t,d):
+            c2=t+d
+            return struct.pack('>I',len(d))+c2+struct.pack('>I',zlib.crc32(c2)&0xffffffff)
+          ih=struct.pack('>IIBBBBB',w,h,8,6,0,0,0)
+          png=b'\x89PNG\r\n\x1a\n'+c(b'IHDR',ih)+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b'')
+          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png','wb').write(png)
           "
-
+          export GST_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt
-
-          ARCH=x86_64 ./appimagetool-x86_64.AppImage \
-            AppDir 蕾米埃尔桌宠_Qt6-linux-x64.AppImage
+          cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage AppDir 蕾米埃尔桌宠_Qt6-linux-x64.AppImage
           tar -czf 蕾米埃尔桌宠_Qt6-linux-x64.tar.gz -C AppDir .
           ls -la 蕾米埃尔桌宠_Qt6-linux-x64.*
-
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-linux-x64
           path: 蕾米埃尔桌宠_Qt6-linux-x64.AppImage
-
       - name: Upload tar.gz
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-linux-x64-targz
           path: 蕾米埃尔桌宠_Qt6-linux-x64.tar.gz
 
-  # ═══════════════════════════════════════════════════════════════════
-  # Linux ARM64 — apt Qt6 → AppImage + tar.gz
-  # ═══════════════════════════════════════════════════════════════════
+  # ===================================================================
+  # Linux ARM64
+  # ===================================================================
   linux-arm64:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install system deps + Qt6
+      - name: Install deps + Qt6 + GStreamer
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -198,77 +161,68 @@ jobs:
             libxcb-image0-dev libxcb-keysyms1-dev \
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
-            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev
-
+            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
       - name: Configure
         run: |
-          cmake -B build -S . -G "Ninja" \
-            -DCMAKE_BUILD_TYPE=Release
-
+          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build --parallel
-
       - name: Create AppImage + tar.gz
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-aarch64.AppImage
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage
           chmod +x linuxdeploy*.AppImage appimagetool*.AppImage
-
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-
-          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'DESKTOPEOF'
+          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'EOF'
           [Desktop Entry]
           Type=Application
-          Name=蕾米埃尔桌宠
-          Comment=蕾米埃尔桌宠 Qt6
-          Exec=蕾米埃尔桌宠_Qt6
+          Name=Remilia Pet
+          Comment=Remilia Pet Qt6
+          Exec=RemiliaPet
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
-          DESKTOPEOF
-
+          EOF
           python3 -c "
-          import struct, zlib
-          w, h = 256, 256
-          raw = b''
+          import struct,zlib
+          w,h=256,256
+          raw=b''
           for y in range(h):
-              raw += b'\x00'
-              raw += b'\xff\x99\xcc\xff' * w
-          def chunk(t, d):
-              c = t + d
-              return struct.pack('>I', len(d)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
-          ihdr = struct.pack('>IIBBBBB', w, h, 8, 6, 0, 0, 0)
-          png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
-          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png', 'wb').write(png)
+            raw+=b'\x00'+b'\xff\x99\xcc\xff'*w
+          def c(t,d):
+            c2=t+d
+            return struct.pack('>I',len(d))+c2+struct.pack('>I',zlib.crc32(c2)&0xffffffff)
+          ih=struct.pack('>IIBBBBB',w,h,8,6,0,0,0)
+          png=b'\x89PNG\r\n\x1a\n'+c(b'IHDR',ih)+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b'')
+          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png','wb').write(png)
           "
-
+          export GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0
           ./linuxdeploy-aarch64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt
-
-          ARCH=aarch64 ./appimagetool-aarch64.AppImage \
-            AppDir 蕾米埃尔桌宠_Qt6-linux-arm64.AppImage
+          cp -r /usr/lib/aarch64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
+          ARCH=aarch64 ./appimagetool-aarch64.AppImage AppDir 蕾米埃尔桌宠_Qt6-linux-arm64.AppImage
           tar -czf 蕾米埃尔桌宠_Qt6-linux-arm64.tar.gz -C AppDir .
           ls -la 蕾米埃尔桌宠_Qt6-linux-arm64.*
-
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-linux-arm64
           path: 蕾米埃尔桌宠_Qt6-linux-arm64.AppImage
-
       - name: Upload tar.gz
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-linux-arm64-targz
           path: 蕾米埃尔桌宠_Qt6-linux-arm64.tar.gz
 
-  # ═══════════════════════════════════════════════════════════════════
-  # Create GitHub Release on tag push
-  # ═══════════════════════════════════════════════════════════════════
+  # ===================================================================
+  # Release
+  # ===================================================================
   release:
     needs: [win-x64, mac-arm64, linux-x64, linux-arm64]
     if: startsWith(github.ref, 'refs/tags/')
@@ -280,10 +234,8 @@ jobs:
         with:
           pattern: 蕾米埃尔桌宠_Qt6-*
           merge-multiple: true
-
       - name: List artifacts
         run: ls -la
-
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
