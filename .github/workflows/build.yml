@@ -9,50 +9,66 @@ on:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════
-  # Windows x64 Static — single EXE, zero dependencies
+  # Windows x64 — aqtinstall pre-built Qt + windeployqt (~3 min)
   # ═══════════════════════════════════════════════════════════════════
   win-x64:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore vcpkg cache
-        uses: actions/cache@v4
-        with:
-          path: C:/vcpkg-cache
-          key: vcpkg-win-x64-${{ hashFiles('vcpkg.json') }}-v1
-
-      - name: Install vcpkg
+      - name: Install Qt6 via aqtinstall
         run: |
-          if (-not (Test-Path C:/vcpkg)) {
-            git clone --depth 1 https://github.com/Microsoft/vcpkg.git C:/vcpkg
-            C:/vcpkg/bootstrap-vcpkg.bat
-          }
-          if (Test-Path C:/vcpkg-cache) {
-            Copy-Item -Recurse C:/vcpkg-cache/* C:/vcpkg/ -ErrorAction SilentlyContinue
-          }
+          pip install aqtinstall
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -O C:/Qt
 
       - name: Configure
         run: |
           cmake -B build -S . -G "Visual Studio 17 2022" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
-            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_PREFIX_PATH="C:/Qt/6.8.2/msvc2022_64"
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
-      - name: Save vcpkg cache
+      - name: windeployqt
         run: |
-          New-Item -ItemType Directory -Force C:/vcpkg-cache | Out-Null
-          Copy-Item -Recurse C:/vcpkg/packages C:/vcpkg-cache/packages
-          Copy-Item -Recurse C:/vcpkg/buildtrees C:/vcpkg-cache/buildtrees
-          Copy-Item -Recurse C:/vcpkg/downloads C:/vcpkg-cache/downloads
+          C:/Qt/6.8.2/msvc2022_64/bin/windeployqt build/Release/RemiliaPet.exe --release --no-translations
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet-win-x64
-          path: build/Release/RemiliaPet.exe
+          path: build/Release/
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Windows ARM64 — native ARM64 Qt 6.8.2 (Qt 6.8+ supports WoA)
+  # ═══════════════════════════════════════════════════════════════════
+  win-arm64:
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6 via aqtinstall
+        run: |
+          pip install aqtinstall
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_arm64 -O C:/Qt
+
+      - name: Configure
+        run: |
+          cmake -B build -S . -G "Visual Studio 17 2022" -A ARM64 `
+            -DCMAKE_PREFIX_PATH="C:/Qt/6.8.2/msvc2022_arm64"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: windeployqt
+        run: |
+          C:/Qt/6.8.2/msvc2022_arm64/bin/windeployqt build/Release/RemiliaPet.exe --release --no-translations
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet-win-arm64
+          path: build/Release/
 
   # ═══════════════════════════════════════════════════════════════════
   # macOS ARM64 — Homebrew Qt (avoids vcpkg libb2 compile failure)
@@ -179,7 +195,7 @@ jobs:
   # Create GitHub Release on tag push
   # ═══════════════════════════════════════════════════════════════════
   release:
-    needs: [win-x64, mac-arm64, linux-x64, linux-arm64]
+    needs: [win-x64, win-arm64, mac-arm64, linux-x64, linux-arm64]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
