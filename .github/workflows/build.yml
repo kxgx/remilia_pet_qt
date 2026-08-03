@@ -38,72 +38,21 @@ jobs:
           path: build/Release/
 
   # ═══════════════════════════════════════════════════════════════════
-  # [DISABLED] Windows ARM64 — aqtinstall 不提供 ARM64 的 Qt 包
+  # [DISABLED] Windows ARM64 — aqtinstall does not provide ARM64 Qt
   # ═══════════════════════════════════════════════════════════════════
   # win-arm64:
   #   runs-on: windows-11-arm
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Install Qt6 via aqtinstall
-  #       run: |
-  #         pip install aqtinstall
-  #         aqt install-qt windows desktop 6.9.0 win64_msvc2022_64 -O C:/Qt
-  #         aqt install-qt windows desktop 6.9.0 win64_msvc2022_arm64 -m qtmultimedia -O C:/Qt
-  #
-  #     - name: Configure
-  #       run: |
-  #         cmake -B build -S . -G "Visual Studio 17 2022" -A ARM64 `
-  #           -DCMAKE_PREFIX_PATH="C:/Qt/6.9.0/win64_msvc2022_arm64"
-  #
-  #     - name: Build
-  #       run: cmake --build build --config Release --parallel
-  #
-  #     - name: windeployqt
-  #       run: |
-  #         C:/Qt/6.9.0/win64_msvc2022_arm64/bin/windeployqt build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
-  #
-  #     - name: Upload artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: 蕾米埃尔桌宠_Qt6-win-arm64
-  #         path: build/Release/
+  #   ...
 
   # ═══════════════════════════════════════════════════════════════════
-  # [DISABLED] macOS x86_64 (Intel) — macos-13 runner 资源紧张，几乎无法调度
+  # [DISABLED] macOS x86_64 — macos-13 runner unavailable
   # ═══════════════════════════════════════════════════════════════════
   # mac-x64:
   #   runs-on: macos-13
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - name: Install Qt6 via Homebrew
-  #       run: |
-  #         brew install ninja qt6
-  #         echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
-  #
-  #     - name: Configure
-  #       run: |
-  #         cmake -B build -S . -G "Ninja" \
-  #           -DCMAKE_BUILD_TYPE=Release \
-  #           -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
-  #
-  #     - name: Build
-  #       run: cmake --build build --parallel
-  #
-  #     - name: Package .app with macdeployqt
-  #       run: |
-  #         ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
-  #         mkdir -p dist && mv build/蕾米埃尔桌宠_Qt6.app dist/
-  #
-  #     - name: Upload artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: 蕾米埃尔桌宠_Qt6-mac-x64
-  #         path: dist/
+  #   ...
 
   # ═══════════════════════════════════════════════════════════════════
-  # macOS ARM64 (Apple Silicon) — Homebrew Qt
+  # macOS ARM64 (Apple Silicon) — Homebrew Qt → .dmg
   # ═══════════════════════════════════════════════════════════════════
   mac-arm64:
     runs-on: macos-latest
@@ -127,7 +76,16 @@ jobs:
       - name: Package .app with macdeployqt
         run: |
           ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
-          mkdir -p dist && mv build/蕾米埃尔桌宠_Qt6.app dist/
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          mkdir -p dist
+          create-dmg --volname "蕾米埃尔桌宠" --window-pos 200 120 --window-size 500 360 \
+            --icon-size 100 --icon "蕾米埃尔桌宠_Qt6.app" 150 150 \
+            --hide-extension "蕾米埃尔桌宠_Qt6.app" \
+            --app-drop-link 350 150 \
+            "dist/蕾米埃尔桌宠_Qt6-mac-arm64.dmg" build/蕾米埃尔桌宠_Qt6.app/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -136,7 +94,7 @@ jobs:
           path: dist/
 
   # ═══════════════════════════════════════════════════════════════════
-  # Linux x86_64 — apt Qt6
+  # Linux x86_64 — apt Qt6 → AppImage
   # ═══════════════════════════════════════════════════════════════════
   linux-x64:
     runs-on: ubuntu-latest
@@ -161,14 +119,24 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
+      - name: Create AppImage
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          mkdir -p dist
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
+            --plugin qt --output appimage
+          mv *.AppImage dist/蕾米埃尔桌宠_Qt6-linux-x64.AppImage 2>/dev/null || true
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-linux-x64
-          path: build/蕾米埃尔桌宠_Qt6
+          path: dist/
 
   # ═══════════════════════════════════════════════════════════════════
-  # Linux ARM64 — apt Qt6
+  # Linux ARM64 — apt Qt6 → AppImage
   # ═══════════════════════════════════════════════════════════════════
   linux-arm64:
     runs-on: ubuntu-24.04-arm
@@ -193,11 +161,21 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
+      - name: Create AppImage
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-aarch64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          mkdir -p dist
+          ./linuxdeploy-aarch64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
+            --plugin qt --output appimage
+          mv *.AppImage dist/蕾米埃尔桌宠_Qt6-linux-arm64.AppImage 2>/dev/null || true
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-linux-arm64
-          path: build/蕾米埃尔桌宠_Qt6
+          path: dist/
 
   # ═══════════════════════════════════════════════════════════════════
   # Create GitHub Release on tag push
@@ -214,20 +192,11 @@ jobs:
           pattern: 蕾米埃尔桌宠_Qt6-*
           merge-multiple: true
 
-      - name: Package artifacts
-        run: |
-          for dir in 蕾米埃尔桌宠_Qt6-*; do
-            if [ -d "$dir" ]; then
-              zip -r "${dir}.zip" "$dir"
-            elif [ -f "$dir" ]; then
-              zip "${dir}.zip" "$dir"
-            fi
-          done
-
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
-          files: 蕾米埃尔桌宠_Qt6-*.zip
+          files: |
+            蕾米埃尔桌宠_Qt6-*/*
           draft: false
           prerelease: false
           make_latest: true
