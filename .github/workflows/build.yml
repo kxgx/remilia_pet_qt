@@ -55,48 +55,30 @@ jobs:
           path: build/Release/RemiliaPet.exe
 
   # ═══════════════════════════════════════════════════════════════════
-  # macOS ARM64 — .app bundle (macos-latest is Apple Silicon)
+  # macOS ARM64 — Homebrew Qt (avoids vcpkg libb2 compile failure)
   # ═══════════════════════════════════════════════════════════════════
   mac-arm64:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build tools
-        run: brew install ninja autoconf automake libtool pkg-config
-
-      - name: Restore vcpkg cache
-        uses: actions/cache@v4
-        with:
-          path: ~/vcpkg-cache
-          key: vcpkg-mac-arm64-${{ hashFiles('vcpkg.json') }}-v2
-
-      - name: Install vcpkg
+      - name: Install Qt6 via Homebrew
         run: |
-          if [ ! -d ~/vcpkg ]; then
-            git clone --depth 1 https://github.com/Microsoft/vcpkg.git ~/vcpkg
-            ~/vcpkg/bootstrap-vcpkg.sh
-          fi
-          if [ -d ~/vcpkg-cache ]; then
-            cp -R ~/vcpkg-cache/* ~/vcpkg/ 2>/dev/null || true
-          fi
+          brew install ninja qt6
+          echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
 
       - name: Configure
         run: |
           cmake -B build -S . -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
-            -DVCPKG_TARGET_TRIPLET=arm64-osx \
-            -DCMAKE_TOOLCHAIN_FILE="$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
 
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Save vcpkg cache
+      - name: Package .app with macdeployqt
         run: |
-          mkdir -p ~/vcpkg-cache
-          cp -R ~/vcpkg/packages ~/vcpkg-cache/ 2>/dev/null || true
-          cp -R ~/vcpkg/buildtrees ~/vcpkg-cache/ 2>/dev/null || true
-          cp -R ~/vcpkg/downloads ~/vcpkg-cache/ 2>/dev/null || true
+          ${{ env.QT_PATH }}/bin/macdeployqt build/RemiliaPet.app -verbose=1
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -162,10 +144,67 @@ jobs:
           path: build/RemiliaPet
 
   # ═══════════════════════════════════════════════════════════════════
+  # Linux ARM64 — aarch64 (Raspberry Pi, cloud ARM instances)
+  # ═══════════════════════════════════════════════════════════════════
+  linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dev \
+            libxkbcommon-dev libxcb1-dev libxcb-icccm4-dev \
+            libxcb-image0-dev libxcb-keysyms1-dev \
+            libxcb-render-util0-dev libxcb-shape0-dev \
+            libxcb-xinerama0-dev libpulse-dev libasound2-dev \
+            autoconf autoconf-archive automake libtool
+
+      - name: Restore vcpkg cache
+        uses: actions/cache@v4
+        with:
+          path: ~/vcpkg-cache
+          key: vcpkg-linux-arm64-${{ hashFiles('vcpkg.json') }}-v1
+
+      - name: Install vcpkg
+        run: |
+          if [ ! -d ~/vcpkg ]; then
+            git clone --depth 1 https://github.com/Microsoft/vcpkg.git ~/vcpkg
+            ~/vcpkg/bootstrap-vcpkg.sh
+          fi
+          if [ -d ~/vcpkg-cache ]; then
+            cp -R ~/vcpkg-cache/* ~/vcpkg/ 2>/dev/null || true
+          fi
+
+      - name: Configure
+        run: |
+          cmake -B build -S . -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DVCPKG_TARGET_TRIPLET=arm64-linux \
+            -DCMAKE_TOOLCHAIN_FILE="$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Save vcpkg cache
+        run: |
+          mkdir -p ~/vcpkg-cache
+          cp -R ~/vcpkg/packages ~/vcpkg-cache/ 2>/dev/null || true
+          cp -R ~/vcpkg/buildtrees ~/vcpkg-cache/ 2>/dev/null || true
+          cp -R ~/vcpkg/downloads ~/vcpkg-cache/ 2>/dev/null || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet-linux-arm64
+          path: build/RemiliaPet
+
+  # ═══════════════════════════════════════════════════════════════════
   # Create GitHub Release on tag push
   # ═══════════════════════════════════════════════════════════════════
   release:
-    needs: [win-x64, mac-arm64, linux-x64]
+    needs: [win-x64, mac-arm64, linux-x64, linux-arm64]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
