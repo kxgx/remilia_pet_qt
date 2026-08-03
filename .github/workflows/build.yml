@@ -1,4 +1,4 @@
-name: Cross-Platform Build (Dynamic)
+﻿name: Cross-Platform Build (Dynamic)
 
 on:
   push:
@@ -228,4 +228,6 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: 蕾米埃尔桌宠_Qt6-*.zip
-          draft: true
+          draft: false
+          prerelease: false
+          make_latest: true
