@@ -2,7 +2,7 @@
 
 基于 Qt6 的桌面宠物程序，支持 GIF 动画播放、抽卡、随机画画、闹钟计时等功能。
 
-- **原作者**：[b站诉说新语](https://www.bilibili.com/video/BV1M13h6AEHr)
+- **原作者**：[b站诉说新语](https://space.bilibili.com/32819169)（[原视频](https://www.bilibili.com/video/BV1M13h6AEHr)）
 - **移植优化**：b站星光-k（使用 AI 工具）
 
 ## GitHub Actions 自动构建
