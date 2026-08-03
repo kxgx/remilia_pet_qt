@@ -65,17 +65,20 @@ if(WIN32)
 elseif(APPLE)
     set(GUI_TYPE MACOSX_BUNDLE)
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
+else()
+    set(GUI_TYPE "")
+endif()
+
+add_executable(RemiliaPet ${GUI_TYPE} ${SOURCES})
+
+if(APPLE)
     set_target_properties(RemiliaPet PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.remilia.pet"
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
     )
-else()
-    set(GUI_TYPE "")
 endif()
-
-add_executable(RemiliaPet ${GUI_TYPE} ${SOURCES})
 
 # ── Qt module linkage ───────────────────────────────────────────────
 target_link_libraries(RemiliaPet PRIVATE

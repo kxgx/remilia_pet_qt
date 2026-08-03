@@ -159,7 +159,7 @@ jobs:
             libxcb-image0-dev libxcb-keysyms1-dev \
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
-            autoconf autoconf-archive automake libtool
+            autoconf autoconf-archive automake libtool pkg-config
 
       - name: Restore vcpkg cache
         uses: actions/cache@v4
