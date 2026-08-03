@@ -92,6 +92,8 @@ public:
             m_label->setGeometry(pad, pad, sw, sh);
             if (m_movie && m_movie->state() == QMovie::Running)
                 m_movie->setScaledSize(QSize(sw, sh));
+            else if (m_cardRevealed)
+                renderCardContent();
         }
         positionNearPet();
     }
@@ -111,36 +113,40 @@ private:
         m_pet->setState(DesktopPet::Result);
         m_pet->playSound("result.mp3", false);
         m_label->setMovie(nullptr);
-        // Direct random access (QDir::entryList unreliable with QRC)
         int num = QRandomGenerator::global()->bounded(1, 56);
-        QString cardPath = m_cardsDir + QString("card_%1.png").arg(num);
-        QPixmap cardPix(cardPath);
-        if (!cardPix.isNull()) {
-            int lw = m_label->width(), lh = m_label->height();
-            int iw = (int)(lw * 0.5), ih = (int)(lh * 0.5);
-            QPixmap scaled = cardPix.scaled(QSize(qMax(5,iw), qMax(5,ih)), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            QPixmap canvas(lw, lh);
-            canvas.fill(Qt::transparent);
-            QPainter p(&canvas);
-            p.setRenderHint(QPainter::Antialiasing);
-            QFont font("Microsoft YaHei", qMax(6, (int)(lh*0.08)), QFont::Bold);
-            p.setFont(font);
-            p.setPen(QColor(255,255,255));
-            int textH = p.fontMetrics().height();
-            int spacing = (int)(lh * 0.03);
-            int totalH = textH + spacing + scaled.height();
-            int startY = (lh - totalH) / 2;
-            QRect textR(0, startY, lw, textH);
-            p.drawText(textR, Qt::AlignCenter, QString::fromUtf8("调频结果"));
-            int cardY = startY + textH + spacing;
-            p.drawPixmap((lw - scaled.width())/2, cardY, scaled);
-            p.end();
-            m_label->setPixmap(canvas);
-            QPropertyAnimation *anim = new QPropertyAnimation(m_opacity, "opacity", this);
-            anim->setDuration(500); anim->setStartValue(0.0); anim->setEndValue(1.0);
-            anim->start(QAbstractAnimation::DeleteWhenStopped);
-        }
+        m_revealedCardPath = m_cardsDir + QString("card_%1.png").arg(num);
+        m_cardRevealed = true;
+        renderCardContent();
+        QPropertyAnimation *anim = new QPropertyAnimation(m_opacity, "opacity", this);
+        anim->setDuration(500); anim->setStartValue(0.0); anim->setEndValue(1.0);
+        anim->start(QAbstractAnimation::DeleteWhenStopped);
         QTimer::singleShot(5000, this, &DrawEffectWindow::finishDraw);
+    }
+
+    void renderCardContent() {
+        if (!m_cardRevealed || m_revealedCardPath.isEmpty()) return;
+        QPixmap cardPix(m_revealedCardPath);
+        if (cardPix.isNull()) return;
+        int lw = m_label->width(), lh = m_label->height();
+        int iw = (int)(lw * 0.5), ih = (int)(lh * 0.5);
+        QPixmap scaled = cardPix.scaled(QSize(qMax(5,iw), qMax(5,ih)), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        QPixmap canvas(lw, lh);
+        canvas.fill(Qt::transparent);
+        QPainter p(&canvas);
+        p.setRenderHint(QPainter::Antialiasing);
+        QFont font("Microsoft YaHei", qMax(6, (int)(lh*0.08)), QFont::Bold);
+        p.setFont(font);
+        p.setPen(QColor(255,255,255));
+        int textH = p.fontMetrics().height();
+        int spacing = (int)(lh * 0.03);
+        int totalH = textH + spacing + scaled.height();
+        int startY = (lh - totalH) / 2;
+        QRect textR(0, startY, lw, textH);
+        p.drawText(textR, Qt::AlignCenter, QString::fromUtf8("调频结果"));
+        int cardY = startY + textH + spacing;
+        p.drawPixmap((lw - scaled.width())/2, cardY, scaled);
+        p.end();
+        m_label->setPixmap(canvas);
     }
 
     void finishDraw() {
@@ -177,6 +183,8 @@ private:
     DesktopPet *m_pet;
     QString m_cardsDir;
     float m_scale;
+    QString m_revealedCardPath;
+    bool m_cardRevealed = false;
     QLabel *m_label = nullptr;
     QMovie *m_movie = nullptr;
     QGraphicsOpacityEffect *m_opacity = nullptr;
@@ -201,8 +209,8 @@ public:
 
     void startShow() {
         int num = QRandomGenerator::global()->bounded(1, 16);
-        QString drawPath = m_drawingDir + QString("drawing_%1.png").arg(num);
-        QPixmap pix(drawPath);
+        m_drawPath = m_drawingDir + QString("drawing_%1.png").arg(num);
+        QPixmap pix(m_drawPath);
         if (pix.isNull()) { close(); return; }
         QSize native = pix.size();
         if (native.width() > 0) {
@@ -223,6 +231,20 @@ public:
 
     void updateScaleAndPosition(float scale) {
         m_scale = scale;
+        if (!m_drawPath.isEmpty()) {
+            QPixmap pix(m_drawPath);
+            if (!pix.isNull()) {
+                QSize native = pix.size();
+                if (native.width() > 0) {
+                    int sw = qMax(60, (int)(native.width() * 1.4 * m_scale));
+                    int sh = qMax(20, (int)(sw * native.height() / native.width()));
+                    int pad = 6;
+                    setFixedSize(sw + pad * 2, sh + pad * 2);
+                    m_label->setGeometry(pad, pad, sw, sh);
+                    m_label->setPixmap(pix.scaled(sw, sh, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                }
+            }
+        }
         positionNearPet();
     }
 
@@ -266,6 +288,7 @@ private:
 
     DesktopPet *m_pet;
     QString m_drawingDir;
+    QString m_drawPath;
     float m_scale;
     QLabel *m_label = nullptr;
     QGraphicsOpacityEffect *m_opacity = nullptr;
@@ -834,12 +857,24 @@ void DesktopPet::wheelEvent(QWheelEvent *event) {
 
 void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     QMenu menu(this);
+    int fs = qMax(9, (int)(15 * m_scale));
+    int pv = qMax(4, (int)(8 * m_scale));
+    int ph = qMax(12, (int)(24 * m_scale));
+    int mv = qMax(1, (int)(3 * m_scale));
+    int mh = qMax(3, (int)(6 * m_scale));
+    int br = qMax(5, (int)(10 * m_scale));
+    int ibr = qMax(2, (int)(5 * m_scale));
+    int mp = qMax(2, (int)(6 * m_scale));
+    int bw = qMax(1, (int)(2 * m_scale));
+    int smv = qMax(2, (int)(5 * m_scale));
+    int smh = qMax(5, (int)(10 * m_scale));
     menu.setStyleSheet(
-        "QMenu{background:#FF8DA1;border:2px solid #fff;border-radius:8px;padding:4px 0;}"
-        "QMenu::item{background:transparent;color:#fff;font-size:13px;font-weight:bold;font-family:'Microsoft YaHei';padding:6px 16px;margin:2px 4px;border-radius:4px;}"
+        QString("QMenu{background:#FF8DA1;border:%1px solid #fff;border-radius:%2px;padding:%3px 0;}"
+        "QMenu::item{background:transparent;color:#fff;font-size:%4px;font-weight:bold;font-family:'Microsoft YaHei';padding:%5px %6px;margin:%7px %8px;border-radius:%9px;}"
         "QMenu::item:selected{background:#FF6B8B;}"
         "QMenu::item:disabled{color:#FFC0CB;}"
-        "QMenu::separator{height:1px;background:#fff;margin:4px 8px;}"
+        "QMenu::separator{height:1px;background:#fff;margin:%10px %11px;}")
+        .arg(bw).arg(br).arg(mp).arg(fs).arg(pv).arg(ph).arg(mv).arg(mh).arg(ibr).arg(smv).arg(smh)
     );
 
     QAction *drawAction = menu.addAction(QString::fromUtf8("\u2728 \u5E78\u8FD0\u62BD\u5361"));
@@ -1009,8 +1044,8 @@ void DesktopPet::setupTrayIcon() {
 
     m_trayMenu = new QMenu();
     m_trayMenu->setStyleSheet(
-        "QMenu{background:#FF8DA1;border:2px solid #fff;border-radius:8px;padding:4px 0;}"
-        "QMenu::item{background:transparent;color:#fff;font-size:13px;font-weight:bold;font-family:'Microsoft YaHei';padding:6px 16px;margin:2px 4px;border-radius:4px;}"
+        "QMenu{background:#FF8DA1;border:2px solid #fff;border-radius:10px;padding:6px 0;}"
+        "QMenu::item{background:transparent;color:#fff;font-size:15px;font-weight:bold;font-family:'Microsoft YaHei';padding:8px 24px;margin:3px 6px;border-radius:5px;}"
         "QMenu::item:selected{background:#FF6B8B;}"
     );
     QAction *showAction = m_trayMenu->addAction(QString::fromUtf8("显示桌面宠物"));

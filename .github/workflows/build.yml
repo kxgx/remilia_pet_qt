@@ -1,56 +1,46 @@
-name: Cross-Platform Build
+name: Cross-Platform Build (Dynamic)
 
 on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
-  # Windows x64 — vcpkg static single EXE (actions/cache)
+  # ═══════════════════════════════════════════════════════════════════
+  # Windows x64 — aqtinstall Qt6 → windeployqt
   # ═══════════════════════════════════════════════════════════════════
   win-x64:
-    runs-on: windows-2022
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore vcpkg cache
-        uses: actions/cache@v4
-        with:
-          path: C:/vcpkg-cache
-          key: vcpkg-win-x64-${{ hashFiles('vcpkg.json') }}-v3
-
-      - name: Setup vcpkg
+      - name: Install Qt6 via aqtinstall
         run: |
-          if (-not (Test-Path C:/vcpkg)) {
-            git clone --depth 1 https://github.com/Microsoft/vcpkg.git C:/vcpkg
-            C:/vcpkg/bootstrap-vcpkg.bat
-          }
-          if (Test-Path C:/vcpkg-cache) {
-            Copy-Item -Recurse C:/vcpkg-cache/* C:/vcpkg/ -ErrorAction SilentlyContinue
-          }
+          pip install aqtinstall
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m qtmultimedia -m qtsvg -O C:/Qt
 
       - name: Configure
         run: |
           cmake -B build -S . -G "Visual Studio 17 2022" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
-            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_PREFIX_PATH="C:/Qt/6.8.2/msvc2022_64"
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
-      - name: Save vcpkg cache
+      - name: windeployqt
         run: |
-          New-Item -ItemType Directory -Force C:/vcpkg-cache | Out-Null
-          Copy-Item -Recurse C:/vcpkg/packages C:/vcpkg-cache/packages
-          Copy-Item -Recurse C:/vcpkg/buildtrees C:/vcpkg-cache/buildtrees
-          Copy-Item -Recurse C:/vcpkg/downloads C:/vcpkg-cache/downloads
+          C:/Qt/6.8.2/msvc2022_64/bin/windeployqt build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RemiliaPet-win-x64
-          path: build/Release/RemiliaPet.exe
+          name: 蕾米埃尔桌宠_Qt6-win-x64
+          path: build/Release/
 
   # ═══════════════════════════════════════════════════════════════════
-  # Windows ARM64 — reserved for future aqtinstall ARM64 support
+  # Windows ARM64 — aqtinstall Qt6 (x64 host → ARM64 target)
   # ═══════════════════════════════════════════════════════════════════
   win-arm64:
     runs-on: windows-11-arm
@@ -60,29 +50,62 @@ jobs:
       - name: Install Qt6 via aqtinstall
         run: |
           pip install aqtinstall
-          aqt install-qt windows desktop 6.9.0 win64_msvc2022_64 -O C:/Qt
-          aqt install-qt windows desktop 6.9.0 win64_msvc2022_arm64 -m qtmultimedia -O C:/Qt
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -O C:/Qt
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_arm64 -m qtmultimedia -m qtsvg -O C:/Qt
 
       - name: Configure
         run: |
           cmake -B build -S . -G "Visual Studio 17 2022" -A ARM64 `
-            -DCMAKE_PREFIX_PATH="C:/Qt/6.9.0/msvc2022_arm64"
+            -DCMAKE_PREFIX_PATH="C:/Qt/6.8.2/msvc2022_arm64"
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
       - name: windeployqt
         run: |
-          C:/Qt/6.9.0/msvc2022_arm64/bin/windeployqt build/Release/RemiliaPet.exe --release --no-translations
+          C:/Qt/6.8.2/msvc2022_arm64/bin/windeployqt build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RemiliaPet-win-arm64
+          name: 蕾米埃尔桌宠_Qt6-win-arm64
           path: build/Release/
 
   # ═══════════════════════════════════════════════════════════════════
-  # macOS ARM64 — Homebrew Qt (avoids vcpkg libb2 compile failure)
+  # macOS x86_64 (Intel) — Homebrew Qt
+  # ═══════════════════════════════════════════════════════════════════
+  mac-x64:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6 via Homebrew
+        run: |
+          brew install ninja qt6
+          echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
+
+      - name: Configure
+        run: |
+          cmake -B build -S . -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Package .app with macdeployqt
+        run: |
+          ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
+          mkdir -p dist && mv build/蕾米埃尔桌宠_Qt6.app dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 蕾米埃尔桌宠_Qt6-mac-x64
+          path: dist/
+
+  # ═══════════════════════════════════════════════════════════════════
+  # macOS ARM64 (Apple Silicon) — Homebrew Qt
   # ═══════════════════════════════════════════════════════════════════
   mac-arm64:
     runs-on: macos-latest
@@ -105,16 +128,17 @@ jobs:
 
       - name: Package .app with macdeployqt
         run: |
-          ${{ env.QT_PATH }}/bin/macdeployqt build/RemiliaPet.app -verbose=1
+          ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
+          mkdir -p dist && mv build/蕾米埃尔桌宠_Qt6.app dist/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RemiliaPet-mac-arm64
-          path: build/RemiliaPet.app
+          name: 蕾米埃尔桌宠_Qt6-mac-arm64
+          path: dist/
 
   # ═══════════════════════════════════════════════════════════════════
-  # Linux x64 — apt Qt6 (~3 min)
+  # Linux x86_64 — apt Qt6
   # ═══════════════════════════════════════════════════════════════════
   linux-x64:
     runs-on: ubuntu-latest
@@ -142,11 +166,11 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RemiliaPet-linux-x64
-          path: build/RemiliaPet
+          name: 蕾米埃尔桌宠_Qt6-linux-x64
+          path: build/蕾米埃尔桌宠_Qt6
 
   # ═══════════════════════════════════════════════════════════════════
-  # Linux ARM64 — apt Qt6 (avoids vcpkg arm64-linux triplet issues)
+  # Linux ARM64 — apt Qt6
   # ═══════════════════════════════════════════════════════════════════
   linux-arm64:
     runs-on: ubuntu-24.04-arm
@@ -174,14 +198,14 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RemiliaPet-linux-arm64
-          path: build/RemiliaPet
+          name: 蕾米埃尔桌宠_Qt6-linux-arm64
+          path: build/蕾米埃尔桌宠_Qt6
 
   # ═══════════════════════════════════════════════════════════════════
   # Create GitHub Release on tag push
   # ═══════════════════════════════════════════════════════════════════
   release:
-    needs: [win-x64, win-arm64, mac-arm64, linux-x64, linux-arm64]
+    needs: [win-x64, win-arm64, mac-x64, mac-arm64, linux-x64, linux-arm64]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
@@ -189,17 +213,21 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: RemiliaPet-*
+          pattern: 蕾米埃尔桌宠_Qt6-*
           merge-multiple: true
 
-      - name: Package
+      - name: Package artifacts
         run: |
-          for dir in RemiliaPet-*; do
-            zip -r "${dir}.zip" "$dir"
+          for dir in 蕾米埃尔桌宠_Qt6-*; do
+            if [ -d "$dir" ]; then
+              zip -r "${dir}.zip" "$dir"
+            elif [ -f "$dir" ]; then
+              zip "${dir}.zip" "$dir"
+            fi
           done
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
-          files: RemiliaPet-*.zip
+          files: 蕾米埃尔桌宠_Qt6-*.zip
           draft: true

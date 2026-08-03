@@ -1,5 +1,5 @@
 ﻿cmake_minimum_required(VERSION 3.16)
-project(RemiliaPet VERSION 1.0.0 LANGUAGES CXX)
+project(蕾米埃尔桌宠_Qt6 VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -69,10 +69,10 @@ else()
     set(GUI_TYPE "")
 endif()
 
-add_executable(RemiliaPet ${GUI_TYPE} ${SOURCES})
+add_executable(蕾米埃尔桌宠_Qt6 ${GUI_TYPE} ${SOURCES})
 
 if(APPLE)
-    set_target_properties(RemiliaPet PROPERTIES
+    set_target_properties(蕾米埃尔桌宠_Qt6 PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.remilia.pet"
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -81,7 +81,7 @@ if(APPLE)
 endif()
 
 # ── Qt module linkage ───────────────────────────────────────────────
-target_link_libraries(RemiliaPet PRIVATE
+target_link_libraries(蕾米埃尔桌宠_Qt6 PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
@@ -92,12 +92,12 @@ target_link_libraries(RemiliaPet PRIVATE
 # ── Platform-specific system libraries (static builds) ──────────────
 if(STATIC_BUILD)
     if(WIN32)
-        target_link_libraries(RemiliaPet PRIVATE
+        target_link_libraries(蕾米埃尔桌宠_Qt6 PRIVATE
             ws2_32 version winmm secur32 ncrypt bcrypt
             dxguid strmiids mfuuid vfw32
         )
     elseif(APPLE)
-        target_link_libraries(RemiliaPet PRIVATE
+        target_link_libraries(蕾米埃尔桌宠_Qt6 PRIVATE
             "-framework AppKit"
             "-framework AudioToolbox"
             "-framework CoreAudio"
@@ -108,7 +108,7 @@ if(STATIC_BUILD)
             "-framework Security"
         )
     elseif(UNIX)
-        target_link_libraries(RemiliaPet PRIVATE
+        target_link_libraries(蕾米埃尔桌宠_Qt6 PRIVATE
             ${CMAKE_DL_LIBS}
         )
     endif()
@@ -122,7 +122,7 @@ if(DEFINED VCPKG_TARGET_TRIPLET)
 endif()
 
 # ── Install rules ───────────────────────────────────────────────────
-install(TARGETS RemiliaPet
+install(TARGETS 蕾米埃尔桌宠_Qt6
     BUNDLE  DESTINATION .
     RUNTIME DESTINATION .
 )
