@@ -1,0 +1,185 @@
+name: Cross-Platform Build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════
+  # Windows x64 Static — single EXE, zero dependencies
+  # ═══════════════════════════════════════════════════════════════════
+  win-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore vcpkg cache
+        uses: actions/cache@v4
+        with:
+          path: C:/vcpkg-cache
+          key: vcpkg-win-x64-${{ hashFiles('vcpkg.json') }}-v1
+
+      - name: Install vcpkg
+        run: |
+          if (-not (Test-Path C:/vcpkg)) {
+            git clone --depth 1 https://github.com/Microsoft/vcpkg.git C:/vcpkg
+            C:/vcpkg/bootstrap-vcpkg.bat
+          }
+          if (Test-Path C:/vcpkg-cache) {
+            Copy-Item -Recurse C:/vcpkg-cache/* C:/vcpkg/ -ErrorAction SilentlyContinue
+          }
+
+      - name: Configure
+        run: |
+          cmake -B build -S . -G "Visual Studio 17 2022" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Save vcpkg cache
+        run: |
+          New-Item -ItemType Directory -Force C:/vcpkg-cache | Out-Null
+          Copy-Item -Recurse C:/vcpkg/packages C:/vcpkg-cache/packages
+          Copy-Item -Recurse C:/vcpkg/buildtrees C:/vcpkg-cache/buildtrees
+          Copy-Item -Recurse C:/vcpkg/downloads C:/vcpkg-cache/downloads
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet-win-x64
+          path: build/Release/RemiliaPet.exe
+
+  # ═══════════════════════════════════════════════════════════════════
+  # macOS ARM64 — .app bundle (macos-latest is Apple Silicon)
+  # ═══════════════════════════════════════════════════════════════════
+  mac-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore vcpkg cache
+        uses: actions/cache@v4
+        with:
+          path: ~/vcpkg-cache
+          key: vcpkg-mac-arm64-${{ hashFiles('vcpkg.json') }}-v1
+
+      - name: Install vcpkg
+        run: |
+          if [ ! -d ~/vcpkg ]; then
+            git clone --depth 1 https://github.com/Microsoft/vcpkg.git ~/vcpkg
+            ~/vcpkg/bootstrap-vcpkg.sh
+          fi
+          if [ -d ~/vcpkg-cache ]; then
+            cp -R ~/vcpkg-cache/* ~/vcpkg/ 2>/dev/null || true
+          fi
+
+      - name: Configure
+        run: |
+          cmake -B build -S . -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DVCPKG_TARGET_TRIPLET=arm64-osx \
+            -DCMAKE_TOOLCHAIN_FILE="$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Save vcpkg cache
+        run: |
+          mkdir -p ~/vcpkg-cache
+          cp -R ~/vcpkg/packages ~/vcpkg-cache/ 2>/dev/null || true
+          cp -R ~/vcpkg/buildtrees ~/vcpkg-cache/ 2>/dev/null || true
+          cp -R ~/vcpkg/downloads ~/vcpkg-cache/ 2>/dev/null || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet-mac-arm64
+          path: build/RemiliaPet.app
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Linux x64 Static — single binary
+  # ═══════════════════════════════════════════════════════════════════
+  linux-x64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dev \
+            libxkbcommon-dev libxcb1-dev libxcb-icccm4-dev \
+            libxcb-image0-dev libxcb-keysyms1-dev \
+            libxcb-render-util0-dev libxcb-shape0-dev \
+            libxcb-xinerama0-dev libpulse-dev libasound2-dev
+
+      - name: Restore vcpkg cache
+        uses: actions/cache@v4
+        with:
+          path: ~/vcpkg-cache
+          key: vcpkg-linux-x64-${{ hashFiles('vcpkg.json') }}-v1
+
+      - name: Install vcpkg
+        run: |
+          if [ ! -d ~/vcpkg ]; then
+            git clone --depth 1 https://github.com/Microsoft/vcpkg.git ~/vcpkg
+            ~/vcpkg/bootstrap-vcpkg.sh
+          fi
+          if [ -d ~/vcpkg-cache ]; then
+            cp -R ~/vcpkg-cache/* ~/vcpkg/ 2>/dev/null || true
+          fi
+
+      - name: Configure
+        run: |
+          cmake -B build -S . -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DVCPKG_TARGET_TRIPLET=x64-linux \
+            -DCMAKE_TOOLCHAIN_FILE="$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Save vcpkg cache
+        run: |
+          mkdir -p ~/vcpkg-cache
+          cp -R ~/vcpkg/packages ~/vcpkg-cache/ 2>/dev/null || true
+          cp -R ~/vcpkg/buildtrees ~/vcpkg-cache/ 2>/dev/null || true
+          cp -R ~/vcpkg/downloads ~/vcpkg-cache/ 2>/dev/null || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet-linux-x64
+          path: build/RemiliaPet
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Create GitHub Release on tag push
+  # ═══════════════════════════════════════════════════════════════════
+  release:
+    needs: [win-x64, mac-arm64, linux-x64]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: RemiliaPet-*
+          merge-multiple: true
+
+      - name: Package
+        run: |
+          for dir in RemiliaPet-*; do
+            zip -r "${dir}.zip" "$dir"
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: RemiliaPet-*.zip
+          draft: true

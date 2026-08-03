@@ -1,0 +1,22 @@
+# Build directories
+build/
+build-*/
+out/
+
+# Built binaries
+*.exe
+
+# vcpkg
+vcpkg/
+vcpkg_installed/
+vcpkg-cache/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+# OS files
+.DS_Store
+Thumbs.db

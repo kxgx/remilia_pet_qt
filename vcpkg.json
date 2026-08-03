@@ -1,0 +1,20 @@
+{
+  "name": "remilia-pet",
+  "version": "1.0.0",
+  "dependencies": [
+    {
+      "name": "qtbase",
+      "default-features": false,
+      "features": ["gui", "widgets", "jpeg", "png", "network"]
+    },
+    {
+      "name": "qtmultimedia",
+      "default-features": false,
+      "features": ["ffmpeg"]
+    },
+    {
+      "name": "qtsvg",
+      "default-features": false
+    }
+  ]
+}
