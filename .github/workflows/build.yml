@@ -19,7 +19,7 @@ jobs:
       - name: Install Qt6 via aqtinstall
         run: |
           pip install aqtinstall
-          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m qtmultimedia -m qtsvg -O C:/Qt
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m qtmultimedia -m svg -O C:/Qt
 
       - name: Configure
         run: |
@@ -51,7 +51,7 @@ jobs:
         run: |
           pip install aqtinstall
           aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -O C:/Qt
-          aqt install-qt windows desktop 6.8.2 win64_msvc2022_arm64 -m qtmultimedia -m qtsvg -O C:/Qt
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_arm64 -m qtmultimedia -m svg -O C:/Qt
 
       - name: Configure
         run: |
