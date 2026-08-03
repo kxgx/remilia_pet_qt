@@ -1,4 +1,4 @@
-name: Dev Test — Linux (GStreamer + FUSE3)
+﻿name: Dev Test — Linux (GStreamer + FUSE3)
 
 on:
   workflow_dispatch:
@@ -38,7 +38,7 @@ jobs:
           Type=Application
           Name=Remilia Pet
           Comment=Remilia Pet Qt6
-          Exec=RemiliaPet
+          Exec=蕾米埃尔桌宠_Qt6
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
@@ -105,7 +105,7 @@ jobs:
           Type=Application
           Name=Remilia Pet
           Comment=Remilia Pet Qt6
-          Exec=RemiliaPet
+          Exec=蕾米埃尔桌宠_Qt6
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
@@ -171,7 +171,7 @@ jobs:
           Type=Application
           Name=Remilia Pet
           Comment=Remilia Pet Qt6
-          Exec=RemiliaPet
+          Exec=蕾米埃尔桌宠_Qt6
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
