@@ -8,27 +8,28 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ═══════════════════════════════════════════════════════════════════
-  # Windows x64 Static — single EXE (~40min first, ~5min cached)
+  # ── Windows x64 — vcpkg static single EXE (cached: ~5min after first)
   # ═══════════════════════════════════════════════════════════════════
   win-x64:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup vcpkg
+      - name: Restore vcpkg cache
+        uses: actions/cache@v4
+        with:
+          path: C:/vcpkg-cache
+          key: vcpkg-win-x64-${{ hashFiles('vcpkg.json') }}-v2
+
+      - name: Install vcpkg
         run: |
           if (-not (Test-Path C:/vcpkg)) {
             git clone --depth 1 https://github.com/Microsoft/vcpkg.git C:/vcpkg
             C:/vcpkg/bootstrap-vcpkg.bat
           }
-
-      - name: Restore vcpkg installed cache
-        id: cache-vcpkg
-        uses: actions/cache@v4
-        with:
-          path: build/vcpkg_installed
-          key: vcpkg-x64-windows-static-${{ hashFiles('vcpkg.json') }}-v1
+          if (Test-Path C:/vcpkg-cache) {
+            Copy-Item -Recurse C:/vcpkg-cache/* C:/vcpkg/ -ErrorAction SilentlyContinue
+          }
 
       - name: Configure
         run: |
@@ -39,6 +40,13 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --parallel
 
+      - name: Save vcpkg cache
+        run: |
+          New-Item -ItemType Directory -Force C:/vcpkg-cache | Out-Null
+          Copy-Item -Recurse C:/vcpkg/packages C:/vcpkg-cache/packages
+          Copy-Item -Recurse C:/vcpkg/buildtrees C:/vcpkg-cache/buildtrees
+          Copy-Item -Recurse C:/vcpkg/downloads C:/vcpkg-cache/downloads
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -46,7 +54,7 @@ jobs:
           path: build/Release/RemiliaPet.exe
 
   # ═══════════════════════════════════════════════════════════════════
-  # Windows ARM64 — native ARM64 Qt 6.9.0
+  # Windows ARM64 — reserved for future aqtinstall ARM64 support
   # ═══════════════════════════════════════════════════════════════════
   win-arm64:
     runs-on: windows-11-arm
