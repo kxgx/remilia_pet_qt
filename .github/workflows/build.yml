@@ -8,28 +8,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Windows x64 — vcpkg static single EXE (cached: ~5min after first)
+  # ── Windows x64 — vcpkg static single EXE (pre-built cache from Release)
   # ═══════════════════════════════════════════════════════════════════
   win-x64:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore vcpkg cache
-        uses: actions/cache@v4
-        with:
-          path: C:/vcpkg-cache
-          key: vcpkg-win-x64-${{ hashFiles('vcpkg.json') }}-v2
-
-      - name: Install vcpkg
+      - name: Setup vcpkg
         run: |
-          if (-not (Test-Path C:/vcpkg)) {
-            git clone --depth 1 https://github.com/Microsoft/vcpkg.git C:/vcpkg
-            C:/vcpkg/bootstrap-vcpkg.bat
-          }
-          if (Test-Path C:/vcpkg-cache) {
-            Copy-Item -Recurse C:/vcpkg-cache/* C:/vcpkg/ -ErrorAction SilentlyContinue
-          }
+          git clone --depth 1 https://github.com/Microsoft/vcpkg.git C:/vcpkg
+          C:/vcpkg/bootstrap-vcpkg.bat
+
+      - name: Download pre-built vcpkg cache
+        run: |
+          curl -L -o vcpkg-cache.7z `
+            https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-win-x64-static.7z
+          7z x vcpkg-cache.7z -oC:/vcpkg/ -y
 
       - name: Configure
         run: |
@@ -39,13 +34,6 @@ jobs:
 
       - name: Build
         run: cmake --build build --config Release --parallel
-
-      - name: Save vcpkg cache
-        run: |
-          New-Item -ItemType Directory -Force C:/vcpkg-cache | Out-Null
-          Copy-Item -Recurse C:/vcpkg/packages C:/vcpkg-cache/packages
-          Copy-Item -Recurse C:/vcpkg/buildtrees C:/vcpkg-cache/buildtrees
-          Copy-Item -Recurse C:/vcpkg/downloads C:/vcpkg-cache/downloads
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
