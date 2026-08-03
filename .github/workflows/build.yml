@@ -1,32 +1,31 @@
 name: Cross-Platform Build
 
 on:
-  push:
-    branches: [main, master]
-    tags: ['v*']
-  pull_request:
   workflow_dispatch:
 
 jobs:
-  # ── Windows x64 — vcpkg static single EXE (pre-built cache from Release)
+  # Windows x64 — vcpkg static single EXE (actions/cache)
   # ═══════════════════════════════════════════════════════════════════
   win-x64:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
+      - name: Restore vcpkg cache
+        uses: actions/cache@v4
+        with:
+          path: C:/vcpkg-cache
+          key: vcpkg-win-x64-${{ hashFiles('vcpkg.json') }}-v3
+
       - name: Setup vcpkg
         run: |
-          git clone --depth 1 https://github.com/Microsoft/vcpkg.git C:/vcpkg
-          C:/vcpkg/bootstrap-vcpkg.bat
-
-      - name: Download pre-built vcpkg cache
-        run: |
-          curl -L -o vcpkg-cache.7z.001 https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-cache.7z.001
-          curl -L -o vcpkg-cache.7z.002 https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-cache.7z.002
-          curl -L -o vcpkg-cache.7z.003 https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-cache.7z.003
-          curl -L -o vcpkg-cache.7z.004 https://github.com/kxgx/remilia_pet_qt/releases/download/vcpkg-cache/vcpkg-cache.7z.004
-          7z x vcpkg-cache.7z.001 -oC:/vcpkg/ -y
+          if (-not (Test-Path C:/vcpkg)) {
+            git clone --depth 1 https://github.com/Microsoft/vcpkg.git C:/vcpkg
+            C:/vcpkg/bootstrap-vcpkg.bat
+          }
+          if (Test-Path C:/vcpkg-cache) {
+            Copy-Item -Recurse C:/vcpkg-cache/* C:/vcpkg/ -ErrorAction SilentlyContinue
+          }
 
       - name: Configure
         run: |
@@ -36,6 +35,13 @@ jobs:
 
       - name: Build
         run: cmake --build build --config Release --parallel
+
+      - name: Save vcpkg cache
+        run: |
+          New-Item -ItemType Directory -Force C:/vcpkg-cache | Out-Null
+          Copy-Item -Recurse C:/vcpkg/packages C:/vcpkg-cache/packages
+          Copy-Item -Recurse C:/vcpkg/buildtrees C:/vcpkg-cache/buildtrees
+          Copy-Item -Recurse C:/vcpkg/downloads C:/vcpkg-cache/downloads
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
