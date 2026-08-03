@@ -40,69 +40,69 @@ jobs:
           path: build/Release/
 
   # ═══════════════════════════════════════════════════════════════════
-  # Windows ARM64 — aqtinstall Qt6 (x64 host → ARM64 target)
+  # [DISABLED] Windows ARM64 — aqtinstall 不提供 ARM64 的 Qt 包
   # ═══════════════════════════════════════════════════════════════════
-  win-arm64:
-    runs-on: windows-11-arm
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Qt6 via aqtinstall
-        run: |
-          pip install aqtinstall
-          aqt install-qt windows desktop 6.9.0 win64_msvc2022_64 -O C:/Qt
-          aqt install-qt windows desktop 6.9.0 win64_msvc2022_arm64 -m qtmultimedia -O C:/Qt
-
-      - name: Configure
-        run: |
-          cmake -B build -S . -G "Visual Studio 17 2022" -A ARM64 `
-            -DCMAKE_PREFIX_PATH="C:/Qt/6.9.0/win64_msvc2022_arm64"
-
-      - name: Build
-        run: cmake --build build --config Release --parallel
-
-      - name: windeployqt
-        run: |
-          C:/Qt/6.9.0/win64_msvc2022_arm64/bin/windeployqt build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: 蕾米埃尔桌宠_Qt6-win-arm64
-          path: build/Release/
+  # win-arm64:
+  #   runs-on: windows-11-arm
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Install Qt6 via aqtinstall
+  #       run: |
+  #         pip install aqtinstall
+  #         aqt install-qt windows desktop 6.9.0 win64_msvc2022_64 -O C:/Qt
+  #         aqt install-qt windows desktop 6.9.0 win64_msvc2022_arm64 -m qtmultimedia -O C:/Qt
+  #
+  #     - name: Configure
+  #       run: |
+  #         cmake -B build -S . -G "Visual Studio 17 2022" -A ARM64 `
+  #           -DCMAKE_PREFIX_PATH="C:/Qt/6.9.0/win64_msvc2022_arm64"
+  #
+  #     - name: Build
+  #       run: cmake --build build --config Release --parallel
+  #
+  #     - name: windeployqt
+  #       run: |
+  #         C:/Qt/6.9.0/win64_msvc2022_arm64/bin/windeployqt build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
+  #
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: 蕾米埃尔桌宠_Qt6-win-arm64
+  #         path: build/Release/
 
   # ═══════════════════════════════════════════════════════════════════
-  # macOS x86_64 (Intel) — Homebrew Qt
+  # [DISABLED] macOS x86_64 (Intel) — macos-13 runner 资源紧张，几乎无法调度
   # ═══════════════════════════════════════════════════════════════════
-  mac-x64:
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Qt6 via Homebrew
-        run: |
-          brew install ninja qt6
-          echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
-
-      - name: Configure
-        run: |
-          cmake -B build -S . -G "Ninja" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
-
-      - name: Build
-        run: cmake --build build --parallel
-
-      - name: Package .app with macdeployqt
-        run: |
-          ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
-          mkdir -p dist && mv build/蕾米埃尔桌宠_Qt6.app dist/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: 蕾米埃尔桌宠_Qt6-mac-x64
-          path: dist/
+  # mac-x64:
+  #   runs-on: macos-13
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Install Qt6 via Homebrew
+  #       run: |
+  #         brew install ninja qt6
+  #         echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
+  #
+  #     - name: Configure
+  #       run: |
+  #         cmake -B build -S . -G "Ninja" \
+  #           -DCMAKE_BUILD_TYPE=Release \
+  #           -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
+  #
+  #     - name: Build
+  #       run: cmake --build build --parallel
+  #
+  #     - name: Package .app with macdeployqt
+  #       run: |
+  #         ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
+  #         mkdir -p dist && mv build/蕾米埃尔桌宠_Qt6.app dist/
+  #
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: 蕾米埃尔桌宠_Qt6-mac-x64
+  #         path: dist/
 
   # ═══════════════════════════════════════════════════════════════════
   # macOS ARM64 (Apple Silicon) — Homebrew Qt
@@ -205,7 +205,7 @@ jobs:
   # Create GitHub Release on tag push
   # ═══════════════════════════════════════════════════════════════════
   release:
-    needs: [win-x64, win-arm64, mac-x64, mac-arm64, linux-x64, linux-arm64]
+    needs: [win-x64, mac-arm64, linux-x64, linux-arm64]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
