@@ -578,7 +578,7 @@ public:
         topBar->addWidget(m_closeBtn);
         m_imgLabel = new QLabel(this);
         m_imgLabel->setAlignment(Qt::AlignCenter);
-        m_textLabel = new QLabel(QString::fromUtf8("\u684C\u5BA0\u8BBE\u8BA1\u4F5C\u8005\uFF1Ab\u7AD9\u8BC9\u8BF4\u65B0\u8BED\uFF0C\u6B64\u684C\u5BA0\u4E3A\u514D\u8D39\u684C\u5BA0\n\u5982\u679C\u559C\u6B22\u8FD9\u4E2A\u684C\u5BA0\u7684\u8BDD\u8BB0\u5F97\u7ED9up\u70B9\u70B9\u5173\u6CE8\u54E6"), this);
+        m_textLabel = new QLabel(QString::fromUtf8("\u684C\u5BA0\u8BBE\u8BA1\u4F5C\u8005\uFF1Ab\u7AD9\u8BC9\u8BF4\u65B0\u8BED\uFF0C\u6B64\u684C\u5BA0\u4E3A\u514D\u8D39\u684C\u5BA0\n\u5982\u679C\u559C\u6B22\u8FD9\u4E2A\u684C\u5BA0\u7684\u8BDD\u8BB0\u5F97\u7ED9up\u70B9\u70B9\u5173\u6CE8\u54E6\n\u7531b\u7AD9\u661F\u5149-k\u4F7F\u7528AI\u5DE5\u5177\u79FB\u690D\u5E76\u4F18\u5316"), this);
         m_textLabel->setAlignment(Qt::AlignCenter);
         m_textLabel->setWordWrap(true);
         m_mainLayout->addLayout(topBar);
