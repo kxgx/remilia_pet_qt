@@ -1,18 +1,17 @@
-name: Dev Test — Linux FUSE3 兼容
+name: Dev Test — Linux (GStreamer + FUSE3)
 
 on:
   workflow_dispatch:
 
 jobs:
-  # ═══════════════════════════════════════════════════════════════════
-  # Linux x64 — 方案A: linuxdeploy (当前方案)
-  # ═══════════════════════════════════════════════════════════════════
+  # ===================================================================
+  # 方案A: linuxdeploy
+  # ===================================================================
   linux-legacy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install deps + Qt6
+      - name: Install deps + Qt6 + GStreamer
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -20,70 +19,65 @@ jobs:
             libxcb-image0-dev libxcb-keysyms1-dev \
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
-            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev
-
+            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
       - name: Configure + Build
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
           cmake --build build --parallel
-
       - name: Create AppImage (linuxdeploy)
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
-
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-
-          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'DESKTOPEOF'
+          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'EOF'
           [Desktop Entry]
           Type=Application
           Name=Remilia Pet
           Comment=Remilia Pet Qt6
-          Exec=蕾米埃尔桌宠_Qt6
+          Exec=RemiliaPet
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
-          DESKTOPEOF
-
+          EOF
           python3 -c "
-          import struct, zlib
-          w, h = 256, 256
-          raw = b''
+          import struct,zlib
+          w,h=256,256
+          raw=b''
           for y in range(h):
-              raw += b'\x00'
-              raw += b'\xff\x99\xcc\xff' * w
-          def chunk(t, d):
-              c = t + d
-              return struct.pack('>I', len(d)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
-          ihdr = struct.pack('>IIBBBBB', w, h, 8, 6, 0, 0, 0)
-          png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
-          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png', 'wb').write(png)
+            raw+=b'\x00'+b'\xff\x99\xcc\xff'*w
+          def c(t,d):
+            c2=t+d
+            return struct.pack('>I',len(d))+c2+struct.pack('>I',zlib.crc32(c2)&0xffffffff)
+          ih=struct.pack('>IIBBBBB',w,h,8,6,0,0,0)
+          png=b'\x89PNG\r\n\x1a\n'+c(b'IHDR',ih)+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b'')
+          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png','wb').write(png)
           "
-
+          export GST_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt --output appimage
+          cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
           mv Remilia_Pet-x86_64.AppImage RemiliaPet-linux-x64-legacy.AppImage
           ls -la *.AppImage
-
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: linux-legacy
           path: RemiliaPet-linux-x64-legacy.AppImage
 
-  # ═══════════════════════════════════════════════════════════════════
-  # Linux x64 — 方案B: appimagetool (FUSE3 兼容)
-  # ═══════════════════════════════════════════════════════════════════
+  # ===================================================================
+  # 方案B: appimagetool + GStreamer
+  # ===================================================================
   linux-fuse3:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install deps + Qt6
+      - name: Install deps + Qt6 + GStreamer
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -91,76 +85,66 @@ jobs:
             libxcb-image0-dev libxcb-keysyms1-dev \
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
-            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev
-
+            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
       - name: Configure + Build
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
           cmake --build build --parallel
-
-      - name: Create AppImage (appimagetool + new runtime)
+      - name: Create AppImage (appimagetool + GStreamer)
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-          wget -q https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
           chmod +x linuxdeploy*.AppImage appimagetool*.AppImage
-
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-
-          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'DESKTOPEOF'
+          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'EOF'
           [Desktop Entry]
           Type=Application
           Name=Remilia Pet
           Comment=Remilia Pet Qt6
-          Exec=蕾米埃尔桌宠_Qt6
+          Exec=RemiliaPet
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
-          DESKTOPEOF
-
+          EOF
           python3 -c "
-          import struct, zlib
-          w, h = 256, 256
-          raw = b''
+          import struct,zlib
+          w,h=256,256
+          raw=b''
           for y in range(h):
-              raw += b'\x00'
-              raw += b'\xff\x99\xcc\xff' * w
-          def chunk(t, d):
-              c = t + d
-              return struct.pack('>I', len(d)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
-          ihdr = struct.pack('>IIBBBBB', w, h, 8, 6, 0, 0, 0)
-          png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
-          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png', 'wb').write(png)
+            raw+=b'\x00'+b'\xff\x99\xcc\xff'*w
+          def c(t,d):
+            c2=t+d
+            return struct.pack('>I',len(d))+c2+struct.pack('>I',zlib.crc32(c2)&0xffffffff)
+          ih=struct.pack('>IIBBBBB',w,h,8,6,0,0,0)
+          png=b'\x89PNG\r\n\x1a\n'+c(b'IHDR',ih)+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b'')
+          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png','wb').write(png)
           "
-
-          # Step 1: linuxdeploy to bundle Qt into AppDir
+          export GST_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt
-
-          # Step 2: appimagetool with new FUSE3-compatible runtime
-          ARCH=x86_64 ./appimagetool-x86_64.AppImage --runtime-file runtime-x86_64 \
-            AppDir RemiliaPet-linux-x64-fuse3.AppImage
+          cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage AppDir RemiliaPet-linux-x64-fuse3.AppImage
           ls -la *.AppImage
-
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: linux-fuse3
           path: RemiliaPet-linux-x64-fuse3.AppImage
 
-  # ═══════════════════════════════════════════════════════════════════
-  # Linux x64 — 方案C: tar.gz (不需要 FUSE)
-  # ═══════════════════════════════════════════════════════════════════
+  # ===================================================================
+  # 方案C: tar.gz (不需要 FUSE)
+  # ===================================================================
   linux-targz:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install deps + Qt6
+      - name: Install deps + Qt6 + GStreamer
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -168,66 +152,60 @@ jobs:
             libxcb-image0-dev libxcb-keysyms1-dev \
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
-            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev
-
+            qt6-base-dev qt6-multimedia-dev libqt6svg6-dev \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
       - name: Configure + Build
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
           cmake --build build --parallel
-
       - name: Bundle + tar.gz
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
-
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-
-          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'DESKTOPEOF'
+          cat > AppDir/usr/share/applications/remilia-pet.desktop << 'EOF'
           [Desktop Entry]
           Type=Application
           Name=Remilia Pet
           Comment=Remilia Pet Qt6
-          Exec=蕾米埃尔桌宠_Qt6
+          Exec=RemiliaPet
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
-          DESKTOPEOF
-
+          EOF
           python3 -c "
-          import struct, zlib
-          w, h = 256, 256
-          raw = b''
+          import struct,zlib
+          w,h=256,256
+          raw=b''
           for y in range(h):
-              raw += b'\x00'
-              raw += b'\xff\x99\xcc\xff' * w
-          def chunk(t, d):
-              c = t + d
-              return struct.pack('>I', len(d)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
-          ihdr = struct.pack('>IIBBBBB', w, h, 8, 6, 0, 0, 0)
-          png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
-          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png', 'wb').write(png)
+            raw+=b'\x00'+b'\xff\x99\xcc\xff'*w
+          def c(t,d):
+            c2=t+d
+            return struct.pack('>I',len(d))+c2+struct.pack('>I',zlib.crc32(c2)&0xffffffff)
+          ih=struct.pack('>IIBBBBB',w,h,8,6,0,0,0)
+          png=b'\x89PNG\r\n\x1a\n'+c(b'IHDR',ih)+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b'')
+          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png','wb').write(png)
           "
-
+          export GST_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt
-
-          # Package as tar.gz instead of AppImage
+          cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
           mkdir -p dist/RemiliaPet
           cp -r AppDir/* dist/RemiliaPet/
           echo '#!/bin/bash' > dist/RemiliaPet/run.sh
           echo 'cd "$(dirname "$0")"' >> dist/RemiliaPet/run.sh
-          echo 'export LD_LIBRARY_PATH="./usr/lib:./usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"' >> dist/RemiliaPet/run.sh
+          echo 'export LD_LIBRARY_PATH="./usr/lib:./usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"' >> dist/RemiliaPet/run.sh
           echo 'export QT_PLUGIN_PATH="./usr/plugins"' >> dist/RemiliaPet/run.sh
-          echo 'export QML2_IMPORT_PATH="./usr/qml"' >> dist/RemiliaPet/run.sh
-          echo 'exec ./usr/bin/蕾米埃尔桌宠_Qt6 "$@"' >> dist/RemiliaPet/run.sh
+          echo 'export GST_PLUGIN_PATH="./usr/lib/gstreamer-1.0"' >> dist/RemiliaPet/run.sh
+          echo 'exec ./usr/bin/蕾米埃尔桌宠_Qt6 "\$@"' >> dist/RemiliaPet/run.sh
           chmod +x dist/RemiliaPet/run.sh
           tar -czf RemiliaPet-linux-x64.tar.gz -C dist RemiliaPet
           ls -la *.tar.gz
-
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
