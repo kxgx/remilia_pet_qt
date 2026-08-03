@@ -23,7 +23,5 @@ Q_IMPORT_PLUGIN(QFFmpegMediaPlugin)
 Q_IMPORT_PLUGIN(QGifPlugin)
 Q_IMPORT_PLUGIN(QICOPlugin)
 Q_IMPORT_PLUGIN(QJpegPlugin)
-Q_IMPORT_PLUGIN(QSvgPlugin)
-Q_IMPORT_PLUGIN(QSvgIconPlugin)
 
 #endif

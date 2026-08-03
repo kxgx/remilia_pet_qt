@@ -11,10 +11,6 @@
       "name": "qtmultimedia",
       "default-features": false,
       "features": ["ffmpeg"]
-    },
-    {
-      "name": "qtsvg",
-      "default-features": false
     }
   ]
 }

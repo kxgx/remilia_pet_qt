@@ -45,7 +45,7 @@ if(STATIC_BUILD AND DEFINED VCPKG_TARGET_TRIPLET)
 endif()
 
 # ── Qt packages ─────────────────────────────────────────────────────
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Multimedia Svg)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Multimedia)
 
 # ── Sources ─────────────────────────────────────────────────────────
 set(SOURCES
@@ -87,7 +87,6 @@ target_link_libraries(RemiliaPet PRIVATE
     Qt6::Gui
     Qt6::Widgets
     Qt6::Multimedia
-    Qt6::Svg
 )
 
 # ── Platform-specific system libraries (static builds) ──────────────
