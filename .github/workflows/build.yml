@@ -129,7 +129,6 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
-          mkdir -p dist
 
           # Create AppDir structure with .desktop file and icon
           mkdir -p AppDir/usr/share/applications
@@ -166,13 +165,16 @@ jobs:
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt --output appimage
-          mv *.AppImage dist/蕾米埃尔桌宠_Qt6-linux-x64.AppImage 2>/dev/null || true
+
+          # Rename linuxdeploy output to predictable name
+          mv 蕾米埃尔桌宠-x86_64.AppImage 蕾米埃尔桌宠_Qt6-linux-x64.AppImage
+          ls -la 蕾米埃尔桌宠_Qt6-linux-x64.AppImage
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-linux-x64
-          path: dist/
+          path: 蕾米埃尔桌宠_Qt6-linux-x64.AppImage
 
   # ═══════════════════════════════════════════════════════════════════
   # Linux ARM64 — apt Qt6 → AppImage
@@ -205,7 +207,6 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-aarch64.AppImage
           chmod +x linuxdeploy*.AppImage
-          mkdir -p dist
 
           # Create AppDir structure with .desktop file and icon
           mkdir -p AppDir/usr/share/applications
@@ -242,13 +243,16 @@ jobs:
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt --output appimage
-          mv *.AppImage dist/蕾米埃尔桌宠_Qt6-linux-arm64.AppImage 2>/dev/null || true
+
+          # Rename linuxdeploy output to predictable name
+          mv 蕾米埃尔桌宠-aarch64.AppImage 蕾米埃尔桌宠_Qt6-linux-arm64.AppImage
+          ls -la 蕾米埃尔桌宠_Qt6-linux-arm64.AppImage
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: 蕾米埃尔桌宠_Qt6-linux-arm64
-          path: dist/
+          path: 蕾米埃尔桌宠_Qt6-linux-arm64.AppImage
 
   # ═══════════════════════════════════════════════════════════════════
   # Create GitHub Release on tag push
