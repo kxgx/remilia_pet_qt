@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <QLabel>
 #include <QMovie>
@@ -107,6 +107,9 @@ private:
 
     // Stay on top
     bool m_stayOnTop = true;
+    QString m_fontFamily;
+    void applyFontPreference();
+    QString menuStylesheet(int fs, int pv, int ph, int mv, int mh, int br, int ibr, int mp, int bw, int smv, int smh);
 
     // Side windows (QPointer auto-nulls when widget is deleted)
     QPointer<QWidget> m_effectWindow;

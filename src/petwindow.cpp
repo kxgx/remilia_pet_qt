@@ -31,6 +31,7 @@
 #include <QColor>
 #include <QFont>
 #include <QRectF>
+#include <QSettings>
 
 static const QColor PINK(255, 141, 161);
 
@@ -653,6 +654,9 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     m_cardsDir = ":/cards/";
     m_drawingDir = ":/drawing/";
 
+    m_fontFamily = QSettings().value("fontFamily").toString();
+    applyFontPreference();
+
     preloadNativeSizes();
 
     m_audioOutput = new QAudioOutput(this);
@@ -868,14 +872,7 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     int bw = qMax(1, (int)(2 * m_scale));
     int smv = qMax(2, (int)(5 * m_scale));
     int smh = qMax(5, (int)(10 * m_scale));
-    menu.setStyleSheet(
-        QString("QMenu{background:#FF8DA1;border:%1px solid #fff;border-radius:%2px;padding:%3px 0;}"
-        "QMenu::item{background:transparent;color:#fff;font-size:%4px;font-weight:bold;padding:%5px %6px;margin:%7px %8px;border-radius:%9px;}"
-        "QMenu::item:selected{background:#FF6B8B;}"
-        "QMenu::item:disabled{color:#FFC0CB;}"
-        "QMenu::separator{height:1px;background:#fff;margin:%10px %11px;}")
-        .arg(bw).arg(br).arg(mp).arg(fs).arg(pv).arg(ph).arg(mv).arg(mh).arg(ibr).arg(smv).arg(smh)
-    );
+    menu.setStyleSheet(menuStylesheet(fs,pv,ph,mv,mh,br,ibr,mp,bw,smv,smh));
 
     QAction *drawAction = menu.addAction(QString::fromUtf8("\u2728 \u5E78\u8FD0\u62BD\u5361"));
     QAction *timerAction = menu.addAction(QString::fromUtf8("\u23F0 \u95F9\u949F\u8BA1\u65F6"));
@@ -888,6 +885,12 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
         drawingAction->setEnabled(false);
     }
 
+    menu.addSeparator();
+    QMenu *fontMenu = menu.addMenu("字体");
+    QAction *fontDefault = fontMenu->addAction("系统默认");
+    QAction *fontYaHei = fontMenu->addAction("微软雅黑");
+    fontDefault->setCheckable(true); fontYaHei->setCheckable(true);
+    if (m_fontFamily.isEmpty()) fontDefault->setChecked(true); else fontYaHei->setChecked(true);
     menu.addSeparator();
     QAction *topAction = menu.addAction(QString::fromUtf8("置顶显示"));
     topAction->setCheckable(true);
@@ -911,8 +914,36 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     else if (chosen == authorAction) startAuthorFeature();
     else if (chosen == topAction) toggleStayOnTop();
     else if (chosen == resetAction) resetScale();
+    else if (chosen == fontDefault) { m_fontFamily.clear(); QSettings s; s.setValue("fontFamily", ""); applyFontPreference(); }
+    else if (chosen == fontYaHei) { m_fontFamily = "Microsoft YaHei"; QSettings s; s.setValue("fontFamily", m_fontFamily); applyFontPreference(); }
     else if (chosen == hideAction) hide();
     else if (chosen == quitAction) qApp->exit(0);
+}
+
+QString DesktopPet::menuStylesheet(int fs, int pv, int ph, int mv, int mh, int br, int ibr, int mp, int bw, int smv, int smh) {
+    QString ff = m_fontFamily.isEmpty() ? QString() : QString("font-family:'%1';").arg(m_fontFamily);
+    return QString("QMenu{background:#FF8DA1;border:%1px solid #fff;border-radius:%2px;padding:%3px 0;}"
+        "QMenu::item{background:transparent;color:#fff;%4font-size:%5px;font-weight:bold;padding:%6px %7px;margin:%8px %9px;border-radius:%10px;}"
+        "QMenu::item:selected{background:#FF6B8B;}"
+        "QMenu::item:disabled{color:#FFC0CB;}"
+        "QMenu::separator{height:1px;background:#fff;margin:%11px %12px;}")
+        .arg(bw).arg(br).arg(mp).arg(ff).arg(fs).arg(pv).arg(ph).arg(mv).arg(mh).arg(ibr).arg(smv).arg(smh);
+}
+
+void DesktopPet::applyFontPreference() {
+    if (m_fontFamily.isEmpty()) {
+        QFont f; f.setBold(true); f.setStyleStrategy(QFont::PreferAntialias);
+        qApp->setFont(f);
+    } else {
+        QFont f(m_fontFamily, -1, QFont::Bold); f.setStyleStrategy(QFont::PreferAntialias);
+        qApp->setFont(f);
+    }
+    if (m_trayMenu) {
+        m_trayMenu->setStyleSheet(QString("QMenu{background:#FF8DA1;border:2px solid #fff;border-radius:10px;padding:6px 0;}"
+            "QMenu::item{background:transparent;color:#fff;%1font-size:15px;font-weight:bold;padding:8px 24px;margin:3px 6px;border-radius:5px;}"
+            "QMenu::item:selected{background:#FF6B8B;}")
+            .arg(m_fontFamily.isEmpty() ? QString() : QString("font-family:'%1';").arg(m_fontFamily)));
+    }
 }
 
 void DesktopPet::playSound(const QString &file, bool /*override*/) {
