@@ -316,24 +316,24 @@ public:
 
     void updateScaleAndPosition(float scale) {
         m_scale = scale;
-        int sw = qMax(50, (int)(250 * scale));
-        int sh = qMax(30, (int)(135 * scale));
+        int sw = qMax(50, (int)(350 * scale));
+        int sh = qMax(30, (int)(190 * scale));
         setFixedSize(sw, sh);
-        int pad = 8;
-        int mlr = qMax(2, (int)(8*scale)), mtb = qMax(2, (int)(6*scale));
+        int pad = 12;
+        int mlr = qMax(2, (int)(12*scale)), mtb = qMax(2, (int)(9*scale));
         m_mainLayout->setContentsMargins(pad+mlr, pad+mtb, pad+mlr, pad+mtb);
-        m_mainLayout->setSpacing(qMax(1, (int)(4*scale)));
-        int fs = qMax(6, (int)(13*scale));
+        m_mainLayout->setSpacing(qMax(1, (int)(6*scale)));
+        int fs = qMax(6, (int)(18*scale));
         m_titleLabel->setStyleSheet(QString("color: #FF8DA1; font-weight: bold; font-size: %1px;").arg(fs));
         m_minUnit->setStyleSheet(QString("color: #FF8DA1; font-weight: bold; font-size: %1px;").arg(fs));
         m_secUnit->setStyleSheet(QString("color: #FF8DA1; font-weight: bold; font-size: %1px;").arg(fs));
-        QString inputStyle = QString("QLineEdit{background:#222;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:2px;padding:%1px;font-size:%2px;font-weight:bold;}").arg(qMax(0,(int)(2*scale))).arg(fs);
+        QString inputStyle = QString("QLineEdit{background:#222;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:2px;padding:%1px;font-size:%2px;font-weight:bold;}").arg(qMax(0,(int)(3*scale))).arg(fs);
         m_minInput->setStyleSheet(inputStyle);
         m_secInput->setStyleSheet(inputStyle);
-        m_confirmBtn->setStyleSheet(QString("QPushButton{background:#FF8DA1;color:#111;border-radius:2px;font-weight:bold;font-size:%1px;padding:%2px;}QPushButton:hover{background:#FFA5B5;}").arg(fs).arg(qMax(1,(int)(4*scale))));
-        int bs = qMax(10, (int)(18*scale));
+        m_confirmBtn->setStyleSheet(QString("QPushButton{background:#FF8DA1;color:#111;border-radius:2px;font-weight:bold;font-size:%1px;padding:%2px;}QPushButton:hover{background:#FFA5B5;}").arg(fs).arg(qMax(1,(int)(6*scale))));
+        int bs = qMax(10, (int)(24*scale));
         m_closeBtn->setFixedSize(bs, bs);
-        m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#111;}").arg(bs/2).arg(qMax(6,(int)(10*scale))));
+        m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#111;}").arg(bs/2).arg(qMax(6,(int)(13*scale))));
         positionNearPet();
     }
 
@@ -497,13 +497,13 @@ public:
         int pad = 6;
         int mlr = qMax(2, (int)(6*scale)), mtb = qMax(2, (int)(6*scale));
         m_mainLayout->setContentsMargins(pad+mlr, pad+mtb, pad+mlr, pad+mtb);
-        m_mainLayout->setSpacing(qMax(1, (int)(4*scale)));
+        m_mainLayout->setSpacing(qMax(1, (int)(6*scale)));
         int fs = qMax(7, (int)(11*scale));
         m_volLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(fs));
         int bs = qMax(10, (int)(16*scale));
         m_closeBtn->setFixedSize(bs, bs);
         m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#111;}").arg(bs/2).arg(qMax(6,(int)(9*scale))));
-        int swd = qMax(8, (int)(12*scale)), hd = qMax(12, (int)(18*scale));
+        int swd = qMax(8, (int)(12*scale)), hd = qMax(12, (int)(24*scale));
         m_slider->setStyleSheet(QString("QSlider::groove:vertical{background:#222;border:1px solid #FF8DA1;width:%1px;border-radius:%2px;}QSlider::add-page:vertical{background:#FF8DA1;border-radius:%2px;}QSlider::handle:vertical{background:#FF8DA1;border:1px solid #fff;height:%3px;margin-left:-%4px;margin-right:-%4px;border-radius:%5px;}QSlider::handle:vertical:hover{background:#FFA5B5;}").arg(swd).arg(swd/2).arg(hd).arg(hd/4).arg(hd/2));
         positionNearPet();
     }
@@ -601,9 +601,9 @@ public:
         int sh = qMax(80, (int)(200 * scale));
         setFixedSize(sw, sh);
         int pad = 6;
-        int mlr = qMax(2, (int)(8*scale)), mtb = qMax(2, (int)(6*scale));
+        int mlr = qMax(2, (int)(12*scale)), mtb = qMax(2, (int)(9*scale));
         m_mainLayout->setContentsMargins(pad+mlr, pad+mtb, pad+mlr, pad+mtb);
-        m_mainLayout->setSpacing(qMax(1, (int)(4*scale)));
+        m_mainLayout->setSpacing(qMax(1, (int)(6*scale)));
         int bs = qMax(10, (int)(16*scale));
         m_closeBtn->setFixedSize(bs, bs);
         m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#fff;}").arg(bs/2).arg(qMax(6,(int)(9*scale))));
