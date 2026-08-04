@@ -35,6 +35,9 @@
 #include <QSettings>
 #include <QWidgetAction>
 #include <QActionGroup>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
 #include <QListWidget>
 
 static const QColor PINK(255, 141, 161);
@@ -978,6 +981,9 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     QAction *topAction = menu.addAction(QString::fromUtf8("\u7F6E\u9876\u663E\u793A"));
     topAction->setCheckable(true);
     topAction->setChecked(m_stayOnTop);
+    QAction *mouseAction = menu.addAction(QString::fromUtf8("\u9F20\u6807\u7A7F\u900F"));
+    mouseAction->setCheckable(true);
+    mouseAction->setChecked(m_mouseTransparent);
     QAction *resetAction = menu.addAction(QString::fromUtf8("重置大小 (100%)"));
     menu.addSeparator();
     QAction *hideAction = menu.addAction(QString::fromUtf8("隐藏桌宠"));
@@ -996,6 +1002,7 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     else if (chosen == volumeAction) startVolumeFeature();
     else if (chosen == authorAction) startAuthorFeature();
     else if (chosen == topAction) toggleStayOnTop();
+    else if (chosen == mouseAction) toggleMouseTransparent();
     else if (chosen == resetAction) resetScale();
     else if (chosen == fontDefault) {
         m_fontFamily.clear();
@@ -1168,6 +1175,10 @@ void DesktopPet::setupTrayIcon() {
     QAction *hideAction = m_trayMenu->addAction(QString::fromUtf8("隐藏桌面宠物"));
     connect(hideAction, &QAction::triggered, this, &DesktopPet::hide);
     m_trayMenu->addSeparator();
+    m_trayMouseAction = m_trayMenu->addAction(QString::fromUtf8("鼠标穿透"));
+    m_trayMouseAction->setCheckable(true);
+    connect(m_trayMouseAction, &QAction::triggered, this, &DesktopPet::toggleMouseTransparent);
+    m_trayMenu->addSeparator();
     QAction *quitAction = m_trayMenu->addAction(QString::fromUtf8("退出程序"));
     connect(quitAction, &QAction::triggered, qApp, []() { qApp->exit(0); });
     m_trayIcon->setContextMenu(m_trayMenu);
@@ -1178,6 +1189,24 @@ void DesktopPet::setupTrayIcon() {
         }
     });
     m_trayIcon->show();
+}
+
+void DesktopPet::toggleMouseTransparent() {
+    m_mouseTransparent = !m_mouseTransparent;
+    if (m_trayMouseAction) m_trayMouseAction->setChecked(m_mouseTransparent);
+
+    // ── Mouse transparency: cross-platform Qt + Windows native enhancement ──
+    setAttribute(Qt::WA_TransparentForMouseEvents, m_mouseTransparent);
+#ifdef Q_OS_WIN
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    if (m_mouseTransparent)
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+    else
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT);
+    SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+#endif
+    m_trayIcon->setToolTip(m_mouseTransparent ? QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0 (\u9F20\u6807\u7A7F\u900F)") : QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"));
 }
 
 void DesktopPet::toggleStayOnTop() {
