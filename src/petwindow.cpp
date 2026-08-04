@@ -134,7 +134,7 @@ private:
         canvas.fill(Qt::transparent);
         QPainter p(&canvas);
         p.setRenderHint(QPainter::Antialiasing);
-        QFont font("Microsoft YaHei", qMax(6, (int)(lh*0.08)), QFont::Bold);
+        QFont font; font.setPixelSize(qMax(6, (int)(lh*0.08))); font.setBold(true); font.setStyleStrategy(QFont::PreferAntialias);
         p.setFont(font);
         p.setPen(QColor(255,255,255));
         int textH = p.fontMetrics().height();
@@ -870,7 +870,7 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     int smh = qMax(5, (int)(10 * m_scale));
     menu.setStyleSheet(
         QString("QMenu{background:#FF8DA1;border:%1px solid #fff;border-radius:%2px;padding:%3px 0;}"
-        "QMenu::item{background:transparent;color:#fff;font-size:%4px;font-weight:bold;font-family:'Microsoft YaHei';padding:%5px %6px;margin:%7px %8px;border-radius:%9px;}"
+        "QMenu::item{background:transparent;color:#fff;font-size:%4px;font-weight:bold;padding:%5px %6px;margin:%7px %8px;border-radius:%9px;}"
         "QMenu::item:selected{background:#FF6B8B;}"
         "QMenu::item:disabled{color:#FFC0CB;}"
         "QMenu::separator{height:1px;background:#fff;margin:%10px %11px;}")
@@ -1045,7 +1045,7 @@ void DesktopPet::setupTrayIcon() {
     m_trayMenu = new QMenu();
     m_trayMenu->setStyleSheet(
         "QMenu{background:#FF8DA1;border:2px solid #fff;border-radius:10px;padding:6px 0;}"
-        "QMenu::item{background:transparent;color:#fff;font-size:15px;font-weight:bold;font-family:'Microsoft YaHei';padding:8px 24px;margin:3px 6px;border-radius:5px;}"
+        "QMenu::item{background:transparent;color:#fff;font-size:15px;font-weight:bold;padding:8px 24px;margin:3px 6px;border-radius:5px;}"
         "QMenu::item:selected{background:#FF6B8B;}"
     );
     QAction *showAction = m_trayMenu->addAction(QString::fromUtf8("显示桌面宠物"));
