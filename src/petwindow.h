@@ -108,6 +108,9 @@ private:
     // Stay on top
     bool m_stayOnTop = true;
     QString m_fontFamily;
+    int m_fontSize = -1;
+    bool m_fontBold = true;
+    QFont m_systemDefaultFont;
     void applyFontPreference();
     QString menuStylesheet(int fs, int pv, int ph, int mv, int mh, int br, int ibr, int mp, int bw, int smv, int smh);
 

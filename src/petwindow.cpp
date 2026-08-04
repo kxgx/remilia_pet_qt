@@ -30,8 +30,12 @@
 #include <QBrush>
 #include <QColor>
 #include <QFont>
+#include <QFontDatabase>
 #include <QRectF>
 #include <QSettings>
+#include <QWidgetAction>
+#include <QActionGroup>
+#include <QListWidget>
 
 static const QColor PINK(255, 141, 161);
 
@@ -654,7 +658,8 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     m_cardsDir = ":/cards/";
     m_drawingDir = ":/drawing/";
 
-    m_fontFamily = QSettings().value("fontFamily").toString();
+    m_fontFamily = QSettings().value("fontFamily").toString(); m_fontSize = QSettings().value("fontSize", -1).toInt(); m_fontBold = QSettings().value("fontBold", true).toBool();
+    m_systemDefaultFont = QApplication::font();
     applyFontPreference();
 
     preloadNativeSizes();
@@ -888,11 +893,89 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     menu.addSeparator();
     QMenu *fontMenu = menu.addMenu("字体");
     QAction *fontDefault = fontMenu->addAction("系统默认");
-    QAction *fontYaHei = fontMenu->addAction("微软雅黑");
-    fontDefault->setCheckable(true); fontYaHei->setCheckable(true);
-    if (m_fontFamily.isEmpty()) fontDefault->setChecked(true); else fontYaHei->setChecked(true);
+    fontDefault->setCheckable(true);
+    if (m_fontFamily.isEmpty()) fontDefault->setChecked(true);
+    fontMenu->addSeparator();
+    QWidgetAction *fontListAction = new QWidgetAction(fontMenu);
+    QListWidget *fontList = new QListWidget();
+    fontList->setMaximumHeight(qMax(150, (int)(350 * m_scale)));
+    fontList->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    fontList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    fontList->setStyleSheet(
+        QString("QListWidget{background:#FF8DA1;border:none;outline:none;}"
+                "QListWidget::item{color:#fff;font-weight:bold;font-size:%1px;"
+                "padding:%2px %3px;margin:%4px %5px;border-radius:%6px;}"
+                "QListWidget::item:hover{background:#FF6B8B;}"
+                "QScrollBar:vertical{width:6px;background:transparent;}"
+                "QScrollBar::handle:vertical{background:#fff;border-radius:3px;min-height:20px;}"
+                "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}")
+            .arg(fs).arg(pv).arg(ph).arg(mv).arg(mh).arg(ibr));
+    QFontDatabase fontDb;
+    QStringList commonCN = {"微软雅黑","宋体","黑体","楷体","仿宋","等线","新宋体","幼圆","隶书","华文楷体","华文宋体","华文仿宋","华文细黑","华文新魏","华文行楷","华文中宋","方正黑体","方正书宋","方正仿宋","方正楷体","方正隶书","方正姚体","方正舒体","思源黑体","思源宋体","Microsoft YaHei","SimSun","SimHei","KaiTi","FangSong","DengXian","NSimSun","YouYuan","LiSu","Noto Sans CJK SC","Noto Serif CJK SC"};
+    QStringList cjkCommon, cjkRest, other;
+    for (const QString &f : fontDb.families()) {
+        if (commonCN.contains(f)) { cjkCommon << f; continue; }
+        QList<QFontDatabase::WritingSystem> ws = fontDb.writingSystems(f);
+        bool isCJK = false;
+        for (auto w : ws) {
+            if (w == QFontDatabase::SimplifiedChinese || w == QFontDatabase::TraditionalChinese ||
+                w == QFontDatabase::Japanese || w == QFontDatabase::Korean)
+            { isCJK = true; break; }
+        }
+        if (isCJK) cjkRest << f; else other << f;
+    }
+    auto addHeader = [&](const QString &title) {
+        QListWidgetItem *h = new QListWidgetItem(title);
+        h->setFlags(Qt::NoItemFlags);
+        h->setForeground(QColor("#FFD0D8"));
+        h->setTextAlignment(Qt::AlignCenter);
+        fontList->addItem(h);
+    };
+    if (!cjkCommon.isEmpty()) { addHeader(QString::fromUtf8("\u2501\u2501 \u5E38\u7528\u4E2D\u6587\u5B57\u4F53 \u2501\u2501")); fontList->addItems(cjkCommon); }
+    if (!cjkRest.isEmpty())   { addHeader(QString::fromUtf8("\u2501\u2501 \u5176\u4ED6CJK\u5B57\u4F53 \u2501\u2501")); fontList->addItems(cjkRest); }
+    if (!other.isEmpty())     { addHeader(QString::fromUtf8("\u2501\u2501 \u5176\u4ED6\u5B57\u4F53 \u2501\u2501")); fontList->addItems(other); }
+    if (!m_fontFamily.isEmpty()) {
+        for (int i = 0; i < fontList->count(); i++) { QListWidgetItem *it = fontList->item(i); if ((it->flags() & Qt::ItemIsSelectable) && it->text() == m_fontFamily) { it->setSelected(true); break; } } //
+        
+    }
+    connect(fontList, &QListWidget::itemClicked, fontMenu, [fontMenu, this](QListWidgetItem *item) {
+        if (!(item->flags() & Qt::ItemIsSelectable)) return; m_fontFamily = item->text();
+        QSettings().setValue("fontFamily", m_fontFamily);
+        applyFontPreference();
+        fontMenu->close();
+    });
+    fontListAction->setDefaultWidget(fontList);
+    fontMenu->addAction(fontListAction);
+    QMenu *sizeSubMenu = menu.addMenu(QString::fromUtf8("\u5B57\u4F53\u5927\u5C0F"));
+    QWidgetAction *sizeSliderAction = new QWidgetAction(sizeSubMenu);
+    QWidget *sizeWidget = new QWidget();
+    QHBoxLayout *sizeLayout = new QHBoxLayout(sizeWidget);
+    int sm = qMax(2,(int)(6*m_scale));
+    sizeLayout->setContentsMargins(qMax(4,(int)(8*m_scale)),2,qMax(4,(int)(8*m_scale)),2);
+    sizeLayout->setSpacing(sm);
+    QSlider *sizeSlider = new QSlider(Qt::Horizontal); sizeSlider->setRange(8,36);
+    int initSize = (m_fontSize>0) ? m_fontSize : fs; sizeSlider->setValue(initSize);
+    sizeSlider->setStyleSheet(QString("QSlider::groove:horizontal{height:4px;background:#222;border:1px solid #FF8DA1;border-radius:2px;}QSlider::handle:horizontal{background:#FF8DA1;border:1px solid #fff;width:12px;margin:-4px 0;border-radius:6px;}"));
+    QLabel *sizeValue = new QLabel(QString("%1px").arg(initSize)); sizeValue->setStyleSheet(QString("color:#fff;font-weight:bold;font-size:%1px;min-width:32px;").arg(fs));
+    sizeLayout->addWidget(sizeSlider,1); sizeLayout->addWidget(sizeValue);
+    connect(sizeSlider, &QSlider::valueChanged, sizeSubMenu, [&menu, sizeSubMenu, fs, pv, ph, mv, mh, br, ibr, mp, bw, smv, smh, sizeValue, sizeWidget, this](int val) {
+        sizeValue->setText(QString("%1px").arg(val));
+        sizeValue->setStyleSheet(QString("color:#fff;font-weight:bold;font-size:%1px;min-width:32px;").arg(val));
+        m_fontSize = val;
+        QString ss = menuStylesheet(val,pv,ph,mv,mh,br,ibr,mp,bw,smv,smh);
+        menu.setStyleSheet(ss);
+        sizeSubMenu->setStyleSheet(ss);
+        applyFontPreference();
+    });
+    sizeSliderAction->setDefaultWidget(sizeWidget);
+    sizeSubMenu->addAction(sizeSliderAction);
+    QMenu *weightMenu = menu.addMenu(QString::fromUtf8("\u5B57\u4F53\u7C97\u7EC6"));
+    QActionGroup *weightGroup = new QActionGroup(weightMenu); weightGroup->setExclusive(true);
+    QAction *boldAct = weightMenu->addAction(QString::fromUtf8("\u7C97\u4F53")); boldAct->setCheckable(true); boldAct->setActionGroup(weightGroup);
+    QAction *normalAct = weightMenu->addAction(QString::fromUtf8("\u6B63\u5E38")); normalAct->setCheckable(true); normalAct->setActionGroup(weightGroup);
+    if (m_fontBold) boldAct->setChecked(true); else normalAct->setChecked(true);
     menu.addSeparator();
-    QAction *topAction = menu.addAction(QString::fromUtf8("置顶显示"));
+    QAction *topAction = menu.addAction(QString::fromUtf8("\u7F6E\u9876\u663E\u793A"));
     topAction->setCheckable(true);
     topAction->setChecked(m_stayOnTop);
     QAction *resetAction = menu.addAction(QString::fromUtf8("重置大小 (100%)"));
@@ -914,36 +997,37 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     else if (chosen == authorAction) startAuthorFeature();
     else if (chosen == topAction) toggleStayOnTop();
     else if (chosen == resetAction) resetScale();
-    else if (chosen == fontDefault) { m_fontFamily.clear(); QSettings s; s.setValue("fontFamily", ""); applyFontPreference(); }
-    else if (chosen == fontYaHei) { m_fontFamily = "Microsoft YaHei"; QSettings s; s.setValue("fontFamily", m_fontFamily); applyFontPreference(); }
+    else if (chosen == fontDefault) {
+        m_fontFamily.clear();
+        QSettings().setValue("fontFamily", "");
+        applyFontPreference();
+    }
+    else if (weightGroup->actions().contains(chosen)) {
+        m_fontBold = (chosen == boldAct);
+        QSettings().setValue("fontBold", m_fontBold);
+        applyFontPreference();
+    }
     else if (chosen == hideAction) hide();
     else if (chosen == quitAction) qApp->exit(0);
+    QSettings().setValue("fontSize", m_fontSize);
 }
 
 QString DesktopPet::menuStylesheet(int fs, int pv, int ph, int mv, int mh, int br, int ibr, int mp, int bw, int smv, int smh) {
     QString ff = m_fontFamily.isEmpty() ? QString() : QString("font-family:'%1';").arg(m_fontFamily);
     return QString("QMenu{background:#FF8DA1;border:%1px solid #fff;border-radius:%2px;padding:%3px 0;}"
-        "QMenu::item{background:transparent;color:#fff;%4font-size:%5px;font-weight:bold;padding:%6px %7px;margin:%8px %9px;border-radius:%10px;}"
+        "QMenu::item{background:transparent;color:#fff;%4font-size:%5px;font-weight:%13;padding:%6px %7px;margin:%8px %9px;border-radius:%10px;}"
         "QMenu::item:selected{background:#FF6B8B;}"
         "QMenu::item:disabled{color:#FFC0CB;}"
         "QMenu::separator{height:1px;background:#fff;margin:%11px %12px;}")
-        .arg(bw).arg(br).arg(mp).arg(ff).arg(fs).arg(pv).arg(ph).arg(mv).arg(mh).arg(ibr).arg(smv).arg(smh);
+        .arg(bw).arg(br).arg(mp).arg(ff).arg(m_fontSize > 0 ? m_fontSize : fs).arg(pv).arg(ph).arg(mv).arg(mh).arg(ibr).arg(smv).arg(smh).arg(m_fontBold ? "bold" : "normal");
 }
 
 void DesktopPet::applyFontPreference() {
-    if (m_fontFamily.isEmpty()) {
-        QFont f; f.setBold(true); f.setStyleStrategy(QFont::PreferAntialias);
-        qApp->setFont(f);
-    } else {
-        QFont f(m_fontFamily, -1, QFont::Bold); f.setStyleStrategy(QFont::PreferAntialias);
-        qApp->setFont(f);
-    }
-    if (m_trayMenu) {
-        m_trayMenu->setStyleSheet(QString("QMenu{background:#FF8DA1;border:2px solid #fff;border-radius:10px;padding:6px 0;}"
-            "QMenu::item{background:transparent;color:#fff;%1font-size:15px;font-weight:bold;padding:8px 24px;margin:3px 6px;border-radius:5px;}"
-            "QMenu::item:selected{background:#FF6B8B;}")
-            .arg(m_fontFamily.isEmpty() ? QString() : QString("font-family:'%1';").arg(m_fontFamily)));
-    }
+    QFont f = m_fontFamily.isEmpty() ? m_systemDefaultFont : QFont(m_fontFamily);
+    if (m_fontSize > 0) f.setPixelSize(m_fontSize);
+    f.setBold(m_fontBold);
+    f.setStyleStrategy(QFont::PreferAntialias);
+    qApp->setFont(f);
 }
 
 void DesktopPet::playSound(const QString &file, bool /*override*/) {
