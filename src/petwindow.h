@@ -56,6 +56,8 @@ private:
     void setState(State state);
     void manualPaintFrame(int frame);
     void applyScale();
+    void applyScaleGeometry();
+    void applyScaleRender();
     void resetScale();
     void playSound(const QString &file, bool override = true);
     void closeOtherSideWindows();

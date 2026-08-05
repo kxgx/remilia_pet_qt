@@ -772,6 +772,24 @@ void DesktopPet::applyScale() {
     if (m_movie) manualPaintFrame(m_movie->currentFrameNumber());
     updateSideWindowPositions();
 }
+void DesktopPet::applyScaleGeometry() {
+    if (!m_maxNativeSize.isValid()) return;
+    int oldRight = x() + width();
+    int cw = qMax(10, (int)(m_maxNativeSize.width() * m_scale));
+    int ch = qMax(10, (int)(m_maxNativeSize.height() * m_scale));
+    setFixedSize(cw, ch);
+    move(oldRight - cw, y());
+    QSize orig = m_nativeSizes.value(m_state);
+    if (orig.isValid() && orig.width() > 0) {
+        m_currentTargetSize = QSize(qMax(10, (int)(orig.width() * m_scale)),
+                                     qMax(10, (int)(orig.height() * m_scale)));
+    }
+}
+
+void DesktopPet::applyScaleRender() {
+    if (m_movie) manualPaintFrame(m_movie->currentFrameNumber());
+    updateSideWindowPositions();
+}
 
 void DesktopPet::resetScale() {
     playSound("reset.mp3");
@@ -853,12 +871,14 @@ void DesktopPet::wheelEvent(QWheelEvent *event) {
     float delta = event->angleDelta().y() / 1200.0f;
     m_scale = qBound(m_minScale, m_scale + delta, m_maxScale);
     event->accept();
+    applyScaleGeometry();
     if (!m_scaleTimer) {
         m_scaleTimer = new QTimer(this);
         m_scaleTimer->setSingleShot(true);
-        connect(m_scaleTimer, &QTimer::timeout, this, &DesktopPet::applyScale);
+        m_scaleTimer->setInterval(0);
+        connect(m_scaleTimer, &QTimer::timeout, this, &DesktopPet::applyScaleRender);
     }
-    m_scaleTimer->start(50);
+    m_scaleTimer->start();
 }
 
 void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
