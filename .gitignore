@@ -17,6 +17,10 @@ vcpkg-cache/
 *.user
 *.suo
 
+# Local dist
+portable.evb
+dist-static/
+
 # OS files
 .DS_Store
 Thumbs.db
