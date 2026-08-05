@@ -692,7 +692,7 @@ DesktopPet::~DesktopPet() {
 
 void DesktopPet::preloadNativeSizes() {
     QStringList files = {":/gif/idle.gif", ":/gif/click.gif", ":/gif/drag.gif", ":/gif/sleep.gif", ":/gif/draw.gif", ":/gif/result.gif"};
-    State stateEnums[] = {Idle, Click, Drag, Sleep, Result, Result};
+    State stateEnums[] = {Idle, Click, Drag, Sleep, Draw, Result};
     int maxW = 0, maxH = 0;
     for (int i = 0; i < 6; i++) {
         QMovie temp(files[i]);
