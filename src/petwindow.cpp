@@ -692,16 +692,16 @@ DesktopPet::~DesktopPet() {
 
 void DesktopPet::preloadNativeSizes() {
     QStringList files = {":/gif/idle.gif", ":/gif/click.gif", ":/gif/drag.gif", ":/gif/sleep.gif", ":/gif/draw.gif", ":/gif/result.gif"};
-    State stateEnums[] = {Idle, Click, Drag, Sleep, Draw, Result};
-    int maxW = 0, maxH = 0;
+    State stateEnums[] = {Idle, Click, Drag, Sleep, Result, Result};
+    int maxW = 0, maxH = 0, maxArea = 0;
     for (int i = 0; i < 6; i++) {
         QMovie temp(files[i]);
         temp.jumpToFrame(0);
         QSize sz = temp.frameRect().size();
         if (sz.isValid() && sz.width() > 0) {
             m_nativeSizes[stateEnums[i]] = sz;
-            if (sz.width() > maxW) maxW = sz.width();
-            if (sz.height() > maxH) maxH = sz.height();
+            int area = sz.width() * sz.height();
+            if (area > maxArea) { maxArea = area; maxW = sz.width(); maxH = sz.height(); }
         }
     }
     m_maxNativeSize = QSize(maxW, maxH);
