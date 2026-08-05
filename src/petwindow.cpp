@@ -732,6 +732,7 @@ void DesktopPet::setState(State state) {
     int ch = qMax(20, (int)(m_maxNativeSize.height() * m_scale));
     if (width() != cw || height() != ch) {
         int oldRight = x() + width();
+        cw = qMax(140, cw); ch = qMax(100, ch);
         setFixedSize(cw, ch);
         move(oldRight - cw, y());
     }
@@ -769,6 +770,7 @@ void DesktopPet::applyScale() {
     int oldRight = x() + width();
     int cw = qMax(20, (int)(m_maxNativeSize.width() * m_scale));
     int ch = qMax(20, (int)(m_maxNativeSize.height() * m_scale));
+    cw = qMax(140, cw); ch = qMax(100, ch);
     setFixedSize(cw, ch);
     move(oldRight - cw, y());
     QSize orig = m_nativeSizes.value(m_state);
@@ -786,6 +788,7 @@ void DesktopPet::applyScaleGeometry() {
     QSize orig = m_nativeSizes.value(m_state, m_maxNativeSize);
     int cw = qMax(60, (int)(orig.width() * m_scale));
     int ch = qMax(60, (int)(cw * orig.height() / orig.width()));
+    cw = qMax(140, cw); ch = qMax(100, ch);
     setFixedSize(cw, ch);
     move(cx - cw / 2, cy - ch / 2);
     if (orig.isValid() && orig.width() > 0) {
