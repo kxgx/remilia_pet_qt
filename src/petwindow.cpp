@@ -782,8 +782,8 @@ void DesktopPet::applyScaleGeometry() {
     if (!m_maxNativeSize.isValid()) return;
     int cx = x() + width() / 2;
     int cy = y() + height() / 2;
-    int cw = qMax(20, (int)(m_maxNativeSize.width() * m_scale));
-    int ch = qMax(20, (int)(m_maxNativeSize.height() * m_scale));
+    int cw = qMax(60, (int)(m_maxNativeSize.width() * m_scale));
+    int ch = qMax(60, (int)(m_maxNativeSize.height() * m_scale));
     setFixedSize(cw, ch);
     move(cx - cw / 2, cy - ch / 2);
     QSize orig = m_nativeSizes.value(m_state);

@@ -80,7 +80,7 @@ private:
     // State
     State m_state = Idle;
     float m_scale = 1.0f;
-    float m_minScale = 0.3f;
+    float m_minScale = 0.5f;
     float m_maxScale = 3.0f;
     QSize m_maxNativeSize;
     QMap<State, QSize> m_nativeSizes;
