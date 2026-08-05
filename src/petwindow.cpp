@@ -84,6 +84,8 @@ public:
         QSize native = m_movie->frameRect().size();
         if (native.isValid() && native.width() > 0) {
             int sw = qMax(20, (int)(native.width() * scale));
+            int maxW = m_pet->width() - 12;
+            if (sw > maxW) sw = maxW;
             int sh = qMax(20, (int)(sw * native.height() / native.width()));
             int pad = 6;
             setFixedSize(sw + pad * 2, sh + pad * 2);
@@ -213,6 +215,8 @@ public:
         QSize native = pix.size();
         if (native.width() > 0) {
             int sw = qMax(60, (int)(native.width() * 1.4 * m_scale));
+            int maxW = m_pet->width() - 12;
+            if (sw > maxW) sw = maxW;
             int sh = qMax(20, (int)(sw * native.height() / native.width()));
             int pad = 6;
             setFixedSize(sw + pad * 2, sh + pad * 2);
@@ -235,6 +239,8 @@ public:
                 QSize native = pix.size();
                 if (native.width() > 0) {
                     int sw = qMax(60, (int)(native.width() * 1.4 * m_scale));
+                    int maxW = m_pet->width() - 12;
+                    if (sw > maxW) sw = maxW;
                     int sh = qMax(20, (int)(sw * native.height() / native.width()));
                     int pad = 6;
                     setFixedSize(sw + pad * 2, sh + pad * 2);
