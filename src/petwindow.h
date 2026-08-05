@@ -100,6 +100,7 @@ private:
 
     // Idle timer
     QTimer *m_idleTimer = nullptr;
+    QTimer *m_scaleTimer = nullptr;
 
     // Tray
     QSystemTrayIcon *m_trayIcon = nullptr;

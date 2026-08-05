@@ -850,11 +850,15 @@ void DesktopPet::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void DesktopPet::wheelEvent(QWheelEvent *event) {
-    float delta = event->angleDelta().y() > 0 ? 0.05f : -0.05f;
+    float delta = event->angleDelta().y() / 1200.0f;
     m_scale = qBound(m_minScale, m_scale + delta, m_maxScale);
-    m_scale = round(m_scale * 100.0f) / 100.0f;
-    applyScale();
     event->accept();
+    if (!m_scaleTimer) {
+        m_scaleTimer = new QTimer(this);
+        m_scaleTimer->setSingleShot(true);
+        connect(m_scaleTimer, &QTimer::timeout, this, &DesktopPet::applyScale);
+    }
+    m_scaleTimer->start(50);
 }
 
 void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
