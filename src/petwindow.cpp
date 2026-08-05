@@ -83,17 +83,7 @@ public:
         m_scale = scale;
         QSize native = m_movie->frameRect().size();
         if (native.isValid() && native.width() > 0) {
-            // Use effective scale: never exceed the pet's current canvas size
-            float effScale = scale;
-            int petW = m_pet->width();
-            int petH = m_pet->height();
-            if (petW > 0 && petH > 0) {
-                float maxScaleW = (float)petW / (float)native.width();
-                float maxScaleH = (float)petH / (float)native.height();
-                float maxScale = qMin(maxScaleW, maxScaleH);
-                if (effScale > maxScale) effScale = maxScale;
-            }
-            int sw = qMax(20, (int)(native.width() * effScale));
+            int sw = qMax(20, (int)(native.width() * scale));
             int sh = qMax(20, (int)(sw * native.height() / native.width()));
             int pad = 6;
             setFixedSize(sw + pad * 2, sh + pad * 2);
