@@ -727,8 +727,8 @@ void DesktopPet::setState(State state) {
         m_movie = nullptr;
     }
 
-    int cw = qMax(10, (int)(m_maxNativeSize.width() * m_scale));
-    int ch = qMax(10, (int)(m_maxNativeSize.height() * m_scale));
+    int cw = qMax(20, (int)(m_maxNativeSize.width() * m_scale));
+    int ch = qMax(20, (int)(m_maxNativeSize.height() * m_scale));
     if (width() != cw || height() != ch) {
         int oldRight = x() + width();
         setFixedSize(cw, ch);
@@ -766,8 +766,8 @@ void DesktopPet::manualPaintFrame(int) {
 void DesktopPet::applyScale() {
     if (!m_maxNativeSize.isValid()) return;
     int oldRight = x() + width();
-    int cw = qMax(10, (int)(m_maxNativeSize.width() * m_scale));
-    int ch = qMax(10, (int)(m_maxNativeSize.height() * m_scale));
+    int cw = qMax(20, (int)(m_maxNativeSize.width() * m_scale));
+    int ch = qMax(20, (int)(m_maxNativeSize.height() * m_scale));
     setFixedSize(cw, ch);
     move(oldRight - cw, y());
     QSize orig = m_nativeSizes.value(m_state);
@@ -780,11 +780,12 @@ void DesktopPet::applyScale() {
 }
 void DesktopPet::applyScaleGeometry() {
     if (!m_maxNativeSize.isValid()) return;
-    int oldRight = x() + width();
-    int cw = qMax(10, (int)(m_maxNativeSize.width() * m_scale));
-    int ch = qMax(10, (int)(m_maxNativeSize.height() * m_scale));
+    int cx = x() + width() / 2;
+    int cy = y() + height() / 2;
+    int cw = qMax(20, (int)(m_maxNativeSize.width() * m_scale));
+    int ch = qMax(20, (int)(m_maxNativeSize.height() * m_scale));
     setFixedSize(cw, ch);
-    move(oldRight - cw, y());
+    move(cx - cw / 2, cy - ch / 2);
     QSize orig = m_nativeSizes.value(m_state);
     if (orig.isValid() && orig.width() > 0) {
         m_currentTargetSize = QSize(qMax(10, (int)(orig.width() * m_scale)),
