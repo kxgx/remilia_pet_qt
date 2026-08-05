@@ -782,14 +782,13 @@ void DesktopPet::applyScaleGeometry() {
     if (!m_maxNativeSize.isValid()) return;
     int cx = x() + width() / 2;
     int cy = y() + height() / 2;
-    int cw = qMax(60, (int)(m_maxNativeSize.width() * m_scale));
-    int ch = qMax(60, (int)(m_maxNativeSize.height() * m_scale));
+    QSize orig = m_nativeSizes.value(m_state, m_maxNativeSize);
+    int cw = qMax(60, (int)(orig.width() * m_scale));
+    int ch = qMax(60, (int)(cw * orig.height() / orig.width()));
     setFixedSize(cw, ch);
     move(cx - cw / 2, cy - ch / 2);
-    QSize orig = m_nativeSizes.value(m_state);
     if (orig.isValid() && orig.width() > 0) {
-        m_currentTargetSize = QSize(qMax(10, (int)(orig.width() * m_scale)),
-                                     qMax(10, (int)(orig.height() * m_scale)));
+        m_currentTargetSize = QSize(cw, ch);
     }
 }
 
