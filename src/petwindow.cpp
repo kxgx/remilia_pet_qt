@@ -662,6 +662,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     applyFontPreference();
 
     preloadNativeSizes();
+    setMinimumSize(140, 100);
 
     m_audioOutput = new QAudioOutput(this);
     m_audioOutput->setVolume(m_volume / 100.0f);
