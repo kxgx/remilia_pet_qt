@@ -656,7 +656,13 @@ private:
 // ========== DesktopPet ==========
 
 DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
+#ifdef Q_OS_MAC
+    // Qt::Tool on macOS causes transparent frameless windows to disappear when
+    // mouse transparency is enabled. Qt::Dialog avoids this issue.
+    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Dialog);
+#else
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
+#endif
     setAttribute(Qt::WA_TranslucentBackground);
 
     m_audioDir = QApplication::applicationDirPath() + "/../audio/";
@@ -1235,8 +1241,19 @@ void DesktopPet::toggleMouseTransparent() {
     else
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT);
     SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-// macOS: Qt::WA_TransparentForMouseEvents is sufficient (Qt 6.11 fixes this)
-// native setIgnoresMouseEvents: causes window to disappear
+#elif defined(Q_OS_MAC)
+    {
+        QWindow *win = windowHandle();
+        if (win) {
+            win->setFlag(Qt::WindowTransparentForInput, m_mouseTransparent);
+            // On macOS, hide/show is needed to apply the WindowTransparentForInput flag change
+            bool wasVisible = isVisible();
+            if (wasVisible) {
+                hide();
+                show();
+            }
+        }
+    }
 #elif defined(Q_OS_LINUX)
     {
         QWindow *win = windowHandle();
