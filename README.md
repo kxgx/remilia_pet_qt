@@ -19,6 +19,11 @@
 | Linux | x86_64 | archlinux:latest (容器) | pacman |
 | Linux | ARM64 | ubuntu-24.04-arm | apt (Arch .pkg.tar.zst) |
 
+> **为什么 Arch x64 和 ARM64 构建方式不同？**
+> Arch Linux 官方 Docker 镜像仅提供 md64 架构，没有 rm64/aarch64 版本。
+> 因此 ARM64 包在 Ubuntu ARM runner 上原生编译，再手动用 	ar --zstd 打包，
+> 最终 .pkg.tar.zst 产物与 x64 容器构建的完全一致。
+>
 > **已知限制**：
 > - **Windows ARM64**：aqtinstall 目前不提供 ARM64 架构的 Qt 预编译包，静态编译也因 vcpkg 的 `qtdeclarative` 依赖问题受阻
 
