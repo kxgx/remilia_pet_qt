@@ -37,6 +37,43 @@ jobs:
           path: dist/
 
   # ===================================================================
+  # macOS x64 (Intel)
+  # ===================================================================
+  mac-x64:
+    runs-on: macos-26-intel
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt6 via Homebrew
+        run: |
+          brew install ninja qt6
+          echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
+      - name: Configure
+        run: |
+          cmake -B build -S . -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Package .app with macdeployqt
+        run: |
+          ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          mkdir -p dist
+          create-dmg --volname "蕾米埃尔桌宠" --volicon icon.icns \
+            --window-pos 200 120 --window-size 500 360 \
+            --icon-size 100 --icon "蕾米埃尔桌宠_Qt6.app" 150 150 \
+            --hide-extension "蕾米埃尔桌宠_Qt6.app" \
+            --app-drop-link 350 150 \
+            "dist/RemiliaPet_Qt6-mac-x64.dmg" build/蕾米埃尔桌宠_Qt6.app/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet_Qt6-mac-x64
+          path: dist/
+
+  # ===================================================================
   # macOS ARM64
   # ===================================================================
   mac-arm64:
@@ -203,7 +240,7 @@ jobs:
   # Release
   # ===================================================================
   release:
-    needs: [win-x64, mac-arm64, linux-x64, linux-arm64]
+    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
