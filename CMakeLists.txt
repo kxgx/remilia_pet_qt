@@ -65,7 +65,6 @@ if(WIN32)
 elseif(APPLE)
     set(GUI_TYPE MACOSX_BUNDLE)
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
-    list(APPEND SOURCES icon.icns)
 else()
     set(GUI_TYPE "")
 endif()
@@ -79,6 +78,13 @@ if(APPLE)
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.remilia.pet"
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
+    )
+    # Explicitly copy icon into bundle Resources (more reliable than SOURCES list)
+    add_custom_command(TARGET RemiliaPet POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/icon.icns"
+        "$<TARGET_BUNDLE_CONTENT_DIR:RemiliaPet>/Resources/icon.icns"
+        COMMENT "Copying icon.icns to bundle Resources"
     )
 endif()
 
