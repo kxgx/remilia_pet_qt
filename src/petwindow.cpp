@@ -1231,12 +1231,16 @@ void DesktopPet::loadSettings() {
     // 2. Position after scale (avoids applyScale overwriting saved position)
     int sx = s.value("window/x", -1).toInt();
     int sy = s.value("window/y", -1).toInt();
-    if (sx >= 0 && sy >= 0) {
+    if (sx >= 0 || sy >= 0) {
         QScreen *sc = QApplication::primaryScreen();
         if (sc) {
             QRect avail = sc->availableGeometry();
-            if (sx >= 0 && sy >= 0 && sx < avail.right() - 50 && sy < avail.bottom() - 50)
-                move(sx, sy);
+            // Clamp to keep at least 50px visible, don't reject edge positions
+            int maxX = qMax(0, avail.right() - 50);
+            int maxY = qMax(0, avail.bottom() - 50);
+            sx = qBound(0, sx, maxX);
+            sy = qBound(0, sy, maxY);
+            move(sx, sy);
         }
     }
     // 3. Volume
