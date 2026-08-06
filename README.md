@@ -12,19 +12,19 @@
 | 平台 | 架构 | Runner | Qt 来源 |
 |------|------|--------|---------|
 | Windows | x64 | windows-2022 | aqtinstall |
+| macOS | x64 (Intel) | macos-26-intel | Homebrew |
 | macOS | ARM64 (Apple Silicon) | macos-latest | Homebrew |
 | Linux | x86_64 | ubuntu-latest | apt |
 | Linux | ARM64 | ubuntu-24.04-arm | apt |
 
 > **已知限制**：
 > - **Windows ARM64**：aqtinstall 目前不提供 ARM64 架构的 Qt 预编译包，静态编译也因 vcpkg 的 `qtdeclarative` 依赖问题受阻
-> - **macOS x86_64 (Intel)**：`macos-13` runner 资源极度紧张，几乎无法调度到，Apple 已全面转向 ARM
 
 ### 发布正式版
 
 推送 `v` 开头的标签（如 `v1.0.0`）自动触发全平台构建并创建 GitHub Release。也可在 Actions 页面手动触发。
 
-> 正式发布时手动上传 Windows x64 静态编译版本到 Release。
+> 正式发布时手动上传 Windows x64 静态编译版本（便携版 + 安装器）到 Release。
 
 ## 静态编译版本
 
