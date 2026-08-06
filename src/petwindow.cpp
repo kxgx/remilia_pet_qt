@@ -824,6 +824,7 @@ void DesktopPet::resetScale() {
     playSound("reset.mp3");
     m_scale = 1.0f;
     applyScale();
+    saveSettings();
 }
 
 void DesktopPet::updateSideWindowPositions() {
@@ -881,6 +882,7 @@ void DesktopPet::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton && m_dragging) {
         m_dragging = false;
         m_idleCounter = 0;
+        saveSettings();
         if (!m_isDrawingCard) {
             bool timerActive = m_timerWindow && m_timerWindow->isVisible();
             if (!timerActive && m_state == Drag) {
@@ -908,6 +910,7 @@ void DesktopPet::wheelEvent(QWheelEvent *event) {
         connect(m_scaleTimer, &QTimer::timeout, this, &DesktopPet::applyScaleRender);
     }
     m_scaleTimer->start();
+    saveSettings();
 }
 
 void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
@@ -1106,6 +1109,7 @@ void DesktopPet::playSound(const QString &file, bool /*override*/) {
 void DesktopPet::setGlobalVolume(int vol) {
     m_volume = vol;
     m_audioOutput->setVolume(vol / 100.0f);
+    saveSettings();
 }
 
 // ---------- Features ----------
@@ -1305,6 +1309,7 @@ void DesktopPet::toggleMouseTransparent() {
         }
     }
 #endif
+    saveSettings();
     if (m_trayIcon)
         m_trayIcon->setToolTip(m_mouseTransparent ? QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0 (\u9F20\u6807\u7A7F\u900F)") : QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"));
 }
@@ -1349,4 +1354,5 @@ void DesktopPet::toggleStayOnTop() {
     updateWindowFlag(m_drawingWindow);
     updateWindowFlag(m_volumeWindow);
     updateWindowFlag(m_authorWindow);
+    saveSettings();
 }
