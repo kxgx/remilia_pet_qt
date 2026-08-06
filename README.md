@@ -16,6 +16,7 @@
 | macOS | ARM64 (Apple Silicon) | macos-latest | Homebrew |
 | Linux | x86_64 | ubuntu-latest | apt |
 | Linux | ARM64 | ubuntu-24.04-arm | apt |
+| Linux | x86_64 | archlinux:latest (容器) | pacman |
 
 > **已知限制**：
 > - **Windows ARM64**：aqtinstall 目前不提供 ARM64 架构的 Qt 预编译包，静态编译也因 vcpkg 的 `qtdeclarative` 依赖问题受阻
@@ -81,7 +82,7 @@ macOS Gatekeeper 会拦截未签名应用，提示：
 5. 之后双击即可正常启动
 
 **方法二：终端解除隔离（所有版本通用）**
-```bash
+```
 # 拖入 .app 后执行
 xattr -d com.apple.quarantine /Applications/蕾米埃尔桌宠_Qt6.app
 # 然后双击打开
@@ -95,37 +96,23 @@ xattr -d com.apple.quarantine /Applications/蕾米埃尔桌宠_Qt6.app
 
 ## Linux 安装说明
 
-### 新版 Ubuntu (24.04+) 无法运行
+提供三种原生包 + 便携版，覆盖所有主流发行版：
 
-AppImage 依赖 `libfuse2`，Ubuntu 24.04 起默认只安装 FUSE3，导致 AppImage 无法挂载运行。
+| 发行版 | 包格式 | 安装命令 |
+|--------|--------|----------|
+| Debian / Ubuntu | `.deb` | `sudo dpkg -i RemiliaPet_Qt6-linux-x64.deb` |
+| Fedora / RHEL | `.rpm` | `sudo rpm -i RemiliaPet_Qt6-linux-x64.rpm` |
+| Arch / Manjaro | `.pkg.tar.zst` | `sudo pacman -U RemiliaPet_Qt6-linux-x64.pkg.tar.zst` |
+| 通用便携 | `.tar.gz` | `tar -xzf RemiliaPet_Qt6-linux-x64.tar.gz && ./AppRun` |
 
-```bash
-# 安装 libfuse2
-sudo apt install libfuse2
+安装后：
+- 命令行输入 `remilia-pet` 即可启动
+- 系统应用菜单中会出现"蕾米埃尔桌宠"图标
+- 开机自启已默认启用，取消：`sudo rm /etc/xdg/autostart/remilia-pet.desktop`
 
-# 赋予执行权限并运行
-chmod +x RemiliaPet_Qt6-linux-x64.AppImage
-./RemiliaPet_Qt6-linux-x64.AppImage
-```
+### 系统要求
 
-> 如果不想安装 FUSE2，也可以用 `--appimage-extract` 解压后直接运行：
-> ```bash
-> ./RemiliaPet_Qt6-linux-x64.AppImage --appimage-extract
-> ./squashfs-root/AppRun
-> ```
-
-### 为什么会这样？
-
-| 项 | 说明 |
-|------|------|
-| **签名方式** | ad-hoc 自签名（无证书） |
-| **公证状态** | 未公证 |
-| **影响** | Gatekeeper 拦截，需手动允许 |
-| **正式分发** | 需 Apple Developer Program（$99/年）+ Developer ID 证书 + 公证 |
-
-### Linux 无法运行？
-
-| 项 | 说明 |
-|------|------|
-| **原因** | Ubuntu 24.04+ 默认只安装 FUSE3，AppImage 需要 `libfuse2` 来挂载运行 |
-| **解决方案** | `sudo apt install libfuse2` 或使用 `--appimage-extract` 解压运行 |
+- **Debian/Ubuntu** ≥ 20.04（自动安装依赖）
+- **Fedora** ≥ 36
+- **Arch** 滚动更新（依赖系统 Qt6 包）
+- 其他发行版可用 `tar.gz` 便携版直接运行

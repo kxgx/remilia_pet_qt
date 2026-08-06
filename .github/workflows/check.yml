@@ -78,7 +78,12 @@ jobs:
           grep -q 'alien -r' .github/workflows/build.yml || { echo "FAIL: build.yml missing alien -r ( .rpm conversion)"; exit 1; }
           echo "OK: alien -r present"
 
-      - name: 12. 检查托盘提示为固定字符串
+      - name: 12. 检查 Arch Linux 打包 .pkg.tar.zst
+        run: |
+          grep -q 'pkg\.tar\.zst' .github/workflows/build.yml || { echo "FAIL: build.yml missing pkg.tar.zst (Arch package)"; exit 1; }
+          echo "OK: pkg.tar.zst packaging present"
+
+      - name: 13. 检查托盘提示为固定字符串
         run: |
           awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
           if grep -q 'setToolTip.*m_mouseTransparent\|m_mouseTransparent.*setToolTip' /tmp/mouse.txt; then
@@ -88,4 +93,4 @@ jobs:
           echo "OK: tray tooltip is fixed string"
 
       - name: 汇总
-        run: echo "✅ 全部 12 项约束检查通过"
+        run: echo "✅ 全部 13 项约束检查通过"
