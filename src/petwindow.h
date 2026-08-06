@@ -115,6 +115,8 @@ private:
     bool m_stayOnTop = true;
     bool m_mouseTransparent = false;
     void toggleMouseTransparent();
+    void applyMouseTransparent();
+    void applyStayOnTop();
     QAction *m_trayMouseAction = nullptr;
     QString m_fontFamily;
     int m_fontSize = -1;

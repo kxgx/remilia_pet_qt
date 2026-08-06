@@ -1217,10 +1217,18 @@ void DesktopPet::saveSettings() {
     s.setValue("globalVolume", m_volume);
     s.setValue("stayOnTop", m_stayOnTop);
     s.setValue("mouseTransparent", m_mouseTransparent);
+    s.sync();
 }
 
 void DesktopPet::loadSettings() {
     QSettings s;
+    // 1. Scale first — applyScale() may resize & shift position
+    float savedScale = s.value("window/scale", -1.0f).toFloat();
+    if (savedScale > 0.1f) {
+        m_scale = qBound(m_minScale, savedScale, m_maxScale);
+        applyScale();
+    }
+    // 2. Position after scale (avoids applyScale overwriting saved position)
     int sx = s.value("window/x", -1).toInt();
     int sy = s.value("window/y", -1).toInt();
     if (sx >= 0 && sy >= 0) {
@@ -1231,16 +1239,15 @@ void DesktopPet::loadSettings() {
                 move(sx, sy);
         }
     }
-    float savedScale = s.value("window/scale", -1.0f).toFloat();
-    if (savedScale > 0.1f) {
-        m_scale = qBound(m_minScale, savedScale, m_maxScale);
-        applyScale();
-    }
+    // 3. Volume
     m_volume = s.value("globalVolume", 80).toInt();
     m_audioOutput->setVolume(m_volume / 100.0f);
+    // 4. Stay on top — apply without toggling
     m_stayOnTop = s.value("stayOnTop", true).toBool();
+    applyStayOnTop();
+    // 5. Mouse transparent — apply without toggling (toggle would flip the value back!)
     m_mouseTransparent = s.value("mouseTransparent", false).toBool();
-    if (m_mouseTransparent) toggleMouseTransparent();
+    applyMouseTransparent();
 }
 
 void DesktopPet::setupTrayIcon() {
@@ -1277,6 +1284,11 @@ void DesktopPet::setupTrayIcon() {
 
 void DesktopPet::toggleMouseTransparent() {
     m_mouseTransparent = !m_mouseTransparent;
+    applyMouseTransparent();
+    saveSettings();
+}
+
+void DesktopPet::applyMouseTransparent() {
     if (m_trayMouseAction) m_trayMouseAction->setChecked(m_mouseTransparent);
 
     // Mouse transparency: cross-platform Qt + platform-native enhancement
@@ -1295,7 +1307,6 @@ void DesktopPet::toggleMouseTransparent() {
         QWindow *win = windowHandle();
         if (win) {
             win->setFlag(Qt::WindowTransparentForInput, m_mouseTransparent);
-            // On macOS, hide/show is needed to apply the WindowTransparentForInput flag change
             bool wasVisible = isVisible();
             if (wasVisible) {
                 hide();
@@ -1311,14 +1322,17 @@ void DesktopPet::toggleMouseTransparent() {
         }
     }
 #endif
-    saveSettings();
     if (m_trayIcon)
         m_trayIcon->setToolTip(m_mouseTransparent ? QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0 (\u9F20\u6807\u7A7F\u900F)") : QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"));
 }
 
 void DesktopPet::toggleStayOnTop() {
     m_stayOnTop = !m_stayOnTop;
+    applyStayOnTop();
+    saveSettings();
+}
 
+void DesktopPet::applyStayOnTop() {
 #ifdef Q_OS_WIN
     HWND hwnd = reinterpret_cast<HWND>(winId());
     SetWindowPos(hwnd, m_stayOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
@@ -1356,5 +1370,4 @@ void DesktopPet::toggleStayOnTop() {
     updateWindowFlag(m_drawingWindow);
     updateWindowFlag(m_volumeWindow);
     updateWindowFlag(m_authorWindow);
-    saveSettings();
 }

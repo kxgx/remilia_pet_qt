@@ -9,6 +9,8 @@
 int main(int argc, char *argv[]) {
     qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
     QApplication app(argc, argv);
+    app.setOrganizationName("RemiliaPet");
+    app.setApplicationName("RemiliaPet");
     qputenv("QT_QPA_PLATFORM_PLUGIN_PATH",
         (QCoreApplication::applicationDirPath() + "/platforms").toUtf8());
     app.addLibraryPath(QApplication::applicationDirPath());
