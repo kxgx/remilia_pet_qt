@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     if (nsapp) {
         id sharedApp = ((id (*)(Class, SEL))objc_msgSend)(nsapp, sel_registerName("sharedApplication"));
         // NSApplicationActivationPolicyAccessory = 1
-        ((void (*)(id, SEL, NSInteger))objc_msgSend)(sharedApp, sel_registerName("setActivationPolicy:"), 1);
+        ((void (*)(id, SEL, long))objc_msgSend)(sharedApp, sel_registerName("setActivationPolicy:"), 1L);
     }
 #endif
 
