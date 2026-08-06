@@ -1189,10 +1189,6 @@ void DesktopPet::closeEvent(QCloseEvent *event) {
 }
 
 void DesktopPet::setupTrayIcon() {
-    if (!QSystemTrayIcon::isSystemTrayAvailable()) {
-        qWarning("System tray not available on this platform");
-        return;
-    }
     m_trayIcon = new QSystemTrayIcon(this);
     m_trayIcon->setIcon(QIcon(":/icon.png"));
     m_trayIcon->setToolTip(QString::fromUtf8("蕾米埃尔桌宠"));
