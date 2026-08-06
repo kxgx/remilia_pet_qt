@@ -163,20 +163,27 @@ jobs:
             --plugin qt
           cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
           sed -i '2i export GST_PLUGIN_SYSTEM_PATH=' AppDir/AppRun
+          cat > AppDir/remilia-pet << 'LAUNCHER'
+          #!/bin/bash
+          export GST_PLUGIN_SYSTEM_PATH=
+          export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
+          exec /opt/remilia-pet/蕾米埃尔桌宠_Qt6 "$@"
+          LAUNCHER
+          chmod +x AppDir/remilia-pet
           # Build .deb
           DEB=deb-root
           mkdir -p $DEB/DEBIAN $DEB/opt/remilia-pet $DEB/usr/bin
           mkdir -p $DEB/usr/share/applications $DEB/usr/share/icons/hicolor/256x256/apps
           mkdir -p $DEB/etc/xdg/autostart
           cp -a AppDir/* $DEB/opt/remilia-pet/
-          ln -sf /opt/remilia-pet/AppRun $DEB/usr/bin/remilia-pet
+          ln -sf /opt/remilia-pet/remilia-pet $DEB/usr/bin/remilia-pet
           cp AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png $DEB/usr/share/icons/hicolor/256x256/apps/
           cat > $DEB/usr/share/applications/remilia-pet.desktop << 'DESKTOP'
           [Desktop Entry]
           Type=Application
           Name=蕾米埃尔桌宠
           Comment=桌面宠物
-          Exec=/opt/remilia-pet/AppRun
+          Exec=/opt/remilia-pet/remilia-pet
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
@@ -185,7 +192,7 @@ jobs:
           [Desktop Entry]
           Type=Application
           Name=蕾米埃尔桌宠
-          Exec=/opt/remilia-pet/AppRun
+          Exec=/opt/remilia-pet/remilia-pet
           Icon=remilia-pet
           X-GNOME-Autostart-enabled=true
           AUTOSTART
@@ -282,20 +289,27 @@ jobs:
             --plugin qt
           cp -r /usr/lib/aarch64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
           sed -i '2i export GST_PLUGIN_SYSTEM_PATH=' AppDir/AppRun
+          cat > AppDir/remilia-pet << 'LAUNCHER'
+          #!/bin/bash
+          export GST_PLUGIN_SYSTEM_PATH=
+          export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
+          exec /opt/remilia-pet/蕾米埃尔桌宠_Qt6 "$@"
+          LAUNCHER
+          chmod +x AppDir/remilia-pet
           # Build .deb
           DEB=deb-root
           mkdir -p $DEB/DEBIAN $DEB/opt/remilia-pet $DEB/usr/bin
           mkdir -p $DEB/usr/share/applications $DEB/usr/share/icons/hicolor/256x256/apps
           mkdir -p $DEB/etc/xdg/autostart
           cp -a AppDir/* $DEB/opt/remilia-pet/
-          ln -sf /opt/remilia-pet/AppRun $DEB/usr/bin/remilia-pet
+          ln -sf /opt/remilia-pet/remilia-pet $DEB/usr/bin/remilia-pet
           cp AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png $DEB/usr/share/icons/hicolor/256x256/apps/
           cat > $DEB/usr/share/applications/remilia-pet.desktop << 'DESKTOP'
           [Desktop Entry]
           Type=Application
           Name=蕾米埃尔桌宠
           Comment=桌面宠物
-          Exec=/opt/remilia-pet/AppRun
+          Exec=/opt/remilia-pet/remilia-pet
           Icon=remilia-pet
           Categories=Utility;
           Terminal=false
@@ -304,7 +318,7 @@ jobs:
           [Desktop Entry]
           Type=Application
           Name=蕾米埃尔桌宠
-          Exec=/opt/remilia-pet/AppRun
+          Exec=/opt/remilia-pet/remilia-pet
           Icon=remilia-pet
           X-GNOME-Autostart-enabled=true
           AUTOSTART
