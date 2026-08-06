@@ -1323,7 +1323,7 @@ void DesktopPet::applyMouseTransparent() {
     }
 #endif
     if (m_trayIcon)
-        m_trayIcon->setToolTip(m_mouseTransparent ? QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0 (\u9F20\u6807\u7A7F\u900F)") : QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"));
+        m_trayIcon->setToolTip(QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"));
 }
 
 void DesktopPet::toggleStayOnTop() {
