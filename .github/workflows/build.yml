@@ -138,12 +138,11 @@ jobs:
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
       - name: 编译
         run: cmake --build build --parallel
-      - name: 创建 AppImage + tar.gz
+      - name: 打包 .deb + .rpm + tar.gz
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x linuxdeploy*.AppImage appimagetool*.AppImage
+          chmod +x linuxdeploy*.AppImage
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
           cat > AppDir/usr/share/applications/remilia-pet.desktop << 'EOF'
@@ -164,22 +163,69 @@ jobs:
             --plugin qt
           cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
           sed -i '2i export GST_PLUGIN_SYSTEM_PATH=' AppDir/AppRun
-          ARCH=x86_64 ./appimagetool-x86_64.AppImage AppDir RemiliaPet_Qt6-linux-x64.AppImage
-          cat > RemiliaPet_Qt6-linux-x64.sh << 'LAUNCHER'
+          # Build .deb
+          DEB=deb-root
+          mkdir -p $DEB/DEBIAN $DEB/opt/remilia-pet $DEB/usr/bin
+          mkdir -p $DEB/usr/share/applications $DEB/usr/share/icons/hicolor/256x256/apps
+          mkdir -p $DEB/etc/xdg/autostart
+          cp -a AppDir/* $DEB/opt/remilia-pet/
+          ln -sf /opt/remilia-pet/AppRun $DEB/usr/bin/remilia-pet
+          cp AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png $DEB/usr/share/icons/hicolor/256x256/apps/
+          cat > $DEB/usr/share/applications/remilia-pet.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=蕾米埃尔桌宠
+          Comment=桌面宠物
+          Exec=/opt/remilia-pet/AppRun
+          Icon=remilia-pet
+          Categories=Utility;
+          Terminal=false
+          DESKTOP
+          cat > $DEB/etc/xdg/autostart/remilia-pet.desktop << 'AUTOSTART'
+          [Desktop Entry]
+          Type=Application
+          Name=蕾米埃尔桌宠
+          Exec=/opt/remilia-pet/AppRun
+          Icon=remilia-pet
+          X-GNOME-Autostart-enabled=true
+          AUTOSTART
+          cat > $DEB/DEBIAN/control << 'CONTROL'
+          Package: remilia-pet
+          Version: 1.0.7
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Depends: libc6, libgl1, libpulse0, libasound2
+          Maintainer: kxgx
+          Description: 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
+          CONTROL
+          cat > $DEB/DEBIAN/postinst << 'POSTINST'
           #!/bin/bash
-          cd "$(dirname "$(readlink -f "$0")")"
-          APPIMAGE_EXTRACT_AND_RUN=1 exec ./RemiliaPet_Qt6-linux-x64.AppImage "$@"
-          LAUNCHER
-          chmod +x RemiliaPet_Qt6-linux-x64.sh
+          set -e
+          echo "✅ 蕾米埃尔桌宠 已安装"
+          echo "   终端运行: remilia-pet"
+          echo "   开机自启已启用 (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
+          POSTINST
+          chmod 755 $DEB/DEBIAN/postinst
+          dpkg-deb --build $DEB RemiliaPet_Qt6-linux-x64.deb
+          # Convert to .rpm
+          sudo apt-get install -y alien
+          sudo alien -r --scripts RemiliaPet_Qt6-linux-x64.deb
+          mv remilia-pet-*.x86_64.rpm RemiliaPet_Qt6-linux-x64.rpm 2>/dev/null || true
+          ls -la *.rpm 2>/dev/null || true
+          # Build portable tar.gz
           tar -czf RemiliaPet_Qt6-linux-x64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-x64.*
-      - name: 上传 AppImage
+      - name: 上传 .deb
         uses: actions/upload-artifact@v4
         with:
-          name: RemiliaPet_Qt6-linux-x64
-          path: |
-            RemiliaPet_Qt6-linux-x64.AppImage
-            RemiliaPet_Qt6-linux-x64.sh
+          name: RemiliaPet_Qt6-linux-x64-deb
+          path: RemiliaPet_Qt6-linux-x64.deb
+      - name: 上传 .rpm
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet_Qt6-linux-x64-rpm
+          path: RemiliaPet_Qt6-linux-x64.rpm
       - name: 上传 tar.gz
         uses: actions/upload-artifact@v4
         with:
@@ -211,12 +257,11 @@ jobs:
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
       - name: 编译
         run: cmake --build build --parallel
-      - name: 创建 AppImage + tar.gz
+      - name: 打包 .deb + .rpm + tar.gz
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-aarch64.AppImage
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage
-          chmod +x linuxdeploy*.AppImage appimagetool*.AppImage
+          chmod +x linuxdeploy*.AppImage
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
           cat > AppDir/usr/share/applications/remilia-pet.desktop << 'EOF'
@@ -237,22 +282,69 @@ jobs:
             --plugin qt
           cp -r /usr/lib/aarch64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
           sed -i '2i export GST_PLUGIN_SYSTEM_PATH=' AppDir/AppRun
-          ARCH=aarch64 ./appimagetool-aarch64.AppImage AppDir RemiliaPet_Qt6-linux-arm64.AppImage
-          cat > RemiliaPet_Qt6-linux-arm64.sh << 'LAUNCHER'
+          # Build .deb
+          DEB=deb-root
+          mkdir -p $DEB/DEBIAN $DEB/opt/remilia-pet $DEB/usr/bin
+          mkdir -p $DEB/usr/share/applications $DEB/usr/share/icons/hicolor/256x256/apps
+          mkdir -p $DEB/etc/xdg/autostart
+          cp -a AppDir/* $DEB/opt/remilia-pet/
+          ln -sf /opt/remilia-pet/AppRun $DEB/usr/bin/remilia-pet
+          cp AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png $DEB/usr/share/icons/hicolor/256x256/apps/
+          cat > $DEB/usr/share/applications/remilia-pet.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=蕾米埃尔桌宠
+          Comment=桌面宠物
+          Exec=/opt/remilia-pet/AppRun
+          Icon=remilia-pet
+          Categories=Utility;
+          Terminal=false
+          DESKTOP
+          cat > $DEB/etc/xdg/autostart/remilia-pet.desktop << 'AUTOSTART'
+          [Desktop Entry]
+          Type=Application
+          Name=蕾米埃尔桌宠
+          Exec=/opt/remilia-pet/AppRun
+          Icon=remilia-pet
+          X-GNOME-Autostart-enabled=true
+          AUTOSTART
+          cat > $DEB/DEBIAN/control << 'CONTROL'
+          Package: remilia-pet
+          Version: 1.0.7
+          Section: utils
+          Priority: optional
+          Architecture: arm64
+          Depends: libc6, libgl1, libpulse0, libasound2
+          Maintainer: kxgx
+          Description: 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
+          CONTROL
+          cat > $DEB/DEBIAN/postinst << 'POSTINST'
           #!/bin/bash
-          cd "$(dirname "$(readlink -f "$0")")"
-          APPIMAGE_EXTRACT_AND_RUN=1 exec ./RemiliaPet_Qt6-linux-arm64.AppImage "$@"
-          LAUNCHER
-          chmod +x RemiliaPet_Qt6-linux-arm64.sh
+          set -e
+          echo "✅ 蕾米埃尔桌宠 已安装"
+          echo "   终端运行: remilia-pet"
+          echo "   开机自启已启用 (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
+          POSTINST
+          chmod 755 $DEB/DEBIAN/postinst
+          dpkg-deb --build $DEB RemiliaPet_Qt6-linux-arm64.deb
+          # Convert to .rpm
+          sudo apt-get install -y alien
+          sudo alien -r --scripts RemiliaPet_Qt6-linux-arm64.deb
+          mv remilia-pet-*.aarch64.rpm RemiliaPet_Qt6-linux-arm64.rpm 2>/dev/null || true
+          ls -la *.rpm 2>/dev/null || true
+          # Build portable tar.gz
           tar -czf RemiliaPet_Qt6-linux-arm64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-arm64.*
-      - name: 上传 AppImage
+      - name: 上传 .deb
         uses: actions/upload-artifact@v4
         with:
-          name: RemiliaPet_Qt6-linux-arm64
-          path: |
-            RemiliaPet_Qt6-linux-arm64.AppImage
-            RemiliaPet_Qt6-linux-arm64.sh
+          name: RemiliaPet_Qt6-linux-arm64-deb
+          path: RemiliaPet_Qt6-linux-arm64.deb
+      - name: 上传 .rpm
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet_Qt6-linux-arm64-rpm
+          path: RemiliaPet_Qt6-linux-arm64.rpm
       - name: 上传 tar.gz
         uses: actions/upload-artifact@v4
         with:

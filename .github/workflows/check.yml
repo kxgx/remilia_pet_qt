@@ -68,13 +68,17 @@ jobs:
           grep -q 'GST_PLUGIN_SYSTEM_PATH' .github/workflows/build.yml || { echo "FAIL: build.yml missing GST_PLUGIN_SYSTEM_PATH sed injection"; exit 1; }
           echo "OK: GST_PLUGIN_SYSTEM_PATH in AppRun"
 
-      - name: 10. 检查 AppImage 启动脚本包含 APPIMAGE_EXTRACT_AND_RUN
+      - name: 10. 检查 Linux CI 使用 dpkg-deb 打包 .deb
         run: |
-          grep -q 'APPIMAGE_EXTRACT_AND_RUN' .github/workflows/build.yml || { echo "FAIL: build.yml missing APPIMAGE_EXTRACT_AND_RUN launcher script"; exit 1; }
-          echo "OK: launcher script with APPIMAGE_EXTRACT_AND_RUN present"
+          grep -q 'dpkg-deb --build' .github/workflows/build.yml || { echo "FAIL: build.yml missing dpkg-deb --build ( .deb packaging)"; exit 1; }
+          echo "OK: dpkg-deb --build present"
 
-      # ============ 代码规范 ============
-      - name: 11. 检查托盘提示为固定字符串
+      - name: 11. 检查 Linux CI 使用 alien 转换 .rpm
+        run: |
+          grep -q 'alien -r' .github/workflows/build.yml || { echo "FAIL: build.yml missing alien -r ( .rpm conversion)"; exit 1; }
+          echo "OK: alien -r present"
+
+      - name: 12. 检查托盘提示为固定字符串
         run: |
           awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
           if grep -q 'setToolTip.*m_mouseTransparent\|m_mouseTransparent.*setToolTip' /tmp/mouse.txt; then
@@ -84,4 +88,4 @@ jobs:
           echo "OK: tray tooltip is fixed string"
 
       - name: 汇总
-        run: echo "✅ 全部 11 项约束检查通过"
+        run: echo "✅ 全部 12 项约束检查通过"
