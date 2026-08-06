@@ -68,8 +68,13 @@ jobs:
           grep -q 'GST_PLUGIN_SYSTEM_PATH' .github/workflows/build.yml || { echo "FAIL: build.yml missing GST_PLUGIN_SYSTEM_PATH sed injection"; exit 1; }
           echo "OK: GST_PLUGIN_SYSTEM_PATH in AppRun"
 
+      - name: 10. 检查 AppImage 启动脚本包含 APPIMAGE_EXTRACT_AND_RUN
+        run: |
+          grep -q 'APPIMAGE_EXTRACT_AND_RUN' .github/workflows/build.yml || { echo "FAIL: build.yml missing APPIMAGE_EXTRACT_AND_RUN launcher script"; exit 1; }
+          echo "OK: launcher script with APPIMAGE_EXTRACT_AND_RUN present"
+
       # ============ 代码规范 ============
-      - name: 10. 检查托盘提示为固定字符串
+      - name: 11. 检查托盘提示为固定字符串
         run: |
           awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
           if grep -q 'setToolTip.*m_mouseTransparent\|m_mouseTransparent.*setToolTip' /tmp/mouse.txt; then
@@ -77,11 +82,6 @@ jobs:
             exit 1
           fi
           echo "OK: tray tooltip is fixed string"
-
-      - name: 11. 检查 AppImage 注入 APPIMAGE_EXTRACT_AND_RUN
-        run: |
-          grep -q 'APPIMAGE_EXTRACT_AND_RUN' .github/workflows/build.yml || { echo "FAIL: build.yml missing APPIMAGE_EXTRACT_AND_RUN sed injection"; exit 1; }
-          echo "OK: APPIMAGE_EXTRACT_AND_RUN in AppRun"
 
       - name: 汇总
         run: echo "✅ 全部 11 项约束检查通过"

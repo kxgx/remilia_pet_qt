@@ -164,15 +164,22 @@ jobs:
             --plugin qt
           cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
           sed -i '2i export GST_PLUGIN_SYSTEM_PATH=' AppDir/AppRun
-          sed -i '2i export APPIMAGE_EXTRACT_AND_RUN=1' AppDir/AppRun
           ARCH=x86_64 ./appimagetool-x86_64.AppImage AppDir RemiliaPet_Qt6-linux-x64.AppImage
+          cat > RemiliaPet_Qt6-linux-x64.sh << 'LAUNCHER'
+#!/bin/bash
+cd "$(dirname "$(readlink -f "$0")")"
+APPIMAGE_EXTRACT_AND_RUN=1 exec ./RemiliaPet_Qt6-linux-x64.AppImage "$@"
+LAUNCHER
+          chmod +x RemiliaPet_Qt6-linux-x64.sh
           tar -czf RemiliaPet_Qt6-linux-x64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-x64.*
       - name: 上传 AppImage
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet_Qt6-linux-x64
-          path: RemiliaPet_Qt6-linux-x64.AppImage
+          path: |
+            RemiliaPet_Qt6-linux-x64.AppImage
+            RemiliaPet_Qt6-linux-x64.sh
       - name: 上传 tar.gz
         uses: actions/upload-artifact@v4
         with:
@@ -230,15 +237,22 @@ jobs:
             --plugin qt
           cp -r /usr/lib/aarch64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
           sed -i '2i export GST_PLUGIN_SYSTEM_PATH=' AppDir/AppRun
-          sed -i '2i export APPIMAGE_EXTRACT_AND_RUN=1' AppDir/AppRun
           ARCH=aarch64 ./appimagetool-aarch64.AppImage AppDir RemiliaPet_Qt6-linux-arm64.AppImage
+          cat > RemiliaPet_Qt6-linux-arm64.sh << 'LAUNCHER'
+#!/bin/bash
+cd "$(dirname "$(readlink -f "$0")")"
+APPIMAGE_EXTRACT_AND_RUN=1 exec ./RemiliaPet_Qt6-linux-arm64.AppImage "$@"
+LAUNCHER
+          chmod +x RemiliaPet_Qt6-linux-arm64.sh
           tar -czf RemiliaPet_Qt6-linux-arm64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-arm64.*
       - name: 上传 AppImage
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet_Qt6-linux-arm64
-          path: RemiliaPet_Qt6-linux-arm64.AppImage
+          path: |
+            RemiliaPet_Qt6-linux-arm64.AppImage
+            RemiliaPet_Qt6-linux-arm64.sh
       - name: 上传 tar.gz
         uses: actions/upload-artifact@v4
         with:
