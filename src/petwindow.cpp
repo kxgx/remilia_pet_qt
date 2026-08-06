@@ -42,6 +42,7 @@
 #ifdef Q_OS_MAC
 #include <objc/objc.h>
 #include <objc/message.h>
+#include <CoreGraphics/CoreGraphics.h>
 #endif
 #include <QListWidget>
 
@@ -1347,7 +1348,7 @@ void DesktopPet::applyStayOnTop() {
         if (nsview) {
             id window = ((id (*)(id, SEL))objc_msgSend)((id)nsview, sel_registerName("window"));
             if (window) {
-                long level = m_stayOnTop ? 5 : 0;
+                long level = m_stayOnTop ? (long)CGWindowLevelForKey(kCGOverlayWindowLevelKey) : (long)CGWindowLevelForKey(kCGNormalWindowLevelKey);
                 ((void (*)(id, SEL, long))objc_msgSend)(window, sel_registerName("setLevel:"), level);
             }
         }
