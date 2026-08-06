@@ -116,6 +116,52 @@ xattr -d com.apple.quarantine /Applications/蕾米埃尔桌宠_Qt6.app
 - 系统应用菜单中会出现"蕾米埃尔桌宠"图标
 - 开机自启已默认启用，取消：`sudo rm /etc/xdg/autostart/remilia-pet.desktop`
 
+### 安装方式
+
+#### Debian / Ubuntu（.deb）
+
+```bash
+# 安装
+sudo dpkg -i RemiliaPet_Qt6-linux-x64.deb
+# 如有缺失依赖，自动修复
+sudo apt-get install -f
+```
+
+安装后立即启用开机自启，取消：`sudo rm /etc/xdg/autostart/remilia-pet.desktop`
+卸载：`sudo dpkg --purge remilia-pet`
+
+#### Fedora / RHEL（.rpm）
+
+```bash
+# 安装（推荐 dnf，自动解析依赖）
+sudo dnf install RemiliaPet_Qt6-linux-x64.rpm
+# 或用 rpm 原生命令
+sudo rpm -i RemiliaPet_Qt6-linux-x64.rpm
+```
+
+卸载：`sudo dnf remove remilia-pet`
+
+#### Arch / Manjaro（.pkg.tar.zst）
+
+```bash
+# 先确保系统有 Qt6 依赖
+sudo pacman -S qt6-base qt6-multimedia qt6-svg qt6-wayland \
+               gst-plugins-base gst-plugins-good gst-plugins-bad
+# 安装
+sudo pacman -U RemiliaPet_Qt6-linux-x64.pkg.tar.zst
+```
+
+卸载：`sudo pacman -R remilia-pet`
+
+#### 便携版（tar.gz）
+
+```bash
+tar -xzf RemiliaPet_Qt6-linux-x64.tar.gz
+cd 解压目录 && ./AppRun
+```
+
+无需安装，适用任何 Linux 发行版。需要系统已安装 Qt6 运行时库。
+
 ### 系统要求
 
 - **Debian/Ubuntu** ≥ 20.04（自动安装依赖）
