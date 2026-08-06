@@ -78,5 +78,10 @@ jobs:
           fi
           echo "OK: tray tooltip is fixed string"
 
+      - name: 11. 检查 AppImage 注入 APPIMAGE_EXTRACT_AND_RUN
+        run: |
+          grep -q 'APPIMAGE_EXTRACT_AND_RUN' .github/workflows/build.yml || { echo "FAIL: build.yml missing APPIMAGE_EXTRACT_AND_RUN sed injection"; exit 1; }
+          echo "OK: APPIMAGE_EXTRACT_AND_RUN in AppRun"
+
       - name: 汇总
-        run: echo "✅ 全部 10 项约束检查通过"
+        run: echo "✅ 全部 11 项约束检查通过"
