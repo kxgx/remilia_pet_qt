@@ -1235,16 +1235,8 @@ void DesktopPet::toggleMouseTransparent() {
     else
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT);
     SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-#elif defined(Q_OS_MAC)
-    {
-        void *nsview = reinterpret_cast<void *>(winId());
-        if (nsview) {
-            id window = ((id (*)(id, SEL))objc_msgSend)((id)nsview, sel_registerName("window"));
-            if (window) {
-                ((void (*)(id, SEL, BOOL))objc_msgSend)(window, sel_registerName("setIgnoresMouseEvents:"), m_mouseTransparent ? YES : NO);
-            }
-        }
-    }
+// macOS: Qt::WA_TransparentForMouseEvents is sufficient (Qt 6.11 fixes this)
+// native setIgnoresMouseEvents: causes window to disappear
 #elif defined(Q_OS_LINUX)
     {
         QWindow *win = windowHandle();
