@@ -122,3 +122,10 @@ chmod +x RemiliaPet_Qt6-linux-x64.AppImage
 | **公证状态** | 未公证 |
 | **影响** | Gatekeeper 拦截，需手动允许 |
 | **正式分发** | 需 Apple Developer Program（$99/年）+ Developer ID 证书 + 公证 |
+
+### Linux 无法运行？
+
+| 项 | 说明 |
+|------|------|
+| **原因** | Ubuntu 24.04+ 默认只安装 FUSE3，AppImage 需要 `libfuse2` 来挂载运行 |
+| **解决方案** | `sudo apt install libfuse2` 或使用 `--appimage-extract` 解压运行 |
