@@ -54,3 +54,40 @@ cmake --build build-static --config Release --parallel
 
 - **动态版本**（从 Actions 下载）：需要安装 [Visual C++ 可再发行组件](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 - **静态版本**（本地编译）：无需额外依赖，直接运行
+
+## macOS 安装说明
+
+DMG 安装包使用 ad-hoc 自签名，未经过 Apple 公证。
+
+### 首次打开时的报错
+
+macOS Gatekeeper 会拦截未签名应用，提示：
+
+> **"蕾米埃尔桌宠_Qt6" 已损坏，无法打开。 你应该将它移到废纸篓。**
+>
+> 或
+>
+> **无法验证开发者。"蕾米埃尔桌宠_Qt6" 来自身份不明的开发者。**
+
+### 解决方法
+
+**方法一：右键打开（推荐）**
+1. 在 Finder 中找到 `蕾米埃尔桌宠_Qt6.app`
+2. **右键点击** → 选择 **"打开"**
+3. 在弹出的对话框中点击 **"打开"** 确认
+4. 之后双击即可正常启动
+
+**方法二：终端解除隔离**
+```bash
+# 拖入 .app 后执行
+xattr -cr /Applications/蕾米埃尔桌宠_Qt6.app
+```
+
+### 为什么会这样？
+
+| 项 | 说明 |
+|------|------|
+| **签名方式** | ad-hoc 自签名（无证书） |
+| **公证状态** | 未公证 |
+| **影响** | Gatekeeper 拦截，需手动允许 |
+| **正式分发** | 需 Apple Developer Program（$99/年）+ Developer ID 证书 + 公证 |
