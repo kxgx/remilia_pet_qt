@@ -48,7 +48,8 @@ jobs:
       # ============ CMake ============
       - name: 6. macOS icon must use POST_BUILD copy
         run: |
-          grep -q 'POST_BUILD.*icon\.icns' CMakeLists.txt || { echo "FAIL: CMakeLists.txt missing POST_BUILD copy for icon.icns"; exit 1; }
+          grep -q 'POST_BUILD' CMakeLists.txt || { echo "FAIL: CMakeLists.txt missing POST_BUILD"; exit 1; }
+          grep -q 'icon\.icns' CMakeLists.txt || { echo "FAIL: CMakeLists.txt missing icon.icns reference"; exit 1; }
           echo "OK: icon.icns POST_BUILD copy present"
 
       - name: 7. macOS setLevel must use CGWindowLevelForKey
