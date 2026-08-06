@@ -38,6 +38,10 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
+#ifdef Q_OS_MAC
+#include <objc/objc.h>
+#include <objc/message.h>
+#endif
 #include <QListWidget>
 
 static const QColor PINK(255, 141, 161);
@@ -1185,6 +1189,10 @@ void DesktopPet::closeEvent(QCloseEvent *event) {
 }
 
 void DesktopPet::setupTrayIcon() {
+    if (!QSystemTrayIcon::isSystemTrayAvailable()) {
+        qWarning("System tray not available on this platform");
+        return;
+    }
     m_trayIcon = new QSystemTrayIcon(this);
     m_trayIcon->setIcon(QIcon(":/icon.png"));
     m_trayIcon->setToolTip(QString::fromUtf8("蕾米埃尔桌宠"));
@@ -1220,8 +1228,9 @@ void DesktopPet::toggleMouseTransparent() {
     m_mouseTransparent = !m_mouseTransparent;
     if (m_trayMouseAction) m_trayMouseAction->setChecked(m_mouseTransparent);
 
-    // ── Mouse transparency: cross-platform Qt + Windows native enhancement ──
+    // Mouse transparency: cross-platform Qt + platform-native enhancement
     setAttribute(Qt::WA_TransparentForMouseEvents, m_mouseTransparent);
+
 #ifdef Q_OS_WIN
     HWND hwnd = reinterpret_cast<HWND>(winId());
     LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
@@ -1230,8 +1239,26 @@ void DesktopPet::toggleMouseTransparent() {
     else
         SetWindowLong(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT);
     SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+#elif defined(Q_OS_MAC)
+    {
+        void *nsview = reinterpret_cast<void *>(winId());
+        if (nsview) {
+            id window = ((id (*)(id, SEL))objc_msgSend)((id)nsview, sel_registerName("window"));
+            if (window) {
+                ((void (*)(id, SEL, BOOL))objc_msgSend)(window, sel_registerName("setIgnoresMouseEvents:"), m_mouseTransparent ? YES : NO);
+            }
+        }
+    }
+#elif defined(Q_OS_LINUX)
+    {
+        QWindow *win = windowHandle();
+        if (win) {
+            win->setFlags(m_mouseTransparent ? (win->flags() | Qt::WindowTransparentForInput) : (win->flags() & ~Qt::WindowTransparentForInput));
+        }
+    }
 #endif
-    m_trayIcon->setToolTip(m_mouseTransparent ? QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0 (\u9F20\u6807\u7A7F\u900F)") : QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"));
+    if (m_trayIcon)
+        m_trayIcon->setToolTip(m_mouseTransparent ? QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0 (\u9F20\u6807\u7A7F\u900F)") : QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"));
 }
 
 void DesktopPet::toggleStayOnTop() {
