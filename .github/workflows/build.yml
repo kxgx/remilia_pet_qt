@@ -152,6 +152,7 @@ jobs:
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
             qt6-base-dev qt6-multimedia-dev libqt6svg6-dev \
+            python3-pil \
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
       - name: Configure
