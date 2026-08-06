@@ -1,4 +1,4 @@
-name: Constraint Checks
+name: 约束检查
 
 on:
   push:
@@ -13,18 +13,18 @@ jobs:
       - uses: actions/checkout@v4
 
       # ============ QSettings 持久化 ============
-      - name: 1. orgName + appName must be set in main.cpp
+      - name: 1. 检查 main.cpp 中 orgName/appName 已设置
         run: |
           grep -q 'setOrganizationName' src/main.cpp || { echo "FAIL: setOrganizationName missing in main.cpp"; exit 1; }
           grep -q 'setApplicationName'  src/main.cpp || { echo "FAIL: setApplicationName missing in main.cpp"; exit 1; }
           echo "OK: orgName/appName set"
 
-      - name: 2. aboutToQuit must be connected in constructor
+      - name: 2. 检查 aboutToQuit 已连接 saveSettings
         run: |
           grep -q 'aboutToQuit.*saveSettings' src/petwindow.cpp || { echo "FAIL: aboutToQuit→saveSettings not connected"; exit 1; }
           echo "OK: aboutToQuit→saveSettings connected"
 
-      - name: 3. loadSettings must NOT call toggle functions
+      - name: 3. 检查 loadSettings 未调用 toggle 函数
         run: |
           awk '/^void DesktopPet::loadSettings/,/^}/' src/petwindow.cpp > /tmp/load.txt
           if grep -q 'toggleMouseTransparent\|toggleStayOnTop' /tmp/load.txt; then
@@ -33,43 +33,43 @@ jobs:
           fi
           echo "OK: loadSettings uses applyXxx(), not toggleXxx()"
 
-      - name: 4. saveSettings must call s.sync()
+      - name: 4. 检查 saveSettings 调用了 s.sync()
         run: |
           awk '/^void DesktopPet::saveSettings/,/^}/' src/petwindow.cpp > /tmp/save.txt
           grep -q '\.sync()' /tmp/save.txt || { echo "FAIL: saveSettings missing s.sync()"; exit 1; }
           echo "OK: saveSettings calls sync()"
 
-      - name: 5. Position validation must clamp, not reject
+      - name: 5. 检查位置验证使用 qBound 而非拒绝
         run: |
           awk '/^void DesktopPet::loadSettings/,/^}/' src/petwindow.cpp > /tmp/load.txt
           grep -q 'qBound' /tmp/load.txt || { echo "FAIL: loadSettings missing qBound (clamp), may still use reject logic"; exit 1; }
           echo "OK: loadSettings uses clamp (qBound)"
 
       # ============ CMake ============
-      - name: 6. macOS icon must use POST_BUILD copy
+      - name: 6. 检查 macOS 图标使用 POST_BUILD 拷贝
         run: |
           grep -q 'POST_BUILD' CMakeLists.txt || { echo "FAIL: CMakeLists.txt missing POST_BUILD"; exit 1; }
           grep -q 'icon\.icns' CMakeLists.txt || { echo "FAIL: CMakeLists.txt missing icon.icns reference"; exit 1; }
           echo "OK: icon.icns POST_BUILD copy present"
 
-      - name: 7. macOS setLevel must use CGWindowLevelForKey
+      - name: 7. 检查 macOS 使用 CGWindowLevelForKey
         run: |
           grep -q 'CGWindowLevelForKey' src/petwindow.cpp || { echo "FAIL: macOS topmost must use CGWindowLevelForKey, not hardcoded 5"; exit 1; }
           echo "OK: CGWindowLevelForKey used"
 
       # ============ CI / build.yml ============
-      - name: 8. Linux CI must include qt6-wayland
+      - name: 8. 检查 Linux CI 包含 qt6-wayland
         run: |
           grep -q 'qt6-wayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qt6-wayland in apt deps"; exit 1; }
           echo "OK: qt6-wayland in CI deps"
 
-      - name: 9. Linux CI must set GST_PLUGIN_SYSTEM_PATH in AppRun
+      - name: 9. 检查 Linux CI 设置 GST_PLUGIN_SYSTEM_PATH
         run: |
           grep -q 'GST_PLUGIN_SYSTEM_PATH' .github/workflows/build.yml || { echo "FAIL: build.yml missing GST_PLUGIN_SYSTEM_PATH sed injection"; exit 1; }
           echo "OK: GST_PLUGIN_SYSTEM_PATH in AppRun"
 
       # ============ 代码规范 ============
-      - name: 10. Tray tooltip must NOT have conditional suffix
+      - name: 10. 检查托盘提示为固定字符串
         run: |
           awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
           if grep -q 'setToolTip.*m_mouseTransparent\|m_mouseTransparent.*setToolTip' /tmp/mouse.txt; then
@@ -78,5 +78,5 @@ jobs:
           fi
           echo "OK: tray tooltip is fixed string"
 
-      - name: Summary
-        run: echo "✅ All 10 constraint checks passed"
+      - name: 汇总
+        run: echo "✅ 全部 10 项约束检查通过"

@@ -1,4 +1,4 @@
-﻿name: Cross-Platform Build (Dynamic)
+﻿name: 跨平台构建（动态版）
 
 on:
   push:
@@ -10,27 +10,28 @@ jobs:
   # Windows x64
   # ===================================================================
   win-x64:
+    name: Windows x64
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Install Qt6 via aqtinstall
+      - name: 通过 aqtinstall 安装 Qt6
         run: |
           pip install aqtinstall
           aqt install-qt windows desktop 6.8.2 win64_msvc2022_64 -m qtmultimedia -O C:/Qt
-      - name: Configure
+      - name: 配置 CMake
         run: |
           cmake -B build -S . -G "Visual Studio 17 2022" `
             -DCMAKE_PREFIX_PATH="C:/Qt/6.8.2/msvc2022_64"
-      - name: Build
+      - name: 编译
         run: cmake --build build --config Release --parallel
-      - name: windeployqt
+      - name: 部署 Qt 动态库
         run: |
           C:/Qt/6.8.2/msvc2022_64/bin/windeployqt build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
-      - name: Zip package
+      - name: 打包 zip
         run: |
           New-Item -ItemType Directory -Force -Path dist
           Compress-Archive -Path build/Release/* -DestinationPath dist/RemiliaPet_Qt6-win-x64.zip
-      - name: Upload artifact
+      - name: 上传构件
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet_Qt6-win-x64
@@ -40,24 +41,25 @@ jobs:
   # macOS x64 (Intel)
   # ===================================================================
   mac-x64:
+    name: macOS x64 (Intel)
     runs-on: macos-26-intel
     steps:
       - uses: actions/checkout@v4
-      - name: Install Qt6 via Homebrew
+      - name: 通过 Homebrew 安装 Qt6
         run: |
           brew install ninja qt6
           echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
-      - name: Configure
+      - name: 配置 CMake
         run: |
           cmake -B build -S . -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
-      - name: Build
+      - name: 编译
         run: cmake --build build --parallel
-      - name: Package .app with macdeployqt
+      - name: 用 macdeployqt 打包 .app
         run: |
           ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
-      - name: Create DMG
+      - name: 创建 DMG
         run: |
           brew install create-dmg
           mkdir -p dist
@@ -67,7 +69,7 @@ jobs:
             --hide-extension "蕾米埃尔桌宠_Qt6.app" \
             --app-drop-link 350 150 \
             "dist/RemiliaPet_Qt6-mac-x64.dmg" build/蕾米埃尔桌宠_Qt6.app/
-      - name: Upload artifact
+      - name: 上传构件
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet_Qt6-mac-x64
@@ -77,24 +79,25 @@ jobs:
   # macOS ARM64
   # ===================================================================
   mac-arm64:
+    name: macOS ARM64
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Qt6 via Homebrew
+      - name: 通过 Homebrew 安装 Qt6
         run: |
           brew install ninja qt6
           echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
-      - name: Configure
+      - name: 配置 CMake
         run: |
           cmake -B build -S . -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
-      - name: Build
+      - name: 编译
         run: cmake --build build --parallel
-      - name: Package .app with macdeployqt
+      - name: 用 macdeployqt 打包 .app
         run: |
           ${{ env.QT_PATH }}/bin/macdeployqt build/蕾米埃尔桌宠_Qt6.app -verbose=1
-      - name: Create DMG
+      - name: 创建 DMG
         run: |
           brew install create-dmg
           mkdir -p dist
@@ -104,7 +107,7 @@ jobs:
             --hide-extension "蕾米埃尔桌宠_Qt6.app" \
             --app-drop-link 350 150 \
             "dist/RemiliaPet_Qt6-mac-arm64.dmg" build/蕾米埃尔桌宠_Qt6.app/
-      - name: Upload artifact
+      - name: 上传构件
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet_Qt6-mac-arm64
@@ -114,10 +117,11 @@ jobs:
   # Linux x86_64
   # ===================================================================
   linux-x64:
+    name: Linux x64
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install deps + Qt6 + GStreamer
+      - name: 安装依赖 + Qt6 + GStreamer
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -129,12 +133,12 @@ jobs:
             python3-pil \
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
-      - name: Configure
+      - name: 配置 CMake
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
-      - name: Build
+      - name: 编译
         run: cmake --build build --parallel
-      - name: Create AppImage + tar.gz
+      - name: 创建 AppImage + tar.gz
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
@@ -163,12 +167,12 @@ jobs:
           ARCH=x86_64 ./appimagetool-x86_64.AppImage AppDir RemiliaPet_Qt6-linux-x64.AppImage
           tar -czf RemiliaPet_Qt6-linux-x64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-x64.*
-      - name: Upload AppImage
+      - name: 上传 AppImage
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet_Qt6-linux-x64
           path: RemiliaPet_Qt6-linux-x64.AppImage
-      - name: Upload tar.gz
+      - name: 上传 tar.gz
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet_Qt6-linux-x64-targz
@@ -178,10 +182,11 @@ jobs:
   # Linux ARM64
   # ===================================================================
   linux-arm64:
+    name: Linux ARM64
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
-      - name: Install deps + Qt6 + GStreamer
+      - name: 安装依赖 + Qt6 + GStreamer
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -193,12 +198,12 @@ jobs:
             python3-pil \
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
-      - name: Configure
+      - name: 配置 CMake
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
-      - name: Build
+      - name: 编译
         run: cmake --build build --parallel
-      - name: Create AppImage + tar.gz
+      - name: 创建 AppImage + tar.gz
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-aarch64.AppImage
@@ -227,12 +232,12 @@ jobs:
           ARCH=aarch64 ./appimagetool-aarch64.AppImage AppDir RemiliaPet_Qt6-linux-arm64.AppImage
           tar -czf RemiliaPet_Qt6-linux-arm64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-arm64.*
-      - name: Upload AppImage
+      - name: 上传 AppImage
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet_Qt6-linux-arm64
           path: RemiliaPet_Qt6-linux-arm64.AppImage
-      - name: Upload tar.gz
+      - name: 上传 tar.gz
         uses: actions/upload-artifact@v4
         with:
           name: RemiliaPet_Qt6-linux-arm64-targz
@@ -242,6 +247,7 @@ jobs:
   # Release
   # ===================================================================
   release:
+    name: 发布
     needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
@@ -252,9 +258,9 @@ jobs:
         with:
           pattern: RemiliaPet_Qt6-**
           merge-multiple: true
-      - name: List artifacts
+      - name: 列出构件
         run: ls -la
-      - name: Create Release
+      - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           files: |
