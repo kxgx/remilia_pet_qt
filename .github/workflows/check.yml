@@ -72,7 +72,7 @@ jobs:
       - name: 10. Tray tooltip must NOT have conditional suffix
         run: |
           awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
-          if grep -q 'm_mouseTransparent \?' /tmp/mouse.txt && grep -q 'setToolTip' /tmp/mouse.txt; then
+          if grep -q 'setToolTip.*m_mouseTransparent\|m_mouseTransparent.*setToolTip' /tmp/mouse.txt; then
             echo "FAIL: tray tooltip has conditional suffix — should be fixed string"
             exit 1
           fi
