@@ -89,6 +89,7 @@ jobs:
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
             qt6-base-dev qt6-multimedia-dev libqt6svg6-dev \
+            python3-pil \
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
       - name: Configure
@@ -114,19 +115,7 @@ jobs:
           Categories=Utility;
           Terminal=false
           EOF
-          python3 -c "
-          import struct,zlib
-          w,h=256,256
-          raw=b''
-          for y in range(h):
-            raw+=b'\x00'+b'\xff\x99\xcc\xff'*w
-          def c(t,d):
-            c2=t+d
-            return struct.pack('>I',len(d))+c2+struct.pack('>I',zlib.crc32(c2)&0xffffffff)
-          ih=struct.pack('>IIBBBBB',w,h,8,6,0,0,0)
-          png=b'\x89PNG\r\n\x1a\n'+c(b'IHDR',ih)+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b'')
-          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png','wb').write(png)
-          "
+          python3 -c "from PIL import Image; img = Image.open('icon.png'); img.resize((256,256), Image.LANCZOS).save('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png')"
           export GST_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
@@ -188,19 +177,7 @@ jobs:
           Categories=Utility;
           Terminal=false
           EOF
-          python3 -c "
-          import struct,zlib
-          w,h=256,256
-          raw=b''
-          for y in range(h):
-            raw+=b'\x00'+b'\xff\x99\xcc\xff'*w
-          def c(t,d):
-            c2=t+d
-            return struct.pack('>I',len(d))+c2+struct.pack('>I',zlib.crc32(c2)&0xffffffff)
-          ih=struct.pack('>IIBBBBB',w,h,8,6,0,0,0)
-          png=b'\x89PNG\r\n\x1a\n'+c(b'IHDR',ih)+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b'')
-          open('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png','wb').write(png)
-          "
+          python3 -c "from PIL import Image; img = Image.open('icon.png'); img.resize((256,256), Image.LANCZOS).save('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png')"
           export GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0
           ./linuxdeploy-aarch64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
