@@ -693,6 +693,8 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
 
     setState(Idle);
 
+    connect(qApp, &QApplication::aboutToQuit, this, &DesktopPet::saveSettings);
+
     setupTrayIcon();
 
     playSound("start.mp3");
