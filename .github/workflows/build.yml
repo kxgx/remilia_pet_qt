@@ -352,11 +352,85 @@ jobs:
           path: RemiliaPet_Qt6-linux-arm64.tar.gz
 
   # ===================================================================
+  # Arch Linux
+  # ===================================================================
+  linux-arch:
+    name: Arch Linux
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 安装依赖
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm base-devel cmake ninja git \
+            qt6-base qt6-multimedia qt6-svg qt6-wayland \
+            gst-plugins-base gst-plugins-good gst-plugins-bad \
+            python-pillow zstd
+      - name: 编译 + 打包 .pkg.tar.zst
+        run: |
+          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+          PKG=pkg
+          mkdir -p $PKG/opt/remilia-pet $PKG/usr/bin
+          mkdir -p $PKG/usr/share/applications $PKG/usr/share/icons/hicolor/256x256/apps
+          mkdir -p $PKG/etc/xdg/autostart
+          cp build/蕾米埃尔桌宠_Qt6 $PKG/opt/remilia-pet/
+          cat > $PKG/opt/remilia-pet/remilia-pet << 'LAUNCHER'
+          #!/bin/bash
+          export GST_PLUGIN_SYSTEM_PATH=
+          exec /opt/remilia-pet/蕾米埃尔桌宠_Qt6 "$@"
+          LAUNCHER
+          chmod +x $PKG/opt/remilia-pet/remilia-pet
+          ln -sf /opt/remilia-pet/remilia-pet $PKG/usr/bin/remilia-pet
+          python3 -c "from PIL import Image; img = Image.open('icon.png'); img.resize((256,256), Image.LANCZOS).save('$PKG/usr/share/icons/hicolor/256x256/apps/remilia-pet.png')"
+          cat > $PKG/usr/share/applications/remilia-pet.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=蕾米埃尔桌宠
+          Comment=桌面宠物
+          Exec=/opt/remilia-pet/remilia-pet
+          Icon=remilia-pet
+          Categories=Utility;
+          Terminal=false
+          DESKTOP
+          cat > $PKG/etc/xdg/autostart/remilia-pet.desktop << 'AUTOSTART'
+          [Desktop Entry]
+          Type=Application
+          Name=蕾米埃尔桌宠
+          Exec=/opt/remilia-pet/remilia-pet
+          Icon=remilia-pet
+          X-GNOME-Autostart-enabled=true
+          AUTOSTART
+          cat > $PKG/.PKGINFO << 'PKGINFO'
+          pkgname = remilia-pet
+          pkgver = 1.0.7-1
+          pkgdesc = 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
+          url = https://github.com/kxgx/remilia_pet_qt
+          arch = x86_64
+          license = MIT
+          depend = qt6-base
+          depend = qt6-multimedia
+          depend = qt6-svg
+          depend = qt6-wayland
+          depend = gst-plugins-base
+          depend = gst-plugins-good
+          depend = gst-plugins-bad
+          PKGINFO
+          cd $PKG && tar -c --zstd -f ../RemiliaPet_Qt6-linux-x64.pkg.tar.zst .
+          cd .. && ls -la *.pkg.tar.zst
+      - name: 上传 Arch 包
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet_Qt6-linux-x64-arch
+          path: RemiliaPet_Qt6-linux-x64.pkg.tar.zst
+
+  # ===================================================================
   # Release
   # ===================================================================
   release:
     name: 发布
-    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64]
+    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64, linux-arch]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
