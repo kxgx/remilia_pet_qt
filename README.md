@@ -93,6 +93,27 @@ xattr -d com.apple.quarantine /Applications/蕾米埃尔桌宠_Qt6.app
 3. 在弹出的对话框中点击 **"打开"** 确认
 4. 之后双击即可正常启动
 
+## Linux 安装说明
+
+### 新版 Ubuntu (24.04+) 无法运行
+
+AppImage 依赖 `libfuse2`，Ubuntu 24.04 起默认只安装 FUSE3，导致 AppImage 无法挂载运行。
+
+```bash
+# 安装 libfuse2
+sudo apt install libfuse2
+
+# 赋予执行权限并运行
+chmod +x RemiliaPet_Qt6-linux-x64.AppImage
+./RemiliaPet_Qt6-linux-x64.AppImage
+```
+
+> 如果不想安装 FUSE2，也可以用 `--appimage-extract` 解压后直接运行：
+> ```bash
+> ./RemiliaPet_Qt6-linux-x64.AppImage --appimage-extract
+> ./squashfs-root/AppRun
+> ```
+
 ### 为什么会这样？
 
 | 项 | 说明 |
