@@ -17,6 +17,7 @@
 | Linux | x86_64 | ubuntu-latest | apt |
 | Linux | ARM64 | ubuntu-24.04-arm | apt |
 | Linux | x86_64 | archlinux:latest (容器) | pacman |
+| Linux | ARM64 | ubuntu-24.04-arm | apt |
 
 > **已知限制**：
 > - **Windows ARM64**：aqtinstall 目前不提供 ARM64 架构的 Qt 预编译包，静态编译也因 vcpkg 的 `qtdeclarative` 依赖问题受阻
@@ -100,10 +101,10 @@ xattr -d com.apple.quarantine /Applications/蕾米埃尔桌宠_Qt6.app
 
 | 发行版 | 包格式 | 安装命令 |
 |--------|--------|----------|
-| Debian / Ubuntu | `.deb` | `sudo dpkg -i RemiliaPet_Qt6-linux-x64.deb` |
-| Fedora / RHEL | `.rpm` | `sudo rpm -i RemiliaPet_Qt6-linux-x64.rpm` |
-| Arch / Manjaro | `.pkg.tar.zst` | `sudo pacman -U RemiliaPet_Qt6-linux-x64.pkg.tar.zst` |
-| 通用便携 | `.tar.gz` | `tar -xzf RemiliaPet_Qt6-linux-x64.tar.gz && ./AppRun` |
+| Debian / Ubuntu | `.deb` | `sudo dpkg -i RemiliaPet_Qt6-linux-{x64,arm64}.deb` |
+| Fedora / RHEL | `.rpm` | `sudo rpm -i RemiliaPet_Qt6-linux-{x64,arm64}.rpm` |
+| Arch / Manjaro | `.pkg.tar.zst` | `sudo pacman -U RemiliaPet_Qt6-linux-{x64,arm64}.pkg.tar.zst` |
+| 通用便携 | `.tar.gz` | `tar -xzf RemiliaPet_Qt6-linux-{x64,arm64}.tar.gz && ./AppRun` |
 
 安装后：
 - 命令行输入 `remilia-pet` 即可启动
