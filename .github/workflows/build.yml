@@ -61,7 +61,8 @@ jobs:
         run: |
           brew install create-dmg
           mkdir -p dist
-          create-dmg --volname "蕾米埃尔桌宠" --window-pos 200 120 --window-size 500 360 \
+          create-dmg --volname "蕾米埃尔桌宠" --volicon icon.icns \
+            --window-pos 200 120 --window-size 500 360 \
             --icon-size 100 --icon "蕾米埃尔桌宠_Qt6.app" 150 150 \
             --hide-extension "蕾米埃尔桌宠_Qt6.app" \
             --app-drop-link 350 150 \
