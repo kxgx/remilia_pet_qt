@@ -1259,14 +1259,30 @@ void DesktopPet::toggleMouseTransparent() {
 
 void DesktopPet::toggleStayOnTop() {
     m_stayOnTop = !m_stayOnTop;
-    Qt::WindowFlags flags = windowFlags();
-    if (m_stayOnTop) {
-        flags |= Qt::WindowStaysOnTopHint;
-    } else {
-        flags &= ~Qt::WindowStaysOnTopHint;
+
+#ifdef Q_OS_WIN
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    SetWindowPos(hwnd, m_stayOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
+                 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+#elif defined(Q_OS_MAC)
+    {
+        void *nsview = reinterpret_cast<void *>(winId());
+        if (nsview) {
+            id window = ((id (*)(id, SEL))objc_msgSend)((id)nsview, sel_registerName("window"));
+            if (window) {
+                long level = m_stayOnTop ? 5 : 0;
+                ((void (*)(id, SEL, long))objc_msgSend)(window, sel_registerName("setLevel:"), level);
+            }
+        }
     }
+#else
+    Qt::WindowFlags flags = windowFlags();
+    if (m_stayOnTop) flags |= Qt::WindowStaysOnTopHint;
+    else flags &= ~Qt::WindowStaysOnTopHint;
     setWindowFlags(flags);
     show();
+#endif
+
     auto updateWindowFlag = [this](QWidget *w) {
         if (w) {
             Qt::WindowFlags wf = w->windowFlags();
