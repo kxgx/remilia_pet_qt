@@ -159,6 +159,10 @@ jobs:
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt
           cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
+          # Wrap binary to suppress GStreamer system plugin loading
+          mv AppDir/usr/bin/蕾米埃尔桌宠_Qt6 AppDir/usr/bin/蕾米埃尔桌宠_Qt6.bin
+          printf '#!/bin/bash\nexport GST_PLUGIN_SYSTEM_PATH=\nexec "$(dirname "$0")/蕾米埃尔桌宠_Qt6.bin" "$@"\n' > AppDir/usr/bin/蕾米埃尔桌宠_Qt6
+          chmod +x AppDir/usr/bin/蕾米埃尔桌宠_Qt6
           ARCH=x86_64 ./appimagetool-x86_64.AppImage AppDir RemiliaPet_Qt6-linux-x64.AppImage
           tar -czf RemiliaPet_Qt6-linux-x64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-x64.*
@@ -222,6 +226,10 @@ jobs:
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt
           cp -r /usr/lib/aarch64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
+          # Wrap binary to suppress GStreamer system plugin loading
+          mv AppDir/usr/bin/蕾米埃尔桌宠_Qt6 AppDir/usr/bin/蕾米埃尔桌宠_Qt6.bin
+          printf '#!/bin/bash\nexport GST_PLUGIN_SYSTEM_PATH=\nexec "$(dirname "$0")/蕾米埃尔桌宠_Qt6.bin" "$@"\n' > AppDir/usr/bin/蕾米埃尔桌宠_Qt6
+          chmod +x AppDir/usr/bin/蕾米埃尔桌宠_Qt6
           ARCH=aarch64 ./appimagetool-aarch64.AppImage AppDir RemiliaPet_Qt6-linux-arm64.AppImage
           tar -czf RemiliaPet_Qt6-linux-arm64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-arm64.*
