@@ -35,6 +35,7 @@
 #include <QSettings>
 #include <QWidgetAction>
 #include <QActionGroup>
+#include <QWindow>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
