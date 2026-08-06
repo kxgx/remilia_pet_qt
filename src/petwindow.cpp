@@ -686,13 +686,20 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     connect(m_idleTimer, &QTimer::timeout, this, &DesktopPet::checkIdle);
     m_idleTimer->start(1000);
 
+    m_autoSaveTimer = new QTimer(this);
+    m_autoSaveTimer->setInterval(30000);
+    connect(m_autoSaveTimer, &QTimer::timeout, this, &DesktopPet::saveSettings);
+    m_autoSaveTimer->start();
+
     setState(Idle);
 
     setupTrayIcon();
 
     playSound("start.mp3");
     show();
-}
+
+    loadSettings();
+ }
 
 DesktopPet::~DesktopPet() {
     if (m_movie) {
@@ -918,7 +925,7 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     int smh = qMax(5, (int)(10 * m_scale));
     menu.setStyleSheet(menuStylesheet(fs,pv,ph,mv,mh,br,ibr,mp,bw,smv,smh));
 
-    QAction *drawAction = menu.addAction(QString::fromUtf8("\u2728 \u5E78\u8FD0\u62BD\u5361"));
+    QAction *drawAction = menu.addAction(QString::fromUtf8("\u2728 \u5E78\u8FD4\u62BD\u5361"));
     QAction *timerAction = menu.addAction(QString::fromUtf8("\u23F0 \u95F9\u949F\u8BA1\u65F6"));
     QAction *drawingAction = menu.addAction(QString::fromUtf8("\U0001F3A8 \u968F\u673A\u753B\u753B"));
     QAction *volumeAction = menu.addAction(QString::fromUtf8("\U0001F50A \u97F3\u91CF\u8C03\u8282"));
@@ -1191,8 +1198,43 @@ void DesktopPet::closeOtherSideWindows() {
 }
 
 void DesktopPet::closeEvent(QCloseEvent *event) {
+    saveSettings();
     hide();
     event->ignore();
+}
+
+void DesktopPet::saveSettings() {
+    QSettings s;
+    s.setValue("window/x", x());
+    s.setValue("window/y", y());
+    s.setValue("window/scale", m_scale);
+    s.setValue("globalVolume", m_volume);
+    s.setValue("stayOnTop", m_stayOnTop);
+    s.setValue("mouseTransparent", m_mouseTransparent);
+}
+
+void DesktopPet::loadSettings() {
+    QSettings s;
+    int sx = s.value("window/x", -1).toInt();
+    int sy = s.value("window/y", -1).toInt();
+    if (sx >= 0 && sy >= 0) {
+        QScreen *sc = QApplication::primaryScreen();
+        if (sc) {
+            QRect avail = sc->availableGeometry();
+            if (sx >= 0 && sy >= 0 && sx < avail.right() - 50 && sy < avail.bottom() - 50)
+                move(sx, sy);
+        }
+    }
+    float savedScale = s.value("window/scale", -1.0f).toFloat();
+    if (savedScale > 0.1f) {
+        m_scale = qBound(m_minScale, savedScale, m_maxScale);
+        applyScale();
+    }
+    m_volume = s.value("globalVolume", 80).toInt();
+    m_audioOutput->setVolume(m_volume / 100.0f);
+    m_stayOnTop = s.value("stayOnTop", true).toBool();
+    m_mouseTransparent = s.value("mouseTransparent", false).toBool();
+    if (m_mouseTransparent) toggleMouseTransparent();
 }
 
 void DesktopPet::setupTrayIcon() {

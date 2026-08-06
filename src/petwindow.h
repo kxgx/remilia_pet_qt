@@ -70,6 +70,8 @@ private:
     void startVolumeFeature();
     void startAuthorFeature();
     void toggleStayOnTop();
+    void saveSettings();
+    void loadSettings();
     void setupTrayIcon();
 
     // Drawing feature steps
@@ -103,6 +105,7 @@ private:
     // Idle timer
     QTimer *m_idleTimer = nullptr;
     QTimer *m_scaleTimer = nullptr;
+    QTimer *m_autoSaveTimer = nullptr;
 
     // Tray
     QSystemTrayIcon *m_trayIcon = nullptr;
