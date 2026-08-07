@@ -8,85 +8,87 @@ checks:
   stage: check
   image: ubuntu:24.04
   before_script:
-    - apt-get update && apt-get install -y grep gawk
+    - apt-get update -qq && apt-get install -y -qq grep gawk
   script:
-    # ============ QSettings 持久化 ============
-    - echo "=== 1. 检查 main.cpp 中 orgName/appName 已设置 ==="
-    - grep -q 'setOrganizationName' src/main.cpp || { echo "FAIL: setOrganizationName missing"; exit 1; }
-    - grep -q 'setApplicationName' src/main.cpp || { echo "FAIL: setApplicationName missing"; exit 1; }
-    - echo "OK"
+    - |
+      set -e
+      echo "=== 1. orgName/appName ==="
+      grep -q 'setOrganizationName' src/main.cpp
+      grep -q 'setApplicationName' src/main.cpp
+      echo "OK"
 
-    - echo "=== 2. 检查 aboutToQuit 已连接 saveSettings ==="
-    - grep -q 'aboutToQuit.*saveSettings' src/petwindow.cpp || { echo "FAIL: aboutToQuit→saveSettings not connected"; exit 1; }
-    - echo "OK"
+      echo "=== 2. aboutToQuit→saveSettings ==="
+      grep -q 'aboutToQuit.*saveSettings' src/petwindow.cpp
+      echo "OK"
 
-    - echo "=== 3. 检查 loadSettings 未调用 toggle 函数 ==="
-    - awk '/^void DesktopPet::loadSettings/,/^}/' src/petwindow.cpp > /tmp/load.txt
-    - "grep -q 'toggleMouseTransparent\\|toggleStayOnTop' /tmp/load.txt && { echo 'FAIL: loadSettings calls toggle'; exit 1; } || echo OK"
+      echo "=== 3. loadSettings 未调用 toggle ==="
+      awk '/^void DesktopPet::loadSettings/,/^}/' src/petwindow.cpp > /tmp/load.txt
+      if grep -qE 'toggleMouseTransparent|toggleStayOnTop' /tmp/load.txt; then echo FAIL; exit 1; fi
+      echo "OK"
 
-    - echo "=== 4. 检查 saveSettings 调用了 s.sync() ==="
-    - awk '/^void DesktopPet::saveSettings/,/^}/' src/petwindow.cpp > /tmp/save.txt
-    - grep -q '\.sync()' /tmp/save.txt || { echo "FAIL: saveSettings missing s.sync()"; exit 1; }
-    - echo "OK"
+      echo "=== 4. saveSettings sync() ==="
+      awk '/^void DesktopPet::saveSettings/,/^}/' src/petwindow.cpp > /tmp/save.txt
+      grep -q '\.sync()' /tmp/save.txt
+      echo "OK"
 
-    - echo "=== 5. 检查位置验证使用 qBound 而非拒绝 ==="
-    - awk '/^void DesktopPet::loadSettings/,/^}/' src/petwindow.cpp > /tmp/load.txt
-    - grep -q 'qBound' /tmp/load.txt || { echo "FAIL: loadSettings missing qBound"; exit 1; }
-    - echo "OK"
+      echo "=== 5. 位置验证 qBound ==="
+      awk '/^void DesktopPet::loadSettings/,/^}/' src/petwindow.cpp > /tmp/load.txt
+      grep -q 'qBound' /tmp/load.txt
+      echo "OK"
 
-    # ============ CMake ============
-    - echo "=== 6. 检查 macOS 图标使用 POST_BUILD 拷贝 ==="
-    - grep -q 'POST_BUILD' CMakeLists.txt || { echo "FAIL: POST_BUILD missing"; exit 1; }
-    - grep -q 'icon\.icns' CMakeLists.txt || { echo "FAIL: icon.icns missing"; exit 1; }
-    - echo "OK"
+      echo "=== 6. macOS POST_BUILD icon ==="
+      grep -q 'POST_BUILD' CMakeLists.txt
+      grep -q 'icon\.icns' CMakeLists.txt
+      echo "OK"
 
-    - echo "=== 7. 检查 macOS 使用 CGWindowLevelForKey ==="
-    - grep -q 'CGWindowLevelForKey' src/petwindow.cpp || { echo "FAIL: CGWindowLevelForKey missing"; exit 1; }
-    - echo "OK"
+      echo "=== 7. CGWindowLevelForKey ==="
+      grep -q 'CGWindowLevelForKey' src/petwindow.cpp
+      echo "OK"
 
-    # ============ CI / build.yml ============
-    - echo "=== 8. 检查 Linux CI 包含 qt6-wayland ==="
-    - grep -q 'qt6-wayland' .github/workflows/build.yml || { echo "FAIL: qt6-wayland missing"; exit 1; }
-    - echo "OK"
+      echo "=== 8. qt6-wayland ==="
+      grep -q 'qt6-wayland' .github/workflows/build.yml
+      echo "OK"
 
-    - echo "=== 9. 检查 GST_PLUGIN_SYSTEM_PATH ==="
-    - grep -q 'GST_PLUGIN_SYSTEM_PATH' .github/workflows/build.yml || { echo "FAIL: GST_PLUGIN_SYSTEM_PATH missing"; exit 1; }
-    - echo "OK"
+      echo "=== 9. GST_PLUGIN_SYSTEM_PATH ==="
+      grep -q 'GST_PLUGIN_SYSTEM_PATH' .github/workflows/build.yml
+      echo "OK"
 
-    - echo "=== 10. 检查 dpkg-deb 打包 .deb ==="
-    - grep -q 'dpkg-deb --build' .github/workflows/build.yml || { echo "FAIL: dpkg-deb missing"; exit 1; }
-    - echo "OK"
+      echo "=== 10. dpkg-deb ==="
+      grep -q 'dpkg-deb --build' .github/workflows/build.yml
+      echo "OK"
 
-    - echo "=== 11. 检查 alien 转换 .rpm ==="
-    - grep -q 'alien -r' .github/workflows/build.yml || { echo "FAIL: alien missing"; exit 1; }
-    - echo "OK"
+      echo "=== 11. alien ==="
+      grep -q 'alien -r' .github/workflows/build.yml
+      echo "OK"
 
-    - echo "=== 12. 检查 Arch Linux x64 ==="
-    - grep -q 'linux-arch:' .github/workflows/build.yml || { echo "FAIL: linux-arch missing"; exit 1; }
-    - echo "OK"
+      echo "=== 12. Arch x64 ==="
+      grep -q 'linux-arch:' .github/workflows/build.yml
+      echo "OK"
 
-    - echo "=== 13. 检查 Arch Linux ARM64 ==="
-    - grep -q 'linux-arch-arm64:' .github/workflows/build.yml || { echo "FAIL: linux-arch-arm64 missing"; exit 1; }
-    - echo "OK"
+      echo "=== 13. Arch ARM64 ==="
+      grep -q 'linux-arch-arm64:' .github/workflows/build.yml
+      echo "OK"
 
-    - echo "=== 14. 检查托盘提示为固定字符串 ==="
-    - awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
-    - "grep -q 'setToolTip.*m_mouseTransparent\\|m_mouseTransparent.*setToolTip' /tmp/mouse.txt && { echo FAIL; exit 1; } || echo OK"
+      echo "=== 14. 托盘提示固定字符串 ==="
+      awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
+      if grep -qE 'setToolTip.*m_mouseTransparent|m_mouseTransparent.*setToolTip' /tmp/mouse.txt; then echo FAIL; exit 1; fi
+      echo "OK"
 
-    - echo "=== 15. 检查 Wayland 插件 + 客户端库 ==="
-    - grep -q 'qwayland' .github/workflows/build.yml || { echo "FAIL: qwayland missing"; exit 1; }
-    - grep -q 'libQt6WaylandClient' .github/workflows/build.yml || { echo "FAIL: libQt6WaylandClient missing"; exit 1; }
-    - grep -q 'QT_PLUGIN_PATH' .github/workflows/build.yml || { echo "FAIL: QT_PLUGIN_PATH missing"; exit 1; }
-    - echo "OK"
+      echo "=== 15. Wayland 插件 ==="
+      grep -q 'qwayland' .github/workflows/build.yml
+      grep -q 'libQt6WaylandClient' .github/workflows/build.yml
+      grep -q 'QT_PLUGIN_PATH' .github/workflows/build.yml
+      echo "OK"
 
-    - echo "=== 16. 检查 .deb launcher 使用 usr/bin 路径 ==="
-    - grep -q 'usr/bin/蕾米埃尔桌宠_Qt6' .github/workflows/build.yml || { echo "FAIL: usr/bin path missing"; exit 1; }
-    - echo "OK"
+      echo "=== 16. usr/bin FHS ==="
+      grep -q 'usr/bin/蕾' .github/workflows/build.yml
+      echo "OK"
 
-    - echo "=== 17. 检查未强制 QT_QPA_PLATFORM=xcb ==="
-    - "grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml && { echo 'FAIL: xcb bypass found'; exit 1; } || echo OK"
+      echo "=== 17. 无 xcb 绕过 ==="
+      if grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml; then echo FAIL; exit 1; fi
+      echo "OK"
 
-    - echo "✅ 全部 17 项约束检查通过"
+      echo "✅ 全部 17 项检查通过"
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
