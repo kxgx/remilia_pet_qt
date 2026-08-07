@@ -379,7 +379,7 @@ jobs:
   linux-arch:
     name: Arch Linux
     runs-on: ubuntu-latest
-    container: archlinux:base-20250615.0.1
+    container: archlinux:base-20250615.0.365905
     steps:
       - uses: actions/checkout@v4
       - name: 安装依赖
