@@ -122,5 +122,11 @@ jobs:
           grep -q 'brew untap aws/tap' .github/workflows/build.yml || { echo "FAIL: build.yml missing brew untap aws/tap to suppress Homebrew trust warning"; exit 1; }
           echo "OK: aws/tap untap present"
 
+      - name: 19. 检查 Release 使用 download-artifact@v7 (Node 24)
+        run: |
+          grep -q 'actions/download-artifact@v7' .github/workflows/build.yml || { echo "FAIL: release job must use download-artifact@v7 (Node 24)"; exit 1; }
+          if grep -q 'actions/download-artifact@v4' .github/workflows/build.yml; then echo "FAIL: found old download-artifact@v4 (Node 20)"; exit 1; fi
+          echo "OK: download-artifact@v7 in release job"
+
       - name: 汇总
-        run: echo "✅ 全部 18 项约束检查通过"
+        run: echo "✅ 全部 19 项约束检查通过"
