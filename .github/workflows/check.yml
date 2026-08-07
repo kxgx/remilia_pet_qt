@@ -97,5 +97,23 @@ jobs:
           fi
           echo "OK: tray tooltip is fixed string"
 
+      - name: 15. 检查 .deb 打包 Wayland QPA 插件
+        run: |
+          grep -q 'qwayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qwayland plugin copy"; exit 1; }
+          echo "OK: qwayland plugin bundled in .deb"
+
+      - name: 16. 检查 .deb launcher 使用 usr/bin 路径 (FHS)
+        run: |
+          grep -q 'usr/bin/蕾米埃尔桌宠_Qt6' .github/workflows/build.yml || { echo "FAIL: .deb launcher must use usr/bin/ path (linuxdeploy FHS)"; exit 1; }
+          echo "OK: .deb launcher points to usr/bin/"
+
+      - name: 17. 检查未强制 QT_QPA_PLATFORM=xcb 绕过
+        run: |
+          if grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml; then
+            echo "FAIL: QT_QPA_PLATFORM=xcb bypass found — should bundle qwayland plugin instead"
+            exit 1
+          fi
+          echo "OK: no xcb bypass, Wayland runs natively"
+
       - name: 汇总
-        run: echo "✅ 全部 14 项约束检查通过"
+        run: echo "✅ 全部 17 项约束检查通过"
