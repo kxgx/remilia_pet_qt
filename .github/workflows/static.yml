@@ -25,7 +25,7 @@ jobs:
         run: |
           Remove-Item -Recurse -Force E:/remilia_build/static -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path E:/remilia_build
-          cmake -B E:/remilia_build/static -S . -G "Visual Studio 17 2022" -T version=14.42 `
+          cmake -B E:/remilia_build/static -S . -G "Visual Studio 17 2022" `
             -DVCPKG_TARGET_TRIPLET=x64-windows-static `
             -DCMAKE_TOOLCHAIN_FILE="E:/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
