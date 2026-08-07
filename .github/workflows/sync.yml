@@ -1,0 +1,19 @@
+name: 同步到极狐GitLab
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 推送到极狐GitLab
+        run: |
+          git remote add jihulab https://oauth2:${{ secrets.JIHULAB_TOKEN }}@jihulab.com/kxgx/remilia_pet_qt.git
+          git push jihulab master --force
+          git push jihulab --tags --force
