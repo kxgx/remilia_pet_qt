@@ -63,11 +63,10 @@ jobs:
           grep -q 'qt6-wayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qt6-wayland in apt deps"; exit 1; }
           echo "OK: qt6-wayland in CI deps"
 
-      - name: 9. 检查 deb 包依赖声明了 GStreamer 系统包
+      - name: 9. 检查 deb 包不再依赖 GStreamer（改用 QSoundEffect+WAV）
         run: |
-          grep -q 'gstreamer1.0-plugins-base' .github/workflows/build.yml || { echo "FAIL: deb Depends must include gstreamer1.0-plugins-base (system GStreamer)"; exit 1; }
-          if grep -q 'export GST_PLUGIN_SYSTEM_PATH' .github/workflows/build.yml; then echo "FAIL: launcher must NOT set GST_PLUGIN_SYSTEM_PATH (use system GStreamer)"; exit 1; fi
-          echo "OK: GStreamer provided by system, not bundled"
+          if grep -q 'gstreamer' .github/workflows/build.yml; then echo "FAIL: build.yml must not reference gstreamer (use QSoundEffect+WAV)"; exit 1; fi
+          echo "OK: no GStreamer dependency, using QSoundEffect+WAV"
 
       - name: 10. 检查 Linux CI 使用 dpkg-deb 打包 .deb
         run: |
@@ -129,14 +128,11 @@ jobs:
           if grep -q 'actions/download-artifact@v4' .github/workflows/build.yml; then echo "FAIL: found old download-artifact@v4 (Node 20)"; exit 1; fi
           echo "OK: download-artifact@v7 in release job"
 
-      - name: 20. 检查 QAudioOutput 使用默认设备而非空构造
+      - name: 20. 检查音频使用 QSoundEffect 而非 QMediaPlayer
         run: |
-          if grep -q 'new QAudioOutput(this)' src/petwindow.cpp; then
-            echo "FAIL: QAudioOutput must use QMediaDevices::defaultAudioOutput(), not null constructor"
-            exit 1
-          fi
-          grep -q 'QMediaDevices::defaultAudioOutput()' src/petwindow.cpp || { echo "FAIL: QAudioOutput must pass QMediaDevices::defaultAudioOutput()"; exit 1; }
-          echo "OK: QAudioOutput uses default audio device"
+          grep -q 'QSoundEffect' src/petwindow.h || { echo "FAIL: must use QSoundEffect for audio, not QMediaPlayer"; exit 1; }
+          if grep -q 'QMediaPlayer\|QAudioOutput' src/petwindow.h; then echo "FAIL: QMediaPlayer/QAudioOutput must be replaced with QSoundEffect"; exit 1; fi
+          echo "OK: QSoundEffect used for audio"
 
       - name: 汇总
         run: echo "✅ 全部 20 项约束检查通过"

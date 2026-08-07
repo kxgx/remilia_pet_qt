@@ -678,10 +678,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     preloadNativeSizes();
     setMinimumSize(140, 100);
 
-    m_audioOutput = new QAudioOutput(QMediaDevices::defaultAudioOutput(), this);
-    m_audioOutput->setVolume(m_volume / 100.0f);
-    m_player = new QMediaPlayer(this);
-    m_player->setAudioOutput(m_audioOutput);
+    preloadSounds();
 
     m_idleTimer = new QTimer(this);
     connect(m_idleTimer, &QTimer::timeout, this, &DesktopPet::checkIdle);
@@ -1086,32 +1083,27 @@ void DesktopPet::applyFontPreference() {
     qApp->setFont(f);
 }
 
-void DesktopPet::playSound(const QString &file, bool /*override*/) {
-    QString resPath = ":/audio/" + file;
-    QFile resFile(resPath);
-    if (!resFile.exists()) return;
-
-    if (!m_extractedAudio.contains(file)) {
-        if (!resFile.open(QIODevice::ReadOnly)) return;
-        QByteArray data = resFile.readAll();
-        resFile.close();
-        QString tmpDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/remilia_audio";
-        QDir().mkpath(tmpDir);
-        QString tmpPath = tmpDir + "/" + file;
-        QFile tmpFile(tmpPath);
-        if (tmpFile.open(QIODevice::WriteOnly)) { tmpFile.write(data); tmpFile.close(); }
-        m_extractedAudio[file] = tmpPath;
+void DesktopPet::preloadSounds() {
+    QStringList files = {"start.mp3", "draw.mp3", "drawing.mp3", "result.mp3", "reset.mp3", "alarm.mp3", "clock.mp3"};
+    for (const QString &f : files) {
+        auto *effect = new QSoundEffect(this);
+        effect->setSource(QUrl("qrc:/audio/" + f));
+        effect->setVolume(m_volume / 100.0f);
+        m_sounds[f] = effect;
     }
+}
 
-    m_player->stop();
-    m_player->setSource(QUrl::fromLocalFile(m_extractedAudio[file]));
-    m_audioOutput->setVolume(m_volume / 100.0f);
-    m_player->play();
+void DesktopPet::playSound(const QString &file, bool override) {
+    if (!m_sounds.contains(file)) return;
+    if (override) {
+        for (auto *s : m_sounds) s->stop();
+    }
+    m_sounds[file]->play();
 }
 
 void DesktopPet::setGlobalVolume(int vol) {
     m_volume = vol;
-    m_audioOutput->setVolume(vol / 100.0f);
+    for (auto *s : m_sounds) s->setVolume(vol / 100.0f);
     saveSettings();
 }
 
@@ -1246,7 +1238,7 @@ void DesktopPet::loadSettings() {
     }
     // 3. Volume
     m_volume = s.value("globalVolume", 80).toInt();
-    m_audioOutput->setVolume(m_volume / 100.0f);
+    for (auto *s : m_sounds) s->setVolume(m_volume / 100.0f);
     // 4. Stay on top — apply without toggling
     m_stayOnTop = s.value("stayOnTop", true).toBool();
     applyStayOnTop();

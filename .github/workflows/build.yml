@@ -123,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: 安装依赖 + Qt6 + GStreamer
+      - name: 安装依赖 + Qt6
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -132,9 +132,7 @@ jobs:
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
             qt6-base-dev qt6-multimedia-dev qt6-wayland libqt6svg6-dev \
-            python3-pil \
-            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-            gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
+            python3-pil
       - name: 配置 CMake
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
@@ -204,7 +202,7 @@ jobs:
           Section: utils
           Priority: optional
           Architecture: amd64
-          Depends: libc6, libgl1, libpulse0, libasound2, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-pulseaudio
+          Depends: libc6, libgl1, libpulse0, libasound2
           Maintainer: kxgx
           Description: 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
           CONTROL
@@ -249,7 +247,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v5
-      - name: 安装依赖 + Qt6 + GStreamer
+      - name: 安装依赖 + Qt6
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgl1-mesa-dev \
@@ -258,9 +256,7 @@ jobs:
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
             qt6-base-dev qt6-multimedia-dev qt6-wayland libqt6svg6-dev \
-            python3-pil \
-            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-            gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
+            python3-pil
       - name: 配置 CMake
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
@@ -330,7 +326,7 @@ jobs:
           Section: utils
           Priority: optional
           Architecture: arm64
-          Depends: libc6, libgl1, libpulse0, libasound2, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-pulseaudio
+          Depends: libc6, libgl1, libpulse0, libasound2
           Maintainer: kxgx
           Description: 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
           CONTROL
@@ -384,9 +380,7 @@ jobs:
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
             qt6-base-dev qt6-multimedia-dev qt6-wayland libqt6svg6-dev \
-            python3-pil zstd \
-            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-            gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
+            python3-pil zstd
       - name: 编译 + 打包 .pkg.tar.zst
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
@@ -437,9 +431,6 @@ jobs:
           depend = qt6-multimedia
           depend = qt6-svg
           depend = qt6-wayland
-          depend = gst-plugins-base
-          depend = gst-plugins-good
-          depend = gst-plugins-bad
           PKGINFO
           cd $PKG && tar -c --zstd -f ../RemiliaPet_Qt6-linux-x64.pkg.tar.zst .
           cd .. && ls -la *.pkg.tar.zst
@@ -466,9 +457,7 @@ jobs:
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
             qt6-base-dev qt6-multimedia-dev qt6-wayland libqt6svg6-dev \
-            python3-pil zstd \
-            gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-            gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio
+            python3-pil zstd
       - name: 编译 + 打包 .pkg.tar.zst
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
@@ -519,9 +508,6 @@ jobs:
           depend = qt6-multimedia
           depend = qt6-svg
           depend = qt6-wayland
-          depend = gst-plugins-base
-          depend = gst-plugins-good
-          depend = gst-plugins-bad
           PKGINFO
           cd $PKG && tar -c --zstd -f ../RemiliaPet_Qt6-linux-arm64.pkg.tar.zst .
           cd .. && ls -la *.pkg.tar.zst

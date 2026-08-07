@@ -3,10 +3,7 @@
 #include <QLabel>
 #include <QMovie>
 #include <QTimer>
-#include <QMediaPlayer>
-#include <QAudioOutput>
-#include <QAudioDevice>
-#include <QMediaDevices>
+#include <QSoundEffect>
 #include <QSystemTrayIcon>
 #include <QMap>
 #include <QPoint>
@@ -99,10 +96,10 @@ private:
     int m_idleCounter = 0;
     bool m_isDrawingCard = false;
 
-    // Audio
+    // Audio — QSoundEffect uses system-native APIs (no GStreamer dependency)
     int m_volume = 80;
-    QMediaPlayer *m_player = nullptr;
-    QAudioOutput *m_audioOutput = nullptr;
+    QMap<QString, QSoundEffect*> m_sounds;
+    void preloadSounds();
 
     // Idle timer
     QTimer *m_idleTimer = nullptr;
@@ -139,6 +136,5 @@ private:
     QString m_cardsDir;
     QString m_drawingDir;
 
-    // Temp audio
-    QMap<QString, QString> m_extractedAudio;
+
 };
