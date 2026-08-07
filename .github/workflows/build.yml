@@ -158,7 +158,6 @@ jobs:
           Terminal=false
           EOF
           python3 -c "from PIL import Image; img = Image.open('icon.png'); img.resize((256,256), Image.LANCZOS).save('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png')"
-          export GST_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
@@ -285,7 +284,6 @@ jobs:
           Terminal=false
           EOF
           python3 -c "from PIL import Image; img = Image.open('icon.png'); img.resize((256,256), Image.LANCZOS).save('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png')"
-          export GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0
           ./linuxdeploy-aarch64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
