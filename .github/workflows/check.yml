@@ -117,5 +117,10 @@ jobs:
           fi
           echo "OK: no xcb bypass, Wayland runs natively"
 
+      - name: 18. 检查 macOS CI 移除 aws/tap 避免 Homebrew 信任警告
+        run: |
+          grep -q 'brew untap aws/tap' .github/workflows/build.yml || { echo "FAIL: build.yml missing brew untap aws/tap to suppress Homebrew trust warning"; exit 1; }
+          echo "OK: aws/tap untap present"
+
       - name: 汇总
-        run: echo "✅ 全部 17 项约束检查通过"
+        run: echo "✅ 全部 18 项约束检查通过"
