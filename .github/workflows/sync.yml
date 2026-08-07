@@ -16,5 +16,5 @@ jobs:
       - name: 推送到极狐GitLab
         run: |
           git remote add jihulab https://oauth2:${{ secrets.JIHULAB_TOKEN }}@jihulab.com/kxgx/remilia_pet_qt.git
-          git push jihulab master --force
-          git push jihulab --tags --force
+          git push jihulab master
+          git push jihulab --tags
