@@ -678,7 +678,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     preloadNativeSizes();
     setMinimumSize(140, 100);
 
-    m_audioOutput = new QAudioOutput(this);
+    m_audioOutput = new QAudioOutput(QMediaDevices::defaultAudioOutput(), this);
     m_audioOutput->setVolume(m_volume / 100.0f);
     m_player = new QMediaPlayer(this);
     m_player->setAudioOutput(m_audioOutput);

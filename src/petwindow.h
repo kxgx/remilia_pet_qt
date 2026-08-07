@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QMediaPlayer>
 #include <QAudioOutput>
+#include <QMediaDevices>
 #include <QSystemTrayIcon>
 #include <QMap>
 #include <QPoint>

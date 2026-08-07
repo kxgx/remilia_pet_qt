@@ -129,5 +129,14 @@ jobs:
           if grep -q 'actions/download-artifact@v4' .github/workflows/build.yml; then echo "FAIL: found old download-artifact@v4 (Node 20)"; exit 1; fi
           echo "OK: download-artifact@v7 in release job"
 
+      - name: 20. 检查 QAudioOutput 使用默认设备而非空构造
+        run: |
+          if grep -q 'new QAudioOutput(this)' src/petwindow.cpp; then
+            echo "FAIL: QAudioOutput must use QMediaDevices::defaultAudioOutput(), not null constructor"
+            exit 1
+          fi
+          grep -q 'QMediaDevices::defaultAudioOutput()' src/petwindow.cpp || { echo "FAIL: QAudioOutput must pass QMediaDevices::defaultAudioOutput()"; exit 1; }
+          echo "OK: QAudioOutput uses default audio device"
+
       - name: 汇总
-        run: echo "✅ 全部 19 项约束检查通过"
+        run: echo "✅ 全部 20 项约束检查通过"
