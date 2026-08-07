@@ -97,10 +97,12 @@ jobs:
           fi
           echo "OK: tray tooltip is fixed string"
 
-      - name: 15. 检查 .deb 打包 Wayland QPA 插件
+      - name: 15. 检查打包 Wayland QPA 插件 + 客户端库
         run: |
           grep -q 'qwayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qwayland plugin copy"; exit 1; }
-          echo "OK: qwayland plugin bundled in .deb"
+          grep -q 'libQt6WaylandClient' .github/workflows/build.yml || { echo "FAIL: build.yml missing libQt6WaylandClient copy"; exit 1; }
+          grep -q 'QT_PLUGIN_PATH' .github/workflows/build.yml || { echo "FAIL: build.yml missing QT_PLUGIN_PATH in launcher"; exit 1; }
+          echo "OK: qwayland + Qt6WaylandClient bundled, QT_PLUGIN_PATH set"
 
       - name: 16. 检查 .deb launcher 使用 usr/bin 路径 (FHS)
         run: |

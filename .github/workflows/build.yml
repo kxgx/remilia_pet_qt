@@ -165,10 +165,12 @@ jobs:
           sed -i '2i export GST_PLUGIN_SYSTEM_PATH=' AppDir/AppRun
           mkdir -p AppDir/usr/plugins/platforms
           cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqwayland-*.so AppDir/usr/plugins/platforms/ 2>/dev/null; true
+          cp /usr/lib/x86_64-linux-gnu/libQt6WaylandClient.so* AppDir/usr/lib/ 2>/dev/null; true
           cat > AppDir/remilia-pet << 'LAUNCHER'
           #!/bin/bash
           export GST_PLUGIN_SYSTEM_PATH=
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
+          export QT_PLUGIN_PATH="/opt/remilia-pet/usr/plugins"
           exec /opt/remilia-pet/usr/bin/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x AppDir/remilia-pet
@@ -293,10 +295,12 @@ jobs:
           sed -i '2i export GST_PLUGIN_SYSTEM_PATH=' AppDir/AppRun
           mkdir -p AppDir/usr/plugins/platforms
           cp /usr/lib/aarch64-linux-gnu/qt6/plugins/platforms/libqwayland-*.so AppDir/usr/plugins/platforms/ 2>/dev/null; true
+          cp /usr/lib/aarch64-linux-gnu/libQt6WaylandClient.so* AppDir/usr/lib/ 2>/dev/null; true
           cat > AppDir/remilia-pet << 'LAUNCHER'
           #!/bin/bash
           export GST_PLUGIN_SYSTEM_PATH=
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
+          export QT_PLUGIN_PATH="/opt/remilia-pet/usr/plugins"
           exec /opt/remilia-pet/usr/bin/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x AppDir/remilia-pet
@@ -394,9 +398,14 @@ jobs:
           mkdir -p $PKG/usr/share/applications $PKG/usr/share/icons/hicolor/256x256/apps
           mkdir -p $PKG/etc/xdg/autostart
           cp build/蕾米埃尔桌宠_Qt6 $PKG/opt/remilia-pet/
+          mkdir -p $PKG/opt/remilia-pet/lib $PKG/opt/remilia-pet/plugins/platforms
+          cp /usr/lib/libQt6WaylandClient.so* $PKG/opt/remilia-pet/lib/ 2>/dev/null; true
+          cp /usr/lib/qt6/plugins/platforms/libqwayland-*.so $PKG/opt/remilia-pet/plugins/platforms/ 2>/dev/null; true
           cat > $PKG/opt/remilia-pet/remilia-pet << 'LAUNCHER'
           #!/bin/bash
           export GST_PLUGIN_SYSTEM_PATH=
+          export LD_LIBRARY_PATH="/opt/remilia-pet/lib:$LD_LIBRARY_PATH"
+          export QT_PLUGIN_PATH="/opt/remilia-pet/plugins"
           exec /opt/remilia-pet/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x $PKG/opt/remilia-pet/remilia-pet
@@ -472,9 +481,14 @@ jobs:
           mkdir -p $PKG/usr/share/applications $PKG/usr/share/icons/hicolor/256x256/apps
           mkdir -p $PKG/etc/xdg/autostart
           cp build/蕾米埃尔桌宠_Qt6 $PKG/opt/remilia-pet/
+          mkdir -p $PKG/opt/remilia-pet/lib $PKG/opt/remilia-pet/plugins/platforms
+          cp /usr/lib/aarch64-linux-gnu/libQt6WaylandClient.so* $PKG/opt/remilia-pet/lib/ 2>/dev/null; true
+          cp /usr/lib/aarch64-linux-gnu/qt6/plugins/platforms/libqwayland-*.so $PKG/opt/remilia-pet/plugins/platforms/ 2>/dev/null; true
           cat > $PKG/opt/remilia-pet/remilia-pet << 'LAUNCHER'
           #!/bin/bash
           export GST_PLUGIN_SYSTEM_PATH=
+          export LD_LIBRARY_PATH="/opt/remilia-pet/lib:$LD_LIBRARY_PATH"
+          export QT_PLUGIN_PATH="/opt/remilia-pet/plugins"
           exec /opt/remilia-pet/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x $PKG/opt/remilia-pet/remilia-pet
