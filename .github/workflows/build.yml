@@ -354,7 +354,7 @@ jobs:
           # Convert to .rpm
           sudo apt-get install -y alien
           sudo alien -r --scripts RemiliaPet_Qt6-linux-arm64.deb
-          mv remilia-pet-*.aarch64.rpm RemiliaPet_Qt6-linux-arm64.rpm 2>/dev/null || true
+          mv remilia-pet-*.rpm RemiliaPet_Qt6-linux-arm64.rpm 2>/dev/null || true
           ls -la *.rpm 2>/dev/null || true
           # Build portable tar.gz
           tar -czf RemiliaPet_Qt6-linux-arm64.tar.gz -C AppDir .
@@ -550,7 +550,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           pattern: RemiliaPet_Qt6-**
           merge-multiple: true
