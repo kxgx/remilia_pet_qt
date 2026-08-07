@@ -1,8 +1,8 @@
 name: 静态编译（本地 Runner）
 
 on:
-  push:
-    tags: ['v*']
+  # push:
+  #   tags: ['v*']
   workflow_dispatch:
     inputs:
       build_installer:
