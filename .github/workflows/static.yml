@@ -17,6 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 清理源码（保留 build-static 增量编译）
+        run: |
+          git clean -xdf -e build-static -e dist-static
+
       - name: 配置 CMake（vcpkg 静态链接）
         run: |
           cmake -B build-static -S . -G "Visual Studio 17 2022" `
