@@ -437,8 +437,10 @@ jobs:
           AUTOSTART
           cat > $PKG/.PKGINFO << 'PKGINFO'
           pkgname = remilia-pet
-          pkgver = 1.0.7-1
-          pkgdesc = 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
+          pkgbase = remilia-pet
+          pkgver = 1.0.7
+          pkgrel = 1
+          pkgdesc = Remilia Pet - desktop pet application
           url = https://github.com/kxgx/remilia_pet_qt
           arch = x86_64
           license = MIT
@@ -519,8 +521,10 @@ jobs:
           AUTOSTART
           cat > $PKG/.PKGINFO << 'PKGINFO'
           pkgname = remilia-pet
-          pkgver = 1.0.7-1
-          pkgdesc = 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
+          pkgbase = remilia-pet
+          pkgver = 1.0.7
+          pkgrel = 1
+          pkgdesc = Remilia Pet - desktop pet application
           url = https://github.com/kxgx/remilia_pet_qt
           arch = aarch64
           license = MIT
