@@ -52,7 +52,7 @@
 # 需要先安装 vcpkg
 cmake -B build-static -S . -G "Visual Studio 17 2022" `
   -DVCPKG_TARGET_TRIPLET=x64-windows-static `
-  -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+  -DCMAKE_TOOLCHAIN_FILE="E:/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 cmake --build build-static --config Release --parallel
 ```

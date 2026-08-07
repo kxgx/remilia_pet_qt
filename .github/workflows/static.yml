@@ -17,23 +17,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 清理源码（保留 build-static 增量编译）
+      - name: 清理源码（保留 dist-static）
         run: |
-          git clean -xdf -e build-static -e dist-static
+          git clean -xdf -e dist-static
 
-      - name: 配置 CMake（vcpkg 静态链接）
+      - name: 配置 CMake（vcpkg 静态链接，构建到 E 盘）
         run: |
-          cmake -B build-static -S . -G "Visual Studio 17 2022" `
+          New-Item -ItemType Directory -Force -Path E:/remilia_build
+          cmake -B E:/remilia_build/static -S . -G "Visual Studio 17 2022" `
             -DVCPKG_TARGET_TRIPLET=x64-windows-static `
-            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_TOOLCHAIN_FILE="E:/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
       - name: 编译
-        run: cmake --build build-static --config Release --parallel
+        run: cmake --build E:/remilia_build/static --config Release --parallel
 
       - name: 打包 zip
         run: |
           New-Item -ItemType Directory -Force -Path dist-static
-          Copy-Item build-static/Release/蕾米埃尔桌宠_Qt6.exe dist-static/
+          Copy-Item E:/remilia_build/static/Release/蕾米埃尔桌宠_Qt6.exe dist-static/
           Compress-Archive -Path dist-static/* -DestinationPath dist-static/RemiliaPet_Qt6-win-x64-static.zip
 
       - name: 构建安装器
