@@ -167,7 +167,7 @@ jobs:
           #!/bin/bash
           export GST_PLUGIN_SYSTEM_PATH=
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
-          exec /opt/remilia-pet/蕾米埃尔桌宠_Qt6 "$@"
+          exec /opt/remilia-pet/usr/bin/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x AppDir/remilia-pet
           # Build .deb
@@ -293,7 +293,7 @@ jobs:
           #!/bin/bash
           export GST_PLUGIN_SYSTEM_PATH=
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
-          exec /opt/remilia-pet/蕾米埃尔桌宠_Qt6 "$@"
+          exec /opt/remilia-pet/usr/bin/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x AppDir/remilia-pet
           # Build .deb
