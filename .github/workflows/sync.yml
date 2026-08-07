@@ -3,6 +3,7 @@ name: 同步到极狐GitLab
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   sync:
