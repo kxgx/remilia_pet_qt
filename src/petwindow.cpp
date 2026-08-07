@@ -706,9 +706,6 @@ DesktopPet::~DesktopPet() {
         disconnect(m_movie, &QMovie::frameChanged, this, &DesktopPet::manualPaintFrame);
         m_movie->stop();
     }
-    for (auto it = m_extractedAudio.begin(); it != m_extractedAudio.end(); ++it) {
-        QFile::remove(it.value());
-    }
 }
 
 void DesktopPet::preloadNativeSizes() {
