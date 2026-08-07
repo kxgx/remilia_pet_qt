@@ -32,7 +32,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist
           Compress-Archive -Path build/Release/* -DestinationPath dist/RemiliaPet_Qt6-win-x64.zip
       - name: 上传构件
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-win-x64
           path: dist/
@@ -71,7 +71,7 @@ jobs:
             --app-drop-link 350 150 \
             "dist/RemiliaPet_Qt6-mac-x64.dmg" build/蕾米埃尔桌宠_Qt6.app/
       - name: 上传构件
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-mac-x64
           path: dist/
@@ -110,7 +110,7 @@ jobs:
             --app-drop-link 350 150 \
             "dist/RemiliaPet_Qt6-mac-arm64.dmg" build/蕾米埃尔桌宠_Qt6.app/
       - name: 上传构件
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-mac-arm64
           path: dist/
@@ -230,17 +230,17 @@ jobs:
           tar -czf RemiliaPet_Qt6-linux-x64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-x64.*
       - name: 上传 .deb
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-linux-x64-deb
           path: RemiliaPet_Qt6-linux-x64.deb
       - name: 上传 .rpm
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-linux-x64-rpm
           path: RemiliaPet_Qt6-linux-x64.rpm
       - name: 上传 tar.gz
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-linux-x64-targz
           path: RemiliaPet_Qt6-linux-x64.tar.gz
@@ -360,17 +360,17 @@ jobs:
           tar -czf RemiliaPet_Qt6-linux-arm64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-arm64.*
       - name: 上传 .deb
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-linux-arm64-deb
           path: RemiliaPet_Qt6-linux-arm64.deb
       - name: 上传 .rpm
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-linux-arm64-rpm
           path: RemiliaPet_Qt6-linux-arm64.rpm
       - name: 上传 tar.gz
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-linux-arm64-targz
           path: RemiliaPet_Qt6-linux-arm64.tar.gz
@@ -452,7 +452,7 @@ jobs:
           cd $PKG && tar -c --zstd -f ../RemiliaPet_Qt6-linux-x64.pkg.tar.zst .
           cd .. && ls -la *.pkg.tar.zst
       - name: 上传 Arch 包
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-linux-x64-arch
           path: RemiliaPet_Qt6-linux-x64.pkg.tar.zst
@@ -534,7 +534,7 @@ jobs:
           cd $PKG && tar -c --zstd -f ../RemiliaPet_Qt6-linux-arm64.pkg.tar.zst .
           cd .. && ls -la *.pkg.tar.zst
       - name: 上传 Arch 包
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: RemiliaPet_Qt6-linux-arm64-arch
           path: RemiliaPet_Qt6-linux-arm64.pkg.tar.zst

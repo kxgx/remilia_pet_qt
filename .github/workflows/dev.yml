@@ -65,7 +65,7 @@ jobs:
           mv Remilia_Pet-x86_64.AppImage RemiliaPet-linux-x64-legacy.AppImage
           ls -la *.AppImage
       - name: Upload
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: linux-legacy
           path: RemiliaPet-linux-x64-legacy.AppImage
@@ -132,7 +132,7 @@ jobs:
           ARCH=x86_64 ./appimagetool-x86_64.AppImage AppDir RemiliaPet-linux-x64-fuse3.AppImage
           ls -la *.AppImage
       - name: Upload
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: linux-fuse3
           path: RemiliaPet-linux-x64-fuse3.AppImage
@@ -207,7 +207,7 @@ jobs:
           tar -czf RemiliaPet-linux-x64.tar.gz -C dist RemiliaPet
           ls -la *.tar.gz
       - name: Upload
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: linux-targz
           path: RemiliaPet-linux-x64.tar.gz
