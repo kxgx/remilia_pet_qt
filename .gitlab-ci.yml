@@ -1,8 +1,6 @@
-# 极狐GitLab CI — 约束检查
-# 等同于 GitHub Actions 的 check.yml
-
 stages:
   - check
+  - build
 
 checks:
   stage: check
@@ -36,59 +34,151 @@ checks:
       grep -q 'qBound' /tmp/load.txt
       echo "OK"
 
-      echo "=== 6. macOS POST_BUILD icon ==="
-      grep -q 'POST_BUILD' CMakeLists.txt
-      grep -q 'icon\.icns' CMakeLists.txt
-      echo "OK"
-
-      echo "=== 7. CGWindowLevelForKey ==="
+      echo "=== 6-17 快速检查 ==="
+      grep -q 'POST_BUILD' CMakeLists.txt && grep -q 'icon\.icns' CMakeLists.txt
       grep -q 'CGWindowLevelForKey' src/petwindow.cpp
-      echo "OK"
-
-      echo "=== 8. qt6-wayland ==="
       grep -q 'qt6-wayland' .github/workflows/build.yml
-      echo "OK"
-
-      echo "=== 9. GST_PLUGIN_SYSTEM_PATH ==="
       grep -q 'GST_PLUGIN_SYSTEM_PATH' .github/workflows/build.yml
-      echo "OK"
-
-      echo "=== 10. dpkg-deb ==="
       grep -q 'dpkg-deb --build' .github/workflows/build.yml
-      echo "OK"
-
-      echo "=== 11. alien ==="
       grep -q 'alien -r' .github/workflows/build.yml
-      echo "OK"
-
-      echo "=== 12. Arch x64 ==="
       grep -q 'linux-arch:' .github/workflows/build.yml
-      echo "OK"
-
-      echo "=== 13. Arch ARM64 ==="
       grep -q 'linux-arch-arm64:' .github/workflows/build.yml
-      echo "OK"
-
-      echo "=== 14. 托盘提示固定字符串 ==="
       awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
       if grep -qE 'setToolTip.*m_mouseTransparent|m_mouseTransparent.*setToolTip' /tmp/mouse.txt; then echo FAIL; exit 1; fi
-      echo "OK"
-
-      echo "=== 15. Wayland 插件 ==="
       grep -q 'qwayland' .github/workflows/build.yml
       grep -q 'libQt6WaylandClient' .github/workflows/build.yml
       grep -q 'QT_PLUGIN_PATH' .github/workflows/build.yml
-      echo "OK"
-
-      echo "=== 16. usr/bin FHS ==="
       grep -q 'usr/bin/蕾' .github/workflows/build.yml
-      echo "OK"
-
-      echo "=== 17. 无 xcb 绕过 ==="
       if grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml; then echo FAIL; exit 1; fi
-      echo "OK"
-
       echo "✅ 全部 17 项检查通过"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ================================================================
+# Linux x64 构建 + 打包
+# ================================================================
+linux-x64:
+  stage: build
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq ninja-build libgl1-mesa-dev libxkbcommon-dev
+      libxcb1-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev
+      libxcb-render-util0-dev libxcb-shape0-dev libxcb-xinerama0-dev
+      libpulse-dev libasound2-dev qt6-base-dev qt6-multimedia-dev
+      qt6-wayland libqt6svg6-dev python3-pil wget file
+      gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+      gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio alien
+  script:
+    - |
+      set -e
+      # 编译
+      cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+      cmake --build build --parallel
+
+      # linuxdeploy 打包
+      wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+      wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+      chmod +x linuxdeploy*.AppImage
+      mkdir -p AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
+
+      cat > AppDir/usr/share/applications/remilia-pet.desktop << 'EOF'
+      [Desktop Entry]
+      Type=Application
+      Name=Remilia Pet
+      Comment=Remilia Pet Qt6
+      Exec=蕾米埃尔桌宠_Qt6
+      Icon=remilia-pet
+      Categories=Utility;
+      Terminal=false
+      EOF
+
+      python3 -c "from PIL import Image; img = Image.open('icon.png'); img.resize((256,256), Image.LANCZOS).save('AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png')"
+      export GST_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
+      ./linuxdeploy-x86_64.AppImage --appdir AppDir --executable build/蕾米埃尔桌宠_Qt6 \
+        --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
+        --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
+        --plugin qt
+      cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
+      sed -i '2i export GST_PLUGIN_SYSTEM_PATH=' AppDir/AppRun
+      mkdir -p AppDir/usr/plugins/platforms
+      cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqwayland-*.so AppDir/usr/plugins/platforms/ 2>/dev/null || true
+      cp /usr/lib/x86_64-linux-gnu/libQt6WaylandClient.so* AppDir/usr/lib/ 2>/dev/null || true
+
+      # Launcher
+      cat > AppDir/remilia-pet << 'LAUNCHER'
+      #!/bin/bash
+      export GST_PLUGIN_SYSTEM_PATH=
+      export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:\$LD_LIBRARY_PATH"
+      export QT_PLUGIN_PATH="/opt/remilia-pet/usr/plugins"
+      exec /opt/remilia-pet/usr/bin/蕾米埃尔桌宠_Qt6 "\$@"
+      LAUNCHER
+      chmod +x AppDir/remilia-pet
+
+      # .deb
+      DEB=deb-root
+      mkdir -p $DEB/DEBIAN $DEB/opt/remilia-pet $DEB/usr/bin
+      mkdir -p $DEB/usr/share/applications $DEB/usr/share/icons/hicolor/256x256/apps
+      mkdir -p $DEB/etc/xdg/autostart
+      cp -a AppDir/* $DEB/opt/remilia-pet/
+      ln -sf /opt/remilia-pet/remilia-pet $DEB/usr/bin/remilia-pet
+      cp AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png $DEB/usr/share/icons/hicolor/256x256/apps/
+
+      cat > $DEB/usr/share/applications/remilia-pet.desktop << 'DESKTOP'
+      [Desktop Entry]
+      Type=Application
+      Name=蕾米埃尔桌宠
+      Comment=桌面宠物
+      Exec=/opt/remilia-pet/remilia-pet
+      Icon=remilia-pet
+      Categories=Utility;
+      Terminal=false
+      DESKTOP
+
+      cat > $DEB/etc/xdg/autostart/remilia-pet.desktop << 'AUTOSTART'
+      [Desktop Entry]
+      Type=Application
+      Name=蕾米埃尔桌宠
+      Exec=/opt/remilia-pet/remilia-pet
+      Icon=remilia-pet
+      X-GNOME-Autostart-enabled=true
+      AUTOSTART
+
+      cat > $DEB/DEBIAN/control << 'CONTROL'
+      Package: remilia-pet
+      Version: 1.0.7
+      Section: utils
+      Priority: optional
+      Architecture: amd64
+      Depends: libc6, libgl1, libpulse0, libasound2
+      Maintainer: kxgx
+      Description: 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
+      CONTROL
+
+      cat > $DEB/DEBIAN/postinst << 'POSTINST'
+      #!/bin/bash
+      set -e
+      echo "✅ 蕾米埃尔桌宠 已安装"
+      echo "   终端运行: remilia-pet"
+      echo "   开机自启已启用"
+      POSTINST
+      chmod 755 $DEB/DEBIAN/postinst
+      dpkg-deb --build $DEB RemiliaPet_Qt6-linux-x64.deb
+
+      # .rpm
+      alien -r --scripts RemiliaPet_Qt6-linux-x64.deb
+      mv remilia-pet-*.x86_64.rpm RemiliaPet_Qt6-linux-x64.rpm 2>/dev/null || true
+
+      # tar.gz
+      tar -czf RemiliaPet_Qt6-linux-x64.tar.gz -C AppDir .
+      ls -la RemiliaPet_Qt6-linux-x64.*
+  artifacts:
+    paths:
+      - RemiliaPet_Qt6-linux-x64.deb
+      - RemiliaPet_Qt6-linux-x64.rpm
+      - RemiliaPet_Qt6-linux-x64.tar.gz
+    expire_in: 7 days
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
