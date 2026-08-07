@@ -390,7 +390,7 @@ jobs:
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
             qt6-base-dev qt6-multimedia-dev qt6-wayland libqt6svg6-dev \
-            python3-pil zstd
+            python3-pil zstd libarchive-tools
       - name: 编译 + 打包 .pkg.tar.zst
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
@@ -449,7 +449,7 @@ jobs:
           depend = qt6-svg
           depend = qt6-wayland
           PKGINFO
-          cd $PKG && tar -c --zstd -f ../RemiliaPet_Qt6-linux-x64.pkg.tar.zst .
+          cd $PKG && bsdtar -c --zstd -f ../RemiliaPet_Qt6-linux-x64.pkg.tar.zst .
           cd .. && ls -la *.pkg.tar.zst
       - name: 上传 Arch 包
         uses: actions/upload-artifact@v6
@@ -474,7 +474,7 @@ jobs:
             libxcb-render-util0-dev libxcb-shape0-dev \
             libxcb-xinerama0-dev libpulse-dev libasound2-dev \
             qt6-base-dev qt6-multimedia-dev qt6-wayland libqt6svg6-dev \
-            python3-pil zstd
+            python3-pil zstd libarchive-tools
       - name: 编译 + 打包 .pkg.tar.zst
         run: |
           cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
@@ -533,7 +533,7 @@ jobs:
           depend = qt6-svg
           depend = qt6-wayland
           PKGINFO
-          cd $PKG && tar -c --zstd -f ../RemiliaPet_Qt6-linux-arm64.pkg.tar.zst .
+          cd $PKG && bsdtar -c --zstd -f ../RemiliaPet_Qt6-linux-arm64.pkg.tar.zst .
           cd .. && ls -la *.pkg.tar.zst
       - name: 上传 Arch 包
         uses: actions/upload-artifact@v6
