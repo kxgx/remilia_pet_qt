@@ -386,7 +386,6 @@ jobs:
         run: |
           pacman-key --init
           pacman -Sy --noconfirm archlinux-keyring
-          pacman -Syu --noconfirm
           pacman -S --noconfirm base-devel cmake ninja git \
             qt6-base qt6-multimedia qt6-svg qt6-wayland \
             gst-plugins-base gst-plugins-good gst-plugins-bad \
