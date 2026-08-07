@@ -386,14 +386,16 @@ jobs:
         run: |
           pacman-key --init
           pacman -Sy --noconfirm archlinux-keyring
+          pacman -Syu --noconfirm
           pacman -S --noconfirm base-devel cmake ninja git \
             qt6-base qt6-multimedia qt6-svg qt6-wayland \
             gst-plugins-base gst-plugins-good gst-plugins-bad \
-            python-pillow zstd
+            python-pillow zstd lld
       - name: 编译 + 打包 .pkg.tar.zst
         run: |
-          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --parallel
+          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
+          cmake --build build --parallel 2>&1 || { echo "BUILD FAILED"; ninja -C build -v 蕾米埃尔桌宠_Qt6 2>&1; exit 1; }
           PKG=pkg
           mkdir -p $PKG/opt/remilia-pet $PKG/usr/bin
           mkdir -p $PKG/usr/share/applications $PKG/usr/share/icons/hicolor/256x256/apps
