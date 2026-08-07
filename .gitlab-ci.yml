@@ -67,7 +67,7 @@ linux-x64:
     - apt-get update -qq && apt-get install -y -qq ca-certificates
     - sed -i 's|http://archive.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/ubuntu.sources
     - apt-get update -qq
-    - apt-get install -y -qq ninja-build libgl1-mesa-dev libxkbcommon-dev
+    - apt-get install -y -qq cmake ninja-build libgl1-mesa-dev libxkbcommon-dev
       libxcb1-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev
       libxcb-render-util0-dev libxcb-shape0-dev libxcb-xinerama0-dev
       libpulse-dev libasound2-dev qt6-base-dev qt6-multimedia-dev
