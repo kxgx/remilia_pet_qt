@@ -15,7 +15,7 @@ jobs:
     name: Windows x64 静态版
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: 清理源码（保留 dist-static）
         run: |
@@ -47,7 +47,7 @@ jobs:
           & $iscc installer.iss /O"dist-static/installer"
 
       - name: 上传构件
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-win-x64-static
           path: dist-static/
@@ -60,7 +60,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: RemiliaPet_Qt6-win-x64-static
       - name: 列出构件

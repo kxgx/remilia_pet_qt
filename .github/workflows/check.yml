@@ -10,7 +10,7 @@ jobs:
   checks:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # ============ QSettings 持久化 ============
       - name: 1. 检查 main.cpp 中 orgName/appName 已设置

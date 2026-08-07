@@ -13,7 +13,7 @@ jobs:
     name: Windows x64
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: 通过 aqtinstall 安装 Qt6
         run: |
           pip install aqtinstall
@@ -32,7 +32,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist
           Compress-Archive -Path build/Release/* -DestinationPath dist/RemiliaPet_Qt6-win-x64.zip
       - name: 上传构件
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-win-x64
           path: dist/
@@ -44,7 +44,7 @@ jobs:
     name: macOS x64 (Intel)
     runs-on: macos-26-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: 通过 Homebrew 安装 Qt6
         run: |
           brew install ninja qt6
@@ -70,7 +70,7 @@ jobs:
             --app-drop-link 350 150 \
             "dist/RemiliaPet_Qt6-mac-x64.dmg" build/蕾米埃尔桌宠_Qt6.app/
       - name: 上传构件
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-mac-x64
           path: dist/
@@ -82,7 +82,7 @@ jobs:
     name: macOS ARM64
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: 通过 Homebrew 安装 Qt6
         run: |
           brew install ninja qt6
@@ -108,7 +108,7 @@ jobs:
             --app-drop-link 350 150 \
             "dist/RemiliaPet_Qt6-mac-arm64.dmg" build/蕾米埃尔桌宠_Qt6.app/
       - name: 上传构件
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-mac-arm64
           path: dist/
@@ -120,7 +120,7 @@ jobs:
     name: Linux x64
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: 安装依赖 + Qt6 + GStreamer
         run: |
           sudo apt-get update
@@ -228,17 +228,17 @@ jobs:
           tar -czf RemiliaPet_Qt6-linux-x64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-x64.*
       - name: 上传 .deb
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-linux-x64-deb
           path: RemiliaPet_Qt6-linux-x64.deb
       - name: 上传 .rpm
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-linux-x64-rpm
           path: RemiliaPet_Qt6-linux-x64.rpm
       - name: 上传 tar.gz
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-linux-x64-targz
           path: RemiliaPet_Qt6-linux-x64.tar.gz
@@ -250,7 +250,7 @@ jobs:
     name: Linux ARM64
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: 安装依赖 + Qt6 + GStreamer
         run: |
           sudo apt-get update
@@ -358,17 +358,17 @@ jobs:
           tar -czf RemiliaPet_Qt6-linux-arm64.tar.gz -C AppDir .
           ls -la RemiliaPet_Qt6-linux-arm64.*
       - name: 上传 .deb
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-linux-arm64-deb
           path: RemiliaPet_Qt6-linux-arm64.deb
       - name: 上传 .rpm
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-linux-arm64-rpm
           path: RemiliaPet_Qt6-linux-arm64.rpm
       - name: 上传 tar.gz
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-linux-arm64-targz
           path: RemiliaPet_Qt6-linux-arm64.tar.gz
@@ -380,7 +380,7 @@ jobs:
     name: Arch Linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: 安装依赖
         run: |
           sudo apt-get update
@@ -451,7 +451,7 @@ jobs:
           cd $PKG && tar -c --zstd -f ../RemiliaPet_Qt6-linux-x64.pkg.tar.zst .
           cd .. && ls -la *.pkg.tar.zst
       - name: 上传 Arch 包
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-linux-x64-arch
           path: RemiliaPet_Qt6-linux-x64.pkg.tar.zst
@@ -463,7 +463,7 @@ jobs:
     name: Arch Linux ARM64
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: 安装依赖
         run: |
           sudo apt-get update
@@ -534,7 +534,7 @@ jobs:
           cd $PKG && tar -c --zstd -f ../RemiliaPet_Qt6-linux-arm64.pkg.tar.zst .
           cd .. && ls -la *.pkg.tar.zst
       - name: 上传 Arch 包
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: RemiliaPet_Qt6-linux-arm64-arch
           path: RemiliaPet_Qt6-linux-arm64.pkg.tar.zst
