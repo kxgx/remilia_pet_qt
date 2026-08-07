@@ -391,8 +391,8 @@ jobs:
             python-pillow zstd
       - name: 编译 + 打包 .pkg.tar.zst
         run: |
-          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --parallel
+          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON
+          cmake --build build --parallel 2>&1 || { echo "BUILD FAILED"; ninja -C build -n 蕾米埃尔桌宠_Qt6 2>&1; exit 1; }
           PKG=pkg
           mkdir -p $PKG/opt/remilia-pet $PKG/usr/bin
           mkdir -p $PKG/usr/share/applications $PKG/usr/share/icons/hicolor/256x256/apps
