@@ -63,10 +63,11 @@ jobs:
           grep -q 'qt6-wayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qt6-wayland in apt deps"; exit 1; }
           echo "OK: qt6-wayland in CI deps"
 
-      - name: 9. 检查 Linux CI GST_PLUGIN_SYSTEM_PATH 指向有效路径
+      - name: 9. 检查 deb 包依赖声明了 GStreamer 系统包
         run: |
-          grep -q 'GST_PLUGIN_SYSTEM_PATH=/' .github/workflows/build.yml || { echo "FAIL: GST_PLUGIN_SYSTEM_PATH must point to bundled plugins (start with /)"; exit 1; }
-          echo "OK: GST_PLUGIN_SYSTEM_PATH points to bundled plugins"
+          grep -q 'gstreamer1.0-plugins-base' .github/workflows/build.yml || { echo "FAIL: deb Depends must include gstreamer1.0-plugins-base (system GStreamer)"; exit 1; }
+          if grep -q 'export GST_PLUGIN_SYSTEM_PATH' .github/workflows/build.yml; then echo "FAIL: launcher must NOT set GST_PLUGIN_SYSTEM_PATH (use system GStreamer)"; exit 1; fi
+          echo "OK: GStreamer provided by system, not bundled"
 
       - name: 10. 检查 Linux CI 使用 dpkg-deb 打包 .deb
         run: |

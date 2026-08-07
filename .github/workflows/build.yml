@@ -163,14 +163,11 @@ jobs:
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt
-          cp -r /usr/lib/x86_64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
-          sed -i '2i export GST_PLUGIN_SYSTEM_PATH=/opt/remilia-pet/usr/lib/gstreamer-1.0' AppDir/AppRun
           mkdir -p AppDir/usr/plugins/platforms
           cp /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms/libqwayland-*.so AppDir/usr/plugins/platforms/ 2>/dev/null; true
           cp /usr/lib/x86_64-linux-gnu/libQt6WaylandClient.so* AppDir/usr/lib/ 2>/dev/null; true
           cat > AppDir/remilia-pet << 'LAUNCHER'
           #!/bin/bash
-          export GST_PLUGIN_SYSTEM_PATH=/opt/remilia-pet/usr/lib/gstreamer-1.0
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
           export QT_PLUGIN_PATH="/opt/remilia-pet/usr/plugins"
           exec /opt/remilia-pet/usr/bin/蕾米埃尔桌宠_Qt6 "$@"
@@ -208,7 +205,7 @@ jobs:
           Section: utils
           Priority: optional
           Architecture: amd64
-          Depends: libc6, libgl1, libpulse0, libasound2
+          Depends: libc6, libgl1, libpulse0, libasound2, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-pulseaudio
           Maintainer: kxgx
           Description: 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
           CONTROL
@@ -293,14 +290,11 @@ jobs:
             --desktop-file AppDir/usr/share/applications/remilia-pet.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/remilia-pet.png \
             --plugin qt
-          cp -r /usr/lib/aarch64-linux-gnu/gstreamer-1.0 AppDir/usr/lib/
-          sed -i '2i export GST_PLUGIN_SYSTEM_PATH=/opt/remilia-pet/usr/lib/gstreamer-1.0' AppDir/AppRun
           mkdir -p AppDir/usr/plugins/platforms
           cp /usr/lib/aarch64-linux-gnu/qt6/plugins/platforms/libqwayland-*.so AppDir/usr/plugins/platforms/ 2>/dev/null; true
           cp /usr/lib/aarch64-linux-gnu/libQt6WaylandClient.so* AppDir/usr/lib/ 2>/dev/null; true
           cat > AppDir/remilia-pet << 'LAUNCHER'
           #!/bin/bash
-          export GST_PLUGIN_SYSTEM_PATH=/opt/remilia-pet/usr/lib/gstreamer-1.0
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
           export QT_PLUGIN_PATH="/opt/remilia-pet/usr/plugins"
           exec /opt/remilia-pet/usr/bin/蕾米埃尔桌宠_Qt6 "$@"
@@ -338,7 +332,7 @@ jobs:
           Section: utils
           Priority: optional
           Architecture: arm64
-          Depends: libc6, libgl1, libpulse0, libasound2
+          Depends: libc6, libgl1, libpulse0, libasound2, gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-pulseaudio
           Maintainer: kxgx
           Description: 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
           CONTROL
