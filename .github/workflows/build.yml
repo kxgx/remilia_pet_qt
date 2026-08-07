@@ -47,6 +47,7 @@ jobs:
       - uses: actions/checkout@v5
       - name: 通过 Homebrew 安装 Qt6
         run: |
+          brew untap aws/tap 2>/dev/null || true
           brew install ninja qt6
           echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
       - name: 配置 CMake
@@ -85,6 +86,7 @@ jobs:
       - uses: actions/checkout@v5
       - name: 通过 Homebrew 安装 Qt6
         run: |
+          brew untap aws/tap 2>/dev/null || true
           brew install ninja qt6
           echo "QT_PATH=$(brew --prefix qt6)" >> $GITHUB_ENV
       - name: 配置 CMake
