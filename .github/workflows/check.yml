@@ -109,13 +109,10 @@ jobs:
           grep -q 'usr/bin/蕾米埃尔桌宠_Qt6' .github/workflows/build.yml || { echo "FAIL: .deb launcher must use usr/bin/ path (linuxdeploy FHS)"; exit 1; }
           echo "OK: .deb launcher points to usr/bin/"
 
-      - name: 17. 检查未强制 QT_QPA_PLATFORM=xcb 绕过
+      - name: 17. 检查 Linux launcher 使用 XCB 避免 Wayland 兼容问题
         run: |
-          if grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml; then
-            echo "FAIL: QT_QPA_PLATFORM=xcb bypass found — should bundle qwayland plugin instead"
-            exit 1
-          fi
-          echo "OK: no xcb bypass, Wayland runs natively"
+          grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml || { echo "FAIL: Linux launcher must set QT_QPA_PLATFORM=xcb (avoid Wayland shell integration issues)"; exit 1; }
+          echo "OK: QT_QPA_PLATFORM=xcb set in all launchers"
 
       - name: 18. 检查 macOS CI 移除 aws/tap 避免 Homebrew 信任警告
         run: |

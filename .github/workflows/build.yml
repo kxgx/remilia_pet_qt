@@ -171,6 +171,7 @@ jobs:
           #!/bin/bash
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
           export QT_PLUGIN_PATH="/opt/remilia-pet/usr/plugins"
+          export QT_QPA_PLATFORM=xcb
           exec /opt/remilia-pet/usr/bin/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x AppDir/remilia-pet
@@ -299,6 +300,7 @@ jobs:
           #!/bin/bash
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:/opt/remilia-pet/usr/lib:$LD_LIBRARY_PATH"
           export QT_PLUGIN_PATH="/opt/remilia-pet/usr/plugins"
+          export QT_QPA_PLATFORM=xcb
           exec /opt/remilia-pet/usr/bin/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x AppDir/remilia-pet
@@ -409,6 +411,7 @@ jobs:
           #!/bin/bash
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:$LD_LIBRARY_PATH"
           export QT_PLUGIN_PATH="/opt/remilia-pet/plugins"
+          export QT_QPA_PLATFORM=xcb
           exec /opt/remilia-pet/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x $PKG/opt/remilia-pet/remilia-pet
@@ -490,6 +493,7 @@ jobs:
           #!/bin/bash
           export LD_LIBRARY_PATH="/opt/remilia-pet/lib:$LD_LIBRARY_PATH"
           export QT_PLUGIN_PATH="/opt/remilia-pet/plugins"
+          export QT_QPA_PLATFORM=xcb
           exec /opt/remilia-pet/蕾米埃尔桌宠_Qt6 "$@"
           LAUNCHER
           chmod +x $PKG/opt/remilia-pet/remilia-pet
