@@ -16,5 +16,7 @@ jobs:
       - name: 推送到极狐GitLab
         run: |
           git remote add jihulab https://oauth2:${{ secrets.JIHULAB_TOKEN }}@jihulab.com/kxgx/remilia_pet_qt.git
+          git fetch jihulab master
+          git merge jihulab/master --allow-unrelated-histories -m "merge: 同步 GitHub → 极狐" || true
           git push jihulab master
           git push jihulab --tags
