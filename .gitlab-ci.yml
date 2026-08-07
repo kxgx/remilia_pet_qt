@@ -6,6 +6,7 @@ checks:
   stage: check
   image: ubuntu:24.04
   before_script:
+    - sed -i 's|http://archive.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/ubuntu.sources
     - apt-get update -qq && apt-get install -y -qq grep gawk
   script:
     - |
@@ -62,6 +63,7 @@ linux-x64:
   stage: build
   image: ubuntu:24.04
   before_script:
+    - sed -i 's|http://archive.ubuntu.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/ubuntu.sources
     - apt-get update -qq
     - apt-get install -y -qq ninja-build libgl1-mesa-dev libxkbcommon-dev
       libxcb1-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev
