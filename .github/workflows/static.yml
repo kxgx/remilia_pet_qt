@@ -1,0 +1,45 @@
+name: 静态编译（本地 Runner）
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_installer:
+        description: '构建 Inno Setup 安装器'
+        type: boolean
+        default: false
+
+jobs:
+  static:
+    name: Windows x64 静态版
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 配置 CMake（vcpkg 静态链接）
+        run: |
+          cmake -B build-static -S . -G "Visual Studio 17 2022" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+
+      - name: 编译
+        run: cmake --build build-static --config Release --parallel
+
+      - name: 打包 zip
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-static
+          Copy-Item build-static/Release/蕾米埃尔桌宠_Qt6.exe dist-static/
+          Compress-Archive -Path dist-static/* -DestinationPath dist-static/RemiliaPet_Qt6-win-x64-static.zip
+
+      - name: 构建安装器
+        if: ${{ inputs.build_installer }}
+        run: |
+          $iscc = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { Write-Error "未找到 Inno Setup: $iscc"; exit 1 }
+          New-Item -ItemType Directory -Force -Path dist-static/installer
+          & $iscc installer.iss /O"dist-static/installer"
+
+      - name: 上传构件
+        uses: actions/upload-artifact@v4
+        with:
+          name: RemiliaPet_Qt6-win-x64-static
+          path: dist-static/
