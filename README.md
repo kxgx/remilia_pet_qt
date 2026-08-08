@@ -16,15 +16,10 @@
 | macOS | ARM64 (Apple Silicon) | macos-latest | Homebrew |
 | Linux | x86_64 | ubuntu-latest | apt |
 | Linux | ARM64 | ubuntu-24.04-arm | apt |
-| Linux | x86_64 (Arch) | ubuntu-latest | apt (打包 .pkg.tar.zst) |
-| Linux | ARM64 (Arch) | ubuntu-24.04-arm | apt (打包 .pkg.tar.zst) |
 
-> **为什么 Arch x64 和 ARM64 构建方式相同？**
-> Arch Linux 官方 Docker 镜像 GCC 16 与项目不兼容，且不提供 ARM64 版本。
-> 因此两个架构均在 Ubuntu runner 上编译，用 `tar --zstd` 打包为 `.pkg.tar.zst`。
->
 > **已知限制**：
 > - **Windows ARM64**：aqtinstall 目前不提供 ARM64 架构的 Qt 预编译包，静态编译也因 vcpkg 的 `qtdeclarative` 依赖问题受阻
+> - **Arch Linux**：不再打包 `.pkg.tar.zst`，使用便携版 `.tar.gz` 解压即用（见下方安装说明）
 
 ### 发布正式版
 
@@ -107,7 +102,7 @@ xattr -d com.apple.quarantine /Applications/蕾米埃尔桌宠_Qt6.app
 |--------|--------|----------|
 | Debian / Ubuntu | `.deb` | `sudo dpkg -i RemiliaPet_Qt6-linux-{x64,arm64}.deb` |
 | Fedora / RHEL | `.rpm` | `sudo rpm -i RemiliaPet_Qt6-linux-{x64,arm64}.rpm` |
-| Arch / Manjaro | `.pkg.tar.zst` | `sudo pacman -U RemiliaPet_Qt6-linux-{x64,arm64}.pkg.tar.zst` |
+| Arch / Manjaro | `.tar.gz` 便携版 | 见下方说明 |
 | 通用便携 | `.tar.gz` | `tar -xzf RemiliaPet_Qt6-linux-{x64,arm64}.tar.gz && ./AppRun` |
 
 安装后：
@@ -140,16 +135,21 @@ sudo rpm -i RemiliaPet_Qt6-linux-x64.rpm
 
 卸载：`sudo dnf remove remilia-pet`
 
-#### Arch / Manjaro（.pkg.tar.zst）
+#### Arch / Manjaro
+
+推荐使用**便携版（tar.gz）**，零依赖、解压即用：
 
 ```
-# 先确保系统有 Qt6 依赖
-sudo pacman -S qt6-base qt6-multimedia qt6-svg qt6-wayland
-# 安装
-sudo pacman -U RemiliaPet_Qt6-linux-x64.pkg.tar.zst
+# 下载并解压
+wget https://github.com/kxgx/remilia_pet_qt/releases/latest/download/RemiliaPet_Qt6-linux-x64.tar.gz
+tar -xzf RemiliaPet_Qt6-linux-x64.tar.gz
+cd 解压目录
+
+# 运行
+./AppRun
 ```
 
-卸载：`sudo pacman -R remilia-pet`
+> 系统已自带 Qt6 运行时库，便携版直接复用无需额外安装依赖。
 
 #### 便携版（tar.gz）
 
@@ -164,7 +164,7 @@ cd 解压目录 && ./AppRun
 
 - **Debian/Ubuntu** ≥ 20.04（自动安装依赖）
 - **Fedora** ≥ 36
-- **Arch** 滚动更新（依赖系统 Qt6 包）
+- **Arch / Manjaro**：使用便携版 `.tar.gz` 解压即用（见上方说明）
 - 其他发行版可用 `tar.gz` 便携版直接运行
 
 > **音频**：使用 QSoundEffect + WAV（嵌入 QRC），无需 GStreamer 或额外解码器。

@@ -78,17 +78,12 @@ jobs:
           grep -q 'alien -r' .github/workflows/build.yml || { echo "FAIL: build.yml missing alien -r ( .rpm conversion)"; exit 1; }
           echo "OK: alien -r present"
 
-      - name: 12. 检查 Arch Linux x64 打包 .pkg.tar.zst
+      - name: 12. 检查 build.yml 不再包含 Arch 打包 job（改用 APM 转 deb）
         run: |
-          grep -q 'linux-arch:' .github/workflows/build.yml || { echo "FAIL: build.yml missing linux-arch job (Arch x64)"; exit 1; }
-          echo "OK: arch x64 pkg.tar.zst job present"
+          if grep -q 'linux-arch' .github/workflows/build.yml; then echo "FAIL: build.yml must not contain linux-arch jobs (Arch users convert .deb via APM)"; exit 1; fi
+          echo "OK: no Arch packaging jobs, Arch users use APM to convert .deb"
 
-      - name: 13. 检查 Arch Linux ARM64 打包 .pkg.tar.zst
-        run: |
-          grep -q 'linux-arch-arm64:' .github/workflows/build.yml || { echo "FAIL: build.yml missing linux-arch-arm64 job (Arch ARM64)"; exit 1; }
-          echo "OK: arch arm64 pkg.tar.zst job present"
-
-      - name: 14. 检查托盘提示为固定字符串
+      - name: 13. 检查托盘提示为固定字符串
         run: |
           awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
           if grep -q 'setToolTip.*m_mouseTransparent\|m_mouseTransparent.*setToolTip' /tmp/mouse.txt; then
@@ -97,7 +92,7 @@ jobs:
           fi
           echo "OK: tray tooltip is fixed string"
 
-      - name: 15. 检查打包 Wayland 完整插件链（平台+子插件+库）
+      - name: 14. 检查打包 Wayland 完整插件链（平台+子插件+库）
         run: |
           grep -q 'qwayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qwayland platform plugin copy"; exit 1; }
           grep -q 'wayland-shell-integration' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-shell-integration sub-plugin"; exit 1; }
@@ -106,53 +101,32 @@ jobs:
           grep -q 'libQt6WaylandEglClientHwIntegration' .github/workflows/build.yml || { echo "FAIL: build.yml missing libQt6WaylandEglClientHwIntegration"; exit 1; }
           echo "OK: full Wayland plugin chain bundled (platform+shell+graphics+decoration+egl)"
 
-      - name: 16. 检查 .deb launcher 使用 usr/bin 路径 (FHS)
+      - name: 15. 检查 .deb launcher 使用 usr/bin 路径 (FHS)
         run: |
           grep -q 'usr/bin/蕾米埃尔桌宠_Qt6' .github/workflows/build.yml || { echo "FAIL: .deb launcher must use usr/bin/ path (linuxdeploy FHS)"; exit 1; }
           echo "OK: .deb launcher points to usr/bin/"
 
-      - name: 17. 检查 Linux launcher 使用 XCB 避免 Wayland 兼容问题
+      - name: 16. 检查 Linux launcher 使用 XCB 避免 Wayland 兼容问题
         run: |
           grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml || { echo "FAIL: Linux launcher must set QT_QPA_PLATFORM=xcb (avoid Wayland shell integration issues)"; exit 1; }
           echo "OK: QT_QPA_PLATFORM=xcb set in all launchers"
 
-      - name: 18. 检查 macOS CI 移除 aws/tap 避免 Homebrew 信任警告
+      - name: 17. 检查 macOS CI 移除 aws/tap 避免 Homebrew 信任警告
         run: |
           grep -q 'brew untap aws/tap' .github/workflows/build.yml || { echo "FAIL: build.yml missing brew untap aws/tap to suppress Homebrew trust warning"; exit 1; }
           echo "OK: aws/tap untap present"
 
-      - name: 19. 检查 Release 使用 download-artifact@v7 (Node 24)
+      - name: 18. 检查 Release 使用 download-artifact@v7 (Node 24)
         run: |
           grep -q 'actions/download-artifact@v7' .github/workflows/build.yml || { echo "FAIL: release job must use download-artifact@v7 (Node 24)"; exit 1; }
           if grep -q 'actions/download-artifact@v4' .github/workflows/build.yml; then echo "FAIL: found old download-artifact@v4 (Node 20)"; exit 1; fi
           echo "OK: download-artifact@v7 in release job"
 
-      - name: 20. 检查音频使用 QSoundEffect 而非 QMediaPlayer
+      - name: 19. 检查音频使用 QSoundEffect 而非 QMediaPlayer
         run: |
           grep -q 'QSoundEffect' src/petwindow.h || { echo "FAIL: must use QSoundEffect for audio, not QMediaPlayer"; exit 1; }
           if grep -q 'QMediaPlayer\|QAudioOutput' src/petwindow.h; then echo "FAIL: QMediaPlayer/QAudioOutput must be replaced with QSoundEffect"; exit 1; fi
           echo "OK: QSoundEffect used for audio"
 
-      - name: 21. 检查 Arch 包使用 bsdtar + .MTREE 生成
-        run: |
-          grep -q 'bsdtar.*pkg\.tar\.zst' .github/workflows/build.yml || { echo "FAIL: Arch packaging must use bsdtar (not GNU tar) for pacman compatibility"; exit 1; }
-          grep -q 'libarchive-tools' .github/workflows/build.yml || { echo "FAIL: Arch CI deps must include libarchive-tools (provides bsdtar)"; exit 1; }
-          grep -q '\.MTREE' .github/workflows/build.yml || { echo "FAIL: Arch package must generate .MTREE file (pacman integrity check)"; exit 1; }
-          echo "OK: Arch uses bsdtar + .MTREE + libarchive-tools"
-
-      - name: 22. 检查 Arch PKGINFO 格式正确（pkgbase/pkgrel 分离）
-        run: |
-          grep -q 'pkgbase = remilia-pet' .github/workflows/build.yml || { echo "FAIL: PKGINFO must include pkgbase field"; exit 1; }
-          grep -q 'pkgrel = 1' .github/workflows/build.yml || { echo "FAIL: PKGINFO must include pkgrel field (separate from pkgver)"; exit 1; }
-          echo "OK: PKGINFO has pkgbase + pkgrel fields"
-
-      - name: 23. 检查 Arch 打包 .MTREE+bsdtar 为单 cd 链（防 cd 嵌套 bug）
-        run: |
-          if grep -Pzo 'cd \$PKG && find[^\n]*\.MTREE[^\n]*\n\s*cd \$PKG' .github/workflows/build.yml; then
-            echo "FAIL: Arch packaging has split cd lines — .MTREE and bsdtar must be chained with && in one cd"
-            exit 1
-          fi
-          echo "OK: Arch .MTREE+bsdtar chained in single cd command"
-
       - name: 汇总
-        run: echo "✅ 全部 23 项约束检查通过"
+        run: echo "✅ 全部 19 项约束检查通过"
