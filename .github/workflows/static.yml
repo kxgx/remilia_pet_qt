@@ -61,7 +61,7 @@ jobs:
       - name: 打包 zip
         run: |
           New-Item -ItemType Directory -Force -Path dist-static
-          Copy-Item E:/remilia_build/static/Release/蕾米埃尔桌宠_Qt6.exe dist-static/
+          Copy-Item E:/remilia_build/static/Release/*.exe dist-static/
           Compress-Archive -Path dist-static/* -DestinationPath dist-static/RemiliaPet_Qt6-win-x64-static.zip
 
       - name: 构建安装器
