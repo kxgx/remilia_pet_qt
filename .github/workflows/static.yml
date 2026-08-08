@@ -21,7 +21,17 @@ jobs:
         run: |
           git clean -xdf -e dist-static
 
-      - name: 配置 CMake（vcpkg 静态链接，构建到 E 盘）
+      - name: 恢复 vcpkg 缓存
+        id: cache-vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            E:/vcpkg/installed
+            E:/vcpkg/packages
+          key: vcpkg-static-md-${{ hashFiles('vcpkg.json') }}-${{ runner.os }}
+          restore-keys: vcpkg-static-md-
+
+      - name: 配置 CMake
         run: |
           Remove-Item -Recurse -Force E:/remilia_build/static -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path E:/remilia_build
