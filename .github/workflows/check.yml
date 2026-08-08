@@ -146,5 +146,13 @@ jobs:
           grep -q 'pkgrel = 1' .github/workflows/build.yml || { echo "FAIL: PKGINFO must include pkgrel field (separate from pkgver)"; exit 1; }
           echo "OK: PKGINFO has pkgbase + pkgrel fields"
 
+      - name: 23. 检查 Arch 打包 .MTREE+bsdtar 为单 cd 链（防 cd 嵌套 bug）
+        run: |
+          if grep -Pzo 'cd \$PKG && find[^\n]*\.MTREE[^\n]*\n\s*cd \$PKG' .github/workflows/build.yml; then
+            echo "FAIL: Arch packaging has split cd lines — .MTREE and bsdtar must be chained with && in one cd"
+            exit 1
+          fi
+          echo "OK: Arch .MTREE+bsdtar chained in single cd command"
+
       - name: 汇总
-        run: echo "✅ 全部 22 项约束检查通过"
+        run: echo "✅ 全部 23 项约束检查通过"
