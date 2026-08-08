@@ -21,6 +21,11 @@ jobs:
         run: |
           git clean -xdf -e dist-static
 
+      - name: 记录 MSVC 版本（用于缓存失效）
+        run: |
+          cl.exe 2>&1 | Select-String "Microsoft" | Out-File -FilePath msvc-version.txt -Encoding utf8
+          Write-Output "MSVC version recorded"
+
       - name: 恢复 vcpkg 缓存
         id: cache-vcpkg
         uses: actions/cache@v4
@@ -28,7 +33,7 @@ jobs:
           path: |
             E:/vcpkg/installed
             E:/vcpkg/packages
-          key: vcpkg-static-md-${{ hashFiles('vcpkg.json') }}-${{ runner.os }}
+          key: vcpkg-static-md-${{ hashFiles('vcpkg.json', 'msvc-version.txt') }}-${{ runner.os }}
           restore-keys: vcpkg-static-md-
 
       - name: 恢复 CMake 构建缓存
@@ -36,7 +41,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: E:/remilia_build/static
-          key: cmake-static-md-${{ hashFiles('CMakeLists.txt', 'vcpkg.json', 'src/**', 'resources.qrc') }}-${{ runner.os }}
+          key: cmake-static-md-${{ hashFiles('CMakeLists.txt', 'vcpkg.json', 'src/**', 'resources.qrc', 'msvc-version.txt') }}-${{ runner.os }}
           restore-keys: cmake-static-md-
 
       - name: 配置 CMake
