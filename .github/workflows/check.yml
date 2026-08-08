@@ -97,12 +97,14 @@ jobs:
           fi
           echo "OK: tray tooltip is fixed string"
 
-      - name: 15. 检查打包 Wayland QPA 插件 + 客户端库
+      - name: 15. 检查打包 Wayland 完整插件链（平台+子插件+库）
         run: |
-          grep -q 'qwayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qwayland plugin copy"; exit 1; }
-          grep -q 'libQt6WaylandClient' .github/workflows/build.yml || { echo "FAIL: build.yml missing libQt6WaylandClient copy"; exit 1; }
-          grep -q 'QT_PLUGIN_PATH' .github/workflows/build.yml || { echo "FAIL: build.yml missing QT_PLUGIN_PATH in launcher"; exit 1; }
-          echo "OK: qwayland + Qt6WaylandClient bundled, QT_PLUGIN_PATH set"
+          grep -q 'qwayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qwayland platform plugin copy"; exit 1; }
+          grep -q 'wayland-shell-integration' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-shell-integration sub-plugin"; exit 1; }
+          grep -q 'wayland-graphics-integration-client' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-graphics-integration-client sub-plugin"; exit 1; }
+          grep -q 'wayland-decoration-client' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-decoration-client sub-plugin"; exit 1; }
+          grep -q 'libQt6WaylandEglClientHwIntegration' .github/workflows/build.yml || { echo "FAIL: build.yml missing libQt6WaylandEglClientHwIntegration"; exit 1; }
+          echo "OK: full Wayland plugin chain bundled (platform+shell+graphics+decoration+egl)"
 
       - name: 16. 检查 .deb launcher 使用 usr/bin 路径 (FHS)
         run: |
@@ -131,5 +133,18 @@ jobs:
           if grep -q 'QMediaPlayer\|QAudioOutput' src/petwindow.h; then echo "FAIL: QMediaPlayer/QAudioOutput must be replaced with QSoundEffect"; exit 1; fi
           echo "OK: QSoundEffect used for audio"
 
+      - name: 21. 检查 Arch 包使用 bsdtar + .MTREE 生成
+        run: |
+          grep -q 'bsdtar.*pkg\.tar\.zst' .github/workflows/build.yml || { echo "FAIL: Arch packaging must use bsdtar (not GNU tar) for pacman compatibility"; exit 1; }
+          grep -q 'libarchive-tools' .github/workflows/build.yml || { echo "FAIL: Arch CI deps must include libarchive-tools (provides bsdtar)"; exit 1; }
+          grep -q '\.MTREE' .github/workflows/build.yml || { echo "FAIL: Arch package must generate .MTREE file (pacman integrity check)"; exit 1; }
+          echo "OK: Arch uses bsdtar + .MTREE + libarchive-tools"
+
+      - name: 22. 检查 Arch PKGINFO 格式正确（pkgbase/pkgrel 分离）
+        run: |
+          grep -q 'pkgbase = remilia-pet' .github/workflows/build.yml || { echo "FAIL: PKGINFO must include pkgbase field"; exit 1; }
+          grep -q 'pkgrel = 1' .github/workflows/build.yml || { echo "FAIL: PKGINFO must include pkgrel field (separate from pkgver)"; exit 1; }
+          echo "OK: PKGINFO has pkgbase + pkgrel fields"
+
       - name: 汇总
-        run: echo "✅ 全部 20 项约束检查通过"
+        run: echo "✅ 全部 22 项约束检查通过"
