@@ -21,10 +21,6 @@ jobs:
         run: |
           git clean -xdf -e dist-static
 
-      - name: 安装 Qt6 静态库（vcpkg，使用动态 CRT）
-        run: |
-          E:/vcpkg/vcpkg.exe install --classic qt6[core,gui,multimedia]:x64-windows-static-md
-
       - name: 配置 CMake（vcpkg 静态链接，构建到 E 盘）
         run: |
           Remove-Item -Recurse -Force E:/remilia_build/static -ErrorAction SilentlyContinue
