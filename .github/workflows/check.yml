@@ -128,16 +128,15 @@ jobs:
           if grep -q 'QMediaPlayer\|QAudioOutput' src/petwindow.h; then echo "FAIL: QMediaPlayer/QAudioOutput must be replaced with QSoundEffect"; exit 1; fi
           echo "OK: QSoundEffect used for audio"
 
-      - name: 20. 检查 static.yml 使用 cache@v5 (Node 24)
+      - name: 20. 检查 static.yml cache 版本 >= v5 (Node 24)
         run: |
-          grep -q 'actions/cache@v5' .github/workflows/static.yml || { echo "FAIL: static.yml must use cache@v5 (Node 24)"; exit 1; }
-          if grep -q 'actions/cache@v4' .github/workflows/static.yml; then echo "FAIL: found old cache@v4 in static.yml (Node 20)"; exit 1; fi
-          echo "OK: cache@v5 in static.yml"
+          if grep -qE 'actions/cache@v[1-4]' .github/workflows/static.yml; then echo "FAIL: static.yml must use cache >= v5 (Node 24), found v1-v4"; exit 1; fi
+          echo "OK: static.yml cache >= v5"
 
-      - name: 21. 检查所有 workflow 无残留 cache@v4 (Node 20)
+      - name: 21. 检查所有 workflow cache 版本 >= v5
         run: |
-          if grep -qr 'actions/cache@v4' .github/workflows/; then echo "FAIL: found actions/cache@v4 (Node 20) in workflows, must upgrade to @v5"; exit 1; fi
-          echo "OK: no cache@v4 found in any workflow"
+          if grep -qrE 'actions/cache@v[1-4]' .github/workflows/; then echo "FAIL: found actions/cache@v1-v4 in workflows, must be >= v5"; exit 1; fi
+          echo "OK: all workflows cache >= v5"
 
       - name: 汇总
         run: echo "✅ 全部 21 项约束检查通过"
