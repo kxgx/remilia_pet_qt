@@ -92,14 +92,23 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: RemiliaPet_Qt6-win-x64-static
-      - name: 列出构件
-        run: ls -la
+      - name: 重命名为英文（防 GitHub 吞中文）
+        run: |
+          ls -la
+          # 安装器重命名
+          mv installer/*.exe installer/RemiliaPet_Qt6-windows-x64-static-Setup.exe
+          # 解压便携 exe 单独上传
+          unzip -q RemiliaPet_Qt6-win-x64-static.zip "*.exe" -d portable/
+          mv portable/*.exe RemiliaPet_Qt6-windows-x64-static.exe
+          ls -la
+          ls -la installer/ 2>/dev/null || true
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           files: |
             RemiliaPet_Qt6-win-x64-static.zip
-            installer/*
+            RemiliaPet_Qt6-windows-x64-static.exe
+            installer/RemiliaPet_Qt6-windows-x64-static-Setup.exe
           draft: false
           prerelease: false
           make_latest: false
