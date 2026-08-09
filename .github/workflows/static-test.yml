@@ -13,13 +13,6 @@ jobs:
       - name: 安装 ccache
         run: sudo apt install -y ccache
 
-      - name: 恢复 ccache
-        uses: actions/cache@v5
-        with:
-          path: ~/.ccache
-          key: ccache-static-${{ github.run_id }}
-          restore-keys: ccache-static-
-
       - name: 配置 CMake (MXE 交叉编译)
         run: |
           cmake -B build/static -S . \
