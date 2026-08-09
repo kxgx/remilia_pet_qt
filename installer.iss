@@ -29,7 +29,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "autostart";   Description: "开机自动启动"
 
 [Files]
-Source: "build-static\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "E:\remilia_build\static\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}";          Filename: "{app}\{#MyAppExeName}"
