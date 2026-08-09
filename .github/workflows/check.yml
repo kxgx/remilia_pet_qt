@@ -128,15 +128,10 @@ jobs:
           if grep -q 'QMediaPlayer\|QAudioOutput' src/petwindow.h; then echo "FAIL: QMediaPlayer/QAudioOutput must be replaced with QSoundEffect"; exit 1; fi
           echo "OK: QSoundEffect used for audio"
 
-      - name: 20. 检查 static.yml cache 版本 >= v5 (Node 24)
-        run: |
-          if grep -qE 'actions/cache@v[1-4]' .github/workflows/static.yml; then echo "FAIL: static.yml must use cache >= v5 (Node 24), found v1-v4"; exit 1; fi
-          echo "OK: static.yml cache >= v5"
-
-      - name: 21. 检查所有 workflow cache 版本 >= v5
+      - name: 20. 检查所有 workflow cache 版本 >= v5
         run: |
           if grep -qrE 'actions/cache@v[1-4]' .github/workflows/; then echo "FAIL: found actions/cache@v1-v4 in workflows, must be >= v5"; exit 1; fi
           echo "OK: all workflows cache >= v5"
 
       - name: 汇总
-        run: echo "✅ 全部 21 项约束检查通过"
+        run: echo "✅ 全部 20 项约束检查通过"
