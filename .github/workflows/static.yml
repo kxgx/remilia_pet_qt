@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: 添加 Git usr/bin 到 PATH（缓存 gzip 依赖）
+        run: echo "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: 清理源码（保留 dist-static）
         run: |
           git clean -xdf -e dist-static
