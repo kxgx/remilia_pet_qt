@@ -1,0 +1,5 @@
+请将本文件内容替换为你的 GitHub Personal Access Token (classic)
+所需权限: repo (全部) + admin:org → manage_runners
+或 fine-grained token: 仓库 kxgx/remilia_pet_qt, Administration: Read & Write
+
+获取地址: https://github.com/settings/tokens
