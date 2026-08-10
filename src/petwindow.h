@@ -75,7 +75,7 @@ private:
     void saveSettings();
     void loadSettings();
     void loadOverrides();
-    void saveOverrides();
+    void refreshOverrides();
     void setupTrayIcon();
 
     // Drawing feature steps
@@ -145,7 +145,8 @@ private:
     QString m_cardsDir;
     QString m_drawingDir;
 
-    // Resource overrides: resourceKey -> externalFilePath
+    // Resource overrides (directory-based): resourceKey -> absoluteFilePath
+    QString m_resourceDir;
     QMap<QString, QString> m_resourceOverrides;
 
 

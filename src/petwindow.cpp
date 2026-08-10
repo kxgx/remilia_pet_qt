@@ -37,6 +37,7 @@
 #include <QActionGroup>
 #include <QWindow>
 #include <QFileDialog>
+#include <QDesktopServices>
 #include <QFileInfo>
 #include <QFileInfo>
 #ifdef Q_OS_WIN
@@ -77,25 +78,31 @@ QString DesktopPet::resolveResourcePath(const QString &qrcPath) const
 
 void DesktopPet::loadOverrides()
 {
-    QSettings s;
-    s.beginGroup("override");
-    for (const QString &k : s.childKeys()) {
-        QString path = s.value(k).toString();
-        if (!path.isEmpty() && QFile::exists(path))
-            m_resourceOverrides[k] = path;
+    QStringList cand;
+    cand << QApplication::applicationDirPath() + "/resources/"
+         << QApplication::applicationDirPath() + QString::fromUtf8("/\u8D44\u6E90/");
+    m_resourceDir.clear();
+    for (const QString &d : cand) { if (QDir(d).exists()) { m_resourceDir = d; break; } }
+    if (m_resourceDir.isEmpty()) { m_resourceDir = cand.first(); return; }
+    struct { QByteArray sd; QByteArray ex; } m[] = {
+        {"gif",".gif"},{"audio",".wav"},{"cards",".png"},{"drawing",".png"}
+    };
+    for (auto &x : m) {
+        QDir dir(m_resourceDir + x.sd);
+        if (!dir.exists()) { dir.mkpath("."); continue; }
+        for (const QString &f : dir.entryList(QDir::Files)) {
+            QFileInfo fi(dir.absoluteFilePath(f));
+            if (fi.suffix().toLower() != x.ex.mid(1)) continue;
+            m_resourceOverrides[x.sd + "/" + fi.completeBaseName()] = fi.absoluteFilePath();
+        }
     }
-    s.endGroup();
 }
 
-void DesktopPet::saveOverrides()
+void DesktopPet::refreshOverrides()
 {
-    QSettings s;
-    s.beginGroup("override");
-    s.remove("");
-    for (auto it = m_resourceOverrides.begin(); it != m_resourceOverrides.end(); ++it)
-        s.setValue(it.key(), it.value());
-    s.endGroup();
-    s.sync();
+    m_resourceOverrides.clear();
+    loadOverrides();
+    setState(m_state);
 }
 
 // ========== DrawEffectWindow ==========
@@ -705,7 +712,11 @@ private:
     QPixmap m_authorPix;
 };
 
-// ========== ResourceWindow ==========
+// ====== ResourceWindow ======
+// Directory-based resource replacement window.
+// Users place files under resources/gif/, resources/audio/,
+// resources/cards/, resources/drawing/ next to the executable.
+// Chinese dir name "??" also supported as fallback.
 class ResourceWindow : public QWidget {
 public:
     ResourceWindow(DesktopPet *pet, float scale)
@@ -720,8 +731,8 @@ public:
 
     void updateScaleAndPosition(float scale) {
         m_scale = scale;
-        int sw = qMax(300, (int)(420 * scale));
-        int sh = qMax(250, (int)(320 * scale));
+        int sw = qMax(300, (int)(450 * scale));
+        int sh = qMax(250, (int)(340 * scale));
         setFixedSize(sw, sh);
         int pad = 6;
         int mlr = qMax(8, (int)(12*scale)), mtb = qMax(6, (int)(9*scale));
@@ -737,21 +748,13 @@ public:
         int btnFs = qMax(6, (int)(8*scale));
         int btnPad = qMax(1, (int)(2*scale));
         QString btnStyle = QString("QPushButton{background:#FF8DA1;color:#111;border:none;border-radius:2px;font-weight:bold;font-size:%1px;padding:%2px %3px;}QPushButton:hover{background:#FFA5B5;}QPushButton:disabled{background:#666;color:#999;}").arg(btnFs).arg(btnPad).arg(qMax(2,(int)(4*scale)));
-        for (auto *btn : m_replaceBtns) btn->setStyleSheet(btnStyle);
-        for (auto *btn : m_resetBtns) btn->setStyleSheet(btnStyle);
+        for (auto *btn : m_openBtns) btn->setStyleSheet(btnStyle);
+        for (auto *btn : m_delBtns) btn->setStyleSheet(btnStyle);
         positionNearPet();
     }
 
 private:
-    struct ResourceDef {
-        QString key;
-        QString name;
-        QString category;
-        QString expectedExt;
-        QString expectedBase; // expected base filename (without ext), empty = no constraint
-        int indexMin = 0;
-        int indexMax = 0;
-    };
+    struct ResourceDef { QString key; QString name; QString category; QString subDir; QString ext; };
 
     void initUi() {
         m_mainLayout = new QVBoxLayout(this);
@@ -762,210 +765,81 @@ private:
         m_closeBtn = new QPushButton(QString::fromUtf8("\u2715"), this);
         m_closeBtn->setCursor(Qt::PointingHandCursor);
         connect(m_closeBtn, &QPushButton::clicked, this, &ResourceWindow::closeResourceWindow);
-        topBar->addWidget(m_titleLabel);
-        topBar->addStretch();
-        topBar->addWidget(m_closeBtn);
+        topBar->addWidget(m_titleLabel); topBar->addStretch(); topBar->addWidget(m_closeBtn);
+
+        QLabel *hint = new QLabel(QString::fromUtf8("\u5C06\u6587\u4EF6\u653E\u5165\u7A0B\u5E8F\u76EE\u5F55\u4E0B resources/ \u5B50\u6587\u4EF6\u5939\u5373\u53EF\u66FF\u6362\uFF0C\u652F\u6301\u4E2D\u6587\u76EE\u5F55\u540D\u201C\u8D44\u6E90\u201D"), this);
+        hint->setStyleSheet("color:#888;font-size:10px;padding:2px 4px;"); hint->setWordWrap(true);
 
         m_resList = new QListWidget(this);
         m_resList->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         m_resList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-        // Build resource definitions
         QList<ResourceDef> defs;
-        QStringList gifs = {"idle", "click", "drag", "sleep", "draw", "result"};
+        QStringList gifs = {"idle","click","drag","sleep","draw","result"};
         for (const QString &g : gifs)
-            defs.append({"gif/" + g, QString::fromUtf8("GIF\u52A8\u753B - ") + g, QString::fromUtf8("GIF\u52A8\u753B"), ".gif", g, 0, 0});
+            defs.append({"gif/"+g, "GIF - "+g, QString::fromUtf8("GIF\u52A8\u753B"), "gif", ".gif"});
+        QStringList audios = {"start","draw","drawing","result","reset","alarm","clock"};
+        QStringList an = {QString::fromUtf8("\u542F\u52A8"),QString::fromUtf8("\u62BD\u5361"),QString::fromUtf8("\u753B\u753B"),QString::fromUtf8("\u7ED3\u679C"),QString::fromUtf8("\u91CD\u7F6E"),QString::fromUtf8("\u95F9\u949F"),QString::fromUtf8("\u65F6\u949F")};
+        for (int i=0;i<audios.size();i++)
+            defs.append({"audio/"+audios[i],"WAV - "+an[i],QString::fromUtf8("\u97F3\u6548"),"audio",".wav"});
+        for (int i=1;i<=55;i++)
+            defs.append({"cards/card_"+QString::number(i),QString::fromUtf8("PNG - card_%1").arg(i),QString::fromUtf8("\u5361\u7247"),"cards",".png"});
+        for (int i=1;i<=15;i++)
+            defs.append({"drawing/drawing_"+QString::number(i),QString::fromUtf8("PNG - drawing_%1").arg(i),QString::fromUtf8("\u753B\u4F5C"),"drawing",".png"});
+        defs.append({"drawing/author","PNG - author",QString::fromUtf8("\u5176\u4ED6"),"drawing",".png"});
 
-        QStringList audios = {"start", "draw", "drawing", "result", "reset", "alarm", "clock"};
-        QStringList audioNames = {QString::fromUtf8("\u542F\u52A8"), QString::fromUtf8("\u62BD\u5361"), QString::fromUtf8("\u753B\u753B"), QString::fromUtf8("\u7ED3\u679C"), QString::fromUtf8("\u91CD\u7F6E"), QString::fromUtf8("\u95F9\u949F"), QString::fromUtf8("\u65F6\u949F")};
-        for (int i = 0; i < audios.size(); i++)
-            defs.append({"audio/" + audios[i], QString::fromUtf8("\u97F3\u6548 - ") + audioNames[i], QString::fromUtf8("\u97F3\u6548"), ".wav", audios[i], 0, 0});
-
-        for (int i = 1; i <= 55; i++)
-            defs.append({"cards/card_" + QString::number(i), QString::fromUtf8("\u5361\u7247 - card_%1").arg(i), QString::fromUtf8("\u5361\u7247"), ".png", "card", i, 55});
-
-        for (int i = 1; i <= 15; i++)
-            defs.append({"drawing/drawing_" + QString::number(i), QString::fromUtf8("\u753B\u4F5C - drawing_%1").arg(i), QString::fromUtf8("\u753B\u4F5C"), ".png", "drawing", i, 15});
-
-        defs.append({"drawing/author", QString::fromUtf8("\u5176\u4ED6 - author"), QString::fromUtf8("\u5176\u4ED6"), ".png", "author", 0, 0});
-
-        QString currentCategory;
-        for (const auto &def : defs) {
-            if (def.category != currentCategory) {
-                currentCategory = def.category;
-                QListWidgetItem *catItem = new QListWidgetItem(QString::fromUtf8("\u2501\u2501 ") + def.category + QString::fromUtf8(" \u2501\u2501"));
-                catItem->setFlags(Qt::NoItemFlags);
-                catItem->setForeground(QColor("#FF8DA1"));
-                catItem->setTextAlignment(Qt::AlignCenter);
-                m_resList->addItem(catItem);
+        QString curCat;
+        for (const auto &df : defs) {
+            if (df.category != curCat) {
+                curCat = df.category;
+                QListWidgetItem *ci = new QListWidgetItem("\u2500\u2500 " + df.category + " \u2500\u2500");
+                ci->setFlags(Qt::NoItemFlags); ci->setForeground(QColor("#FF8DA1")); ci->setTextAlignment(Qt::AlignCenter);
+                m_resList->addItem(ci);
             }
-
             QWidget *row = new QWidget();
-            QHBoxLayout *rowLay = new QHBoxLayout(row);
-            rowLay->setContentsMargins(4, 1, 4, 1);
-            rowLay->setSpacing(4);
-
-            QLabel *nameLabel = new QLabel(def.name);
-            nameLabel->setStyleSheet("color:#fff;font-weight:bold;");
-            nameLabel->setFixedWidth(qMax(100, (int)(180 * m_scale)));
-
-            QString currentPath = m_pet->m_resourceOverrides.value(def.key);
-            QLabel *statusLabel = new QLabel(currentPath.isEmpty() ? QString::fromUtf8("\u9ED8\u8BA4") : QString::fromUtf8("\u5DF2\u66FF\u6362"));
-            statusLabel->setStyleSheet(currentPath.isEmpty() ? "color:#888;" : "color:#5f5;");
-            statusLabel->setFixedWidth(qMax(40, (int)(60 * m_scale)));
-
-            QPushButton *replaceBtn = new QPushButton(QString::fromUtf8("\u66FF\u6362"));
-            replaceBtn->setCursor(Qt::PointingHandCursor);
-            QString key = def.key;
-            QString expectedExt = def.expectedExt;
-            QString expectedBase = def.expectedBase;
-            int idxMin = def.indexMin, idxMax = def.indexMax;
-            connect(replaceBtn, &QPushButton::clicked, this, [this, key, expectedExt, expectedBase, idxMin, idxMax, statusLabel, nameLabel]() {
-                replaceResource(key, expectedExt, expectedBase, idxMin, idxMax, statusLabel, nameLabel);
+            QHBoxLayout *lay = new QHBoxLayout(row);
+            lay->setContentsMargins(4,1,4,1); lay->setSpacing(4);
+            QLabel *nl = new QLabel(df.name);
+            nl->setStyleSheet("color:#fff;font-weight:bold;"); nl->setFixedWidth(qMax(100,(int)(195*m_scale)));
+            bool over = m_pet->m_resourceOverrides.contains(df.key);
+            QLabel *sl = new QLabel(over ? QString::fromUtf8("\u5DF2\u66FF\u6362") : QString::fromUtf8("\u9ED8\u8BA4"));
+            sl->setStyleSheet(over ? "color:#5f5;" : "color:#888;"); sl->setFixedWidth(qMax(40,(int)(55*m_scale)));
+            QPushButton *ob = new QPushButton(QString::fromUtf8("\u6253\u5F00\u76EE\u5F55"));
+            ob->setCursor(Qt::PointingHandCursor);
+            QString sd = df.subDir;
+            connect(ob, &QPushButton::clicked, this, [this, sd]() { QString p = m_pet->m_resourceDir + sd; QDir().mkpath(p); QDesktopServices::openUrl(QUrl::fromLocalFile(p)); });
+            QPushButton *db = new QPushButton(QString::fromUtf8("\u5220\u9664"));
+            db->setCursor(Qt::PointingHandCursor); db->setEnabled(over);
+            QString k = df.key;
+            connect(db, &QPushButton::clicked, this, [this, k, sl, db]() {
+                QString fp = m_pet->m_resourceOverrides.value(k);
+                if (!fp.isEmpty() && QFile::exists(fp)) QFile::remove(fp);
+                m_pet->refreshOverrides();
+                bool s = m_pet->m_resourceOverrides.contains(k);
+                sl->setText(s ? QString::fromUtf8("\u5DF2\u66FF\u6362") : QString::fromUtf8("\u9ED8\u8BA4"));
+                sl->setStyleSheet(s ? "color:#5f5;" : "color:#888;"); db->setEnabled(s);
             });
-
-            QPushButton *resetBtn = new QPushButton(QString::fromUtf8("\u91CD\u7F6E"));
-            resetBtn->setCursor(Qt::PointingHandCursor);
-            resetBtn->setEnabled(!currentPath.isEmpty());
-            connect(resetBtn, &QPushButton::clicked, this, [this, key, statusLabel, resetBtn]() {
-                m_pet->m_resourceOverrides.remove(key);
-                statusLabel->setText(QString::fromUtf8("\u9ED8\u8BA4"));
-                statusLabel->setStyleSheet("color:#888;");
-                resetBtn->setEnabled(false);
-                m_pet->saveOverrides();
-                m_pet->setState(m_pet->m_state);
-            });
-
-            m_replaceBtns.append(replaceBtn);
-            m_resetBtns.append(resetBtn);
-
-            rowLay->addWidget(nameLabel);
-            rowLay->addWidget(statusLabel);
-            rowLay->addStretch();
-            rowLay->addWidget(replaceBtn);
-            rowLay->addWidget(resetBtn);
-
-            QListWidgetItem *item = new QListWidgetItem();
-            item->setSizeHint(row->sizeHint());
-            m_resList->addItem(item);
-            m_resList->setItemWidget(item, row);
+            m_openBtns.append(ob); m_delBtns.append(db);
+            lay->addWidget(nl); lay->addWidget(sl); lay->addStretch(); lay->addWidget(ob); lay->addWidget(db);
+            QListWidgetItem *it = new QListWidgetItem();
+            it->setSizeHint(row->sizeHint()); m_resList->addItem(it); m_resList->setItemWidget(it, row);
         }
-
-        m_mainLayout->addLayout(topBar);
-        m_mainLayout->addWidget(m_resList, 1);
+        m_mainLayout->addLayout(topBar); m_mainLayout->addWidget(hint); m_mainLayout->addWidget(m_resList, 1);
     }
 
-    void replaceResource(const QString &key, const QString &expectedExt,
-                         const QString &expectedBase, int idxMin, int idxMax,
-                         QLabel *statusLabel, QLabel *nameLabel) {
-        QString filter;
-        if (expectedExt == ".gif")
-            filter = QString::fromUtf8("GIF\u52A8\u753B (*.gif)");
-        else if (expectedExt == ".wav")
-            filter = QString::fromUtf8("WAV\u97F3\u9891 (*.wav)");
-        else
-            filter = QString::fromUtf8("PNG\u56FE\u7247 (*.png)");
-
-        QString filePath = QFileDialog::getOpenFileName(this, QString::fromUtf8("\u9009\u62E9\u66FF\u6362\u6587\u4EF6"), QString(), filter);
-        if (filePath.isEmpty()) return;
-
-        QFileInfo fi(filePath);
-        QString extErr = validateExtension(fi, expectedExt);
-        if (!extErr.isEmpty()) {
-            QMessageBox::warning(this, QString::fromUtf8("\u6587\u4EF6\u6821\u9A8C\u5931\u8D25"), extErr);
-            return;
-        }
-
-        QString nameErr = validateFileName(fi, expectedBase, idxMin, idxMax);
-        if (!nameErr.isEmpty()) {
-            QMessageBox::warning(this, QString::fromUtf8("\u6587\u4EF6\u6821\u9A8C\u5931\u8D25"), nameErr);
-            return;
-        }
-
-        // Validate file content (try loading)
-        if (expectedExt == ".gif") {
-            QMovie test(filePath);
-            if (!test.isValid()) {
-                QMessageBox::warning(this, QString::fromUtf8("\u6587\u4EF6\u6821\u9A8C\u5931\u8D25"),
-                    QString::fromUtf8("\u65E0\u6CD5\u52A0\u8F7D GIF \u6587\u4EF6\uFF0C\u6587\u4EF6\u53EF\u80FD\u5DF2\u635F\u574F\u3002"));
-                return;
-            }
-        } else if (expectedExt == ".png") {
-            QImage test(filePath);
-            if (test.isNull()) {
-                QMessageBox::warning(this, QString::fromUtf8("\u6587\u4EF6\u6821\u9A8C\u5931\u8D25"),
-                    QString::fromUtf8("\u65E0\u6CD5\u52A0\u8F7D PNG \u56FE\u7247\uFF0C\u6587\u4EF6\u53EF\u80FD\u5DF2\u635F\u574F\u3002"));
-                return;
-            }
-        }
-
-        m_pet->m_resourceOverrides[key] = filePath;
-        statusLabel->setText(QString::fromUtf8("\u5DF2\u66FF\u6362"));
-        statusLabel->setStyleSheet("color:#5f5;");
-        m_pet->saveOverrides();
-        // Refresh the pet's state to reload resources
-        m_pet->setState(m_pet->m_state);
-    }
-
-    QString validateExtension(const QFileInfo &fi, const QString &expectedExt) const {
-        QString actualExt = fi.suffix().toLower();
-        QString expected = expectedExt.mid(1).toLower();
-        if (actualExt != expected)
-            return QString::fromUtf8("\u6587\u4EF6\u540E\u7F00\u4E0D\u5339\u914D\uFF1A\u671F\u671B .%1\uFF0C\u5B9E\u9645 .%2\u3002").arg(expected).arg(actualExt);
-        return QString();
-    }
-
-    QString validateFileName(const QFileInfo &fi, const QString &expectedBase, int idxMin, int idxMax) const {
-        if (expectedBase.isEmpty()) return QString();
-
-        QString baseName = fi.completeBaseName();
-        if (idxMin <= 0 && idxMax <= 0) {
-            // Named resource, exact match required
-            if (baseName.compare(expectedBase, Qt::CaseInsensitive) != 0)
-                return QString::fromUtf8("\u6587\u4EF6\u540D\u4E0D\u5339\u914D\uFF1A\u671F\u671B %1\uFF0C\u5B9E\u9645 %2\u3002").arg(expectedBase).arg(baseName);
-            return QString();
-        }
-
-        // Numbered resource, check format: base_N
-        QRegularExpression re("^" + QRegularExpression::escape(expectedBase) + "_(\\d+)$");
-        QRegularExpressionMatch m = re.match(baseName);
-        if (!m.hasMatch())
-            return QString::fromUtf8("\u6587\u4EF6\u540D\u683C\u5F0F\u4E0D\u5339\u914D\uFF1A\u671F\u671B %1_N \u683C\u5F0F\uFF0C\u5B9E\u9645 %2\u3002").arg(expectedBase).arg(baseName);
-        int num = m.captured(1).toInt();
-        if (num < idxMin || num > idxMax)
-            return QString::fromUtf8("\u7F16\u53F7\u8D85\u51FA\u8303\u56F4\uFF1A\u671F\u671B %1~%2\uFF0C\u5B9E\u9645 %3\u3002").arg(idxMin).arg(idxMax).arg(num);
-        return QString();
-    }
-
-    void closeResourceWindow() {
-        m_pet->m_resourceWindow = nullptr;
-        close();
-    }
-
+    void closeResourceWindow() { m_pet->m_resourceWindow = nullptr; close(); }
     void positionNearPet() {
-        if (m_pet) {
-            QRect pr = m_pet->geometry();
-            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height())/2);
-        }
+        if (m_pet) { QRect pr = m_pet->geometry(); move(pr.x()+pr.width()+10, pr.y()+(pr.height()-height())/2); }
     }
-
     void paintEvent(QPaintEvent *) override {
-        QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing);
-        QRectF r(2.0, 2.0, width()-4.0, height()-4.0);
-        p.setBrush(QBrush(QColor(0,0,0,255)));
-        p.setPen(QPen(PINK, 4));
-        p.drawRoundedRect(r, 10, 10);
+        QPainter p(this); p.setRenderHint(QPainter::Antialiasing);
+        QRectF r(2.0,2.0,width()-4.0,height()-4.0);
+        p.setBrush(QBrush(QColor(0,0,0,255))); p.setPen(QPen(PINK,4)); p.drawRoundedRect(r,10,10);
     }
-
-    DesktopPet *m_pet;
-    float m_scale;
-    QVBoxLayout *m_mainLayout = nullptr;
-    QLabel *m_titleLabel = nullptr;
-    QPushButton *m_closeBtn = nullptr;
-    QListWidget *m_resList = nullptr;
-    QList<QPushButton*> m_replaceBtns;
-    QList<QPushButton*> m_resetBtns;
+    DesktopPet *m_pet; float m_scale;
+    QVBoxLayout *m_mainLayout = nullptr; QLabel *m_titleLabel = nullptr;
+    QPushButton *m_closeBtn = nullptr; QListWidget *m_resList = nullptr;
+    QList<QPushButton*> m_openBtns; QList<QPushButton*> m_delBtns;
 };
 
 
@@ -984,6 +858,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     m_audioDir = QApplication::applicationDirPath() + "/../audio/";
     m_cardsDir = ":/cards/";
     m_drawingDir = ":/drawing/";
+    m_resourceDir = QApplication::applicationDirPath() + "/resources/";
 
     m_fontFamily = QSettings().value("fontFamily").toString(); m_fontSize = QSettings().value("fontSize", -1).toInt(); m_fontBold = QSettings().value("fontBold", true).toBool();
     m_systemDefaultFont = QApplication::font();
@@ -1544,7 +1419,6 @@ void DesktopPet::saveSettings() {
     s.setValue("stayOnTop", m_stayOnTop);
     s.setValue("mouseTransparent", m_mouseTransparent);
     s.sync();
-    saveOverrides();
 }
 
 void DesktopPet::loadSettings() {
