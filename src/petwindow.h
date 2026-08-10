@@ -16,6 +16,7 @@ class DrawingEffectWindow;
 class TimerWindow;
 class VolumeSliderWindow;
 class AuthorWindow;
+class ResourceWindow;
 
 class DesktopPet : public QLabel {
     Q_OBJECT
@@ -25,6 +26,7 @@ class DesktopPet : public QLabel {
     friend class TimerWindow;
     friend class VolumeSliderWindow;
     friend class AuthorWindow;
+    friend class ResourceWindow;
 
 public:
     enum State { Idle, Click, Drag, Sleep, Result };
@@ -68,15 +70,21 @@ private:
     void startDrawingFeature();
     void startVolumeFeature();
     void startAuthorFeature();
+    void startResourceFeature();
     void toggleStayOnTop();
     void saveSettings();
     void loadSettings();
+    void loadOverrides();
+    void saveOverrides();
     void setupTrayIcon();
 
     // Drawing feature steps
     void drawingStep2Idle();
     void drawingStep3Result();
     void drawingStep4ShowWindow();
+
+    // Resource override
+    QString resolveResourcePath(const QString &qrcPath) const;
 
     // State
     State m_state = Idle;
@@ -130,11 +138,15 @@ private:
     QPointer<QWidget> m_drawingWindow;
     QPointer<QWidget> m_volumeWindow;
     QPointer<QWidget> m_authorWindow;
+    QPointer<QWidget> m_resourceWindow;
 
     // Paths
     QString m_audioDir;
     QString m_cardsDir;
     QString m_drawingDir;
+
+    // Resource overrides: resourceKey -> externalFilePath
+    QMap<QString, QString> m_resourceOverrides;
 
 
 };
