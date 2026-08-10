@@ -20,18 +20,18 @@ jobs:
 
       - name: 配置 CMake
         run: |
-          New-Item -ItemType Directory -Force -Path E:/remilia_build
-          cmake -B E:/remilia_build/static -S . -G "Visual Studio 17 2022" -T version=14.44 `
+          New-Item -ItemType Directory -Force -Path C:/remilia_build
+          cmake -B C:/remilia_build/static -S . -G "Visual Studio 17 2022" -T version=14.44 `
             -DVCPKG_TARGET_TRIPLET=x64-windows-static-md `
-            -DCMAKE_TOOLCHAIN_FILE="E:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
       - name: 编译
-        run: cmake --build E:/remilia_build/static --config Release --parallel
+        run: cmake --build C:/remilia_build/static --config Release --parallel
 
       - name: 打包 zip
         run: |
           New-Item -ItemType Directory -Force -Path dist-static
-          Copy-Item E:/remilia_build/static/Release/*.exe dist-static/
+          Copy-Item C:/remilia_build/static/Release/*.exe dist-static/
           Compress-Archive -Path dist-static/* -DestinationPath dist-static/RemiliaPet_Qt6-win-x64-static.zip
 
       - name: 上传构件
@@ -70,11 +70,13 @@ jobs:
           TAG=${GITHUB_REF#refs/tags/}
           VERSION=${TAG#v}
           RESP=$(curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases" \
+            -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"access_token\":\"${{ secrets.GITEE_TOKEN }}\",\"tag_name\":\"$TAG\",\"name\":\"v$VERSION\",\"body\":\"Windows x64 静态编译版本\",\"target_commitish\":\"master\"}")
+            -d "{\"tag_name\":\"$TAG\",\"name\":\"v$VERSION\",\"body\":\"Windows x64 静态编译版本\",\"target_commitish\":\"master\"}")
           RELEASE_ID=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
           for FILE in RemiliaPet_Qt6-win-x64-static.zip RemiliaPet_Qt6-windows-x64-static.exe; do
-            curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases/$RELEASE_ID/attach_files" \
-              -F "access_token=${{ secrets.GITEE_TOKEN }}" -F "file=@$FILE"
+            curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases/$RELEASE_ID/assets?name=$FILE" \
+              -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" \
+              --data-binary "@$FILE"
           done
           echo "✅ Gitee Release 发布完成"

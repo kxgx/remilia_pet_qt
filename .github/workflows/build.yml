@@ -405,16 +405,17 @@ jobs:
           VERSION=${TAG#v}
 
           RESP=$(curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases" \
+            -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"access_token\":\"${{ secrets.GITEE_TOKEN }}\",\"tag_name\":\"$TAG\",\"name\":\"v$VERSION\",\"body\":\"全平台动态链接版本\",\"target_commitish\":\"master\"}")
+            -d "{\"tag_name\":\"$TAG\",\"name\":\"v$VERSION\",\"body\":\"全平台动态链接版本\",\"target_commitish\":\"master\"}")
           echo "Create release: $RESP"
           RELEASE_ID=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)[\"id\"])")
 
           for FILE in RemiliaPet_Qt6-*; do
             echo "Uploading $FILE..."
-            curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases/$RELEASE_ID/attach_files" \
-              -F "access_token=${{ secrets.GITEE_TOKEN }}" \
-              -F "file=@$FILE"
+            curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases/$RELEASE_ID/assets?name=$FILE" \
+              -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" \
+              --data-binary "@$FILE"
           done
 
           echo "✅ Gitee Release 发布完成"

@@ -27,7 +27,7 @@ choco install git -y
 :: 4. 安装 vcpkg
 :: ==========================================
 echo [4/6] 安装 vcpkg...
-cd /d E:\
+cd /d C:\
 git clone https://github.com/microsoft/vcpkg.git
 cd vcpkg
 call bootstrap-vcpkg.bat
