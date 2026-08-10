@@ -26,6 +26,6 @@ jobs:
 
       - name: 同步到Gitee
         run: |
-          git remote add gitee https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/kxgx/remilia_pet_qt.git
+          git remote add gitee https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/xingguangk/remilia_pet_qt.git
           git push gitee master --force
           git push gitee --tags --force
