@@ -1,43 +1,79 @@
-name: 静态编译（NAS MXE 交叉编译）
+name: 静态编译（本地 Runner）
 
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      build_installer:
+        description: '构建 Inno Setup 安装器'
+        type: boolean
+        default: false
 
 jobs:
   static:
-    name: Windows x64 静态版 (MXE)
-    runs-on: [self-hosted, Linux, X64, nas]
+    name: Windows x64 静态版
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v5
 
-      - name: 配置 CMake (MXE 交叉编译)
+      - name: 添加 Git usr/bin 到 PATH（缓存 gzip 依赖）
+        run: echo "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: 清理源码（保留 dist-static）
         run: |
-          cmake -B build/static -S . \
-            -DCMAKE_TOOLCHAIN_FILE=/opt/mxe/usr/x86_64-w64-mingw32.static/share/cmake/mxe-conf.cmake \
-            -DSTATIC_BUILD=ON \
-            -DCMAKE_BUILD_TYPE=Release
+          git clean -xdf -e dist-static
+
+      - name: 记录固定 MSVC toolset 版本（用于缓存复用）
+        run: |
+          # 固定 toolset 版本，匹配 vcpkg buildtrees 已编译的 Qt6 (14.44)
+          Write-Output "14.44" | Out-File -FilePath msvc-version.txt -Encoding utf8
+          Write-Output "Pinned MSVC toolset: 14.44"
+
+      - name: 恢复 vcpkg 缓存
+        id: cache-vcpkg
+        uses: actions/cache@v5
+        with:
+          path: |
+            E:/vcpkg/installed
+            E:/vcpkg/packages
+          key: vcpkg-static-md-14.44-${{ hashFiles('vcpkg.json', 'msvc-version.txt') }}-${{ runner.os }}
+          restore-keys: vcpkg-static-md-14.44-
+
+      - name: 恢复 CMake 构建缓存
+        id: cache-cmake
+        uses: actions/cache@v5
+        with:
+          path: E:/remilia_build/static
+          key: cmake-static-md-14.44-${{ hashFiles('CMakeLists.txt', 'vcpkg.json', 'src/**', 'resources.qrc', 'msvc-version.txt') }}-${{ runner.os }}
+          restore-keys: cmake-static-md-14.44-
+
+      - name: 配置 CMake
+        run: |
+          if (-not '${{ steps.cache-cmake.outputs.cache-hit }}' -eq 'true') {
+            Remove-Item -Recurse -Force E:/remilia_build/static -ErrorAction SilentlyContinue
+          }
+          New-Item -ItemType Directory -Force -Path E:/remilia_build
+          cmake -B E:/remilia_build/static -S . -G "Visual Studio 17 2022" -T version=14.44 `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static-md `
+            -DCMAKE_TOOLCHAIN_FILE="E:/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
       - name: 编译
-        run: cmake --build build/static --parallel $(nproc)
+        run: cmake --build E:/remilia_build/static --config Release --parallel
 
       - name: 打包 zip
         run: |
-          mkdir -p dist-static
-          # 重命名 exe 为英文
-          cp build/static/*.exe dist-static/RemiliaPet_Qt6-windows-x64-static.exe 2>/dev/null || cp build/static/Release/*.exe dist-static/RemiliaPet_Qt6-windows-x64-static.exe 2>/dev/null || true
-          ls -la dist-static/
-          cd dist-static && zip ../RemiliaPet_Qt6-win-x64-static.zip *.exe && cd ..
-          mv RemiliaPet_Qt6-win-x64-static.zip dist-static/
+          New-Item -ItemType Directory -Force -Path dist-static
+          Copy-Item E:/remilia_build/static/Release/*.exe dist-static/
+          Compress-Archive -Path dist-static/* -DestinationPath dist-static/RemiliaPet_Qt6-win-x64-static.zip
 
-      - name: 构建 NSIS 安装器
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: 构建安装器
+        if: inputs.build_installer || startsWith(github.ref, 'refs/tags/')
         run: |
-          cp installer.nsi .
-          makensis installer.nsi
-          mkdir -p dist-static/installer
-          mv RemiliaPet_Qt6-windows-x64-static-Setup.exe dist-static/installer/
+          $iscc = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { Write-Error "未找到 Inno Setup: $iscc"; exit 1 }
+          New-Item -ItemType Directory -Force -Path dist-static/installer
+          & $iscc installer.iss /O"dist-static/installer"
 
       - name: 上传构件
         uses: actions/upload-artifact@v6
@@ -59,9 +95,11 @@ jobs:
       - name: 重命名为英文（防 GitHub 吞中文）
         run: |
           ls -la
-          # 从 zip 解出便携 exe
+          # 安装器重命名
+          mv installer/*.exe installer/RemiliaPet_Qt6-windows-x64-static-Setup.exe
+          # 解压便携 exe 单独上传
           unzip -q RemiliaPet_Qt6-win-x64-static.zip "*.exe" -d portable/
-          mv portable/*.exe RemiliaPet_Qt6-windows-x64-static.exe 2>/dev/null || true
+          mv portable/*.exe RemiliaPet_Qt6-windows-x64-static.exe
           ls -la
           ls -la installer/ 2>/dev/null || true
       - name: 创建 GitHub Release
