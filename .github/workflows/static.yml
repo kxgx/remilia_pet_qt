@@ -13,7 +13,7 @@ on:
 jobs:
   static:
     name: Windows x64 静态版
-    runs-on: [self-hosted, Windows, X64]
+    runs-on: [self-hosted, Windows, X64, nas]
     steps:
       - uses: actions/checkout@v5
 
