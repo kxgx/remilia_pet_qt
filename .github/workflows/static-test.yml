@@ -10,30 +10,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: 安装 ccache
-        run: sudo apt install -y ccache
-
-      - name: 恢复 ccache
-        uses: actions/cache@v5
-        with:
-          path: ~/.ccache
-          key: ccache-static-${{ github.run_id }}
-          restore-keys: ccache-static-
-
       - name: 配置 CMake (MXE 交叉编译)
         run: |
           cmake -B build/static -S . \
             -DCMAKE_TOOLCHAIN_FILE=/opt/mxe/usr/x86_64-w64-mingw32.static/share/cmake/mxe-conf.cmake \
             -DSTATIC_BUILD=ON \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: 编译
         run: cmake --build build/static --parallel $(nproc)
-
-      - name: ccache 统计
-        run: ccache -s
 
       - name: 构建 NSIS 安装器
         run: |
