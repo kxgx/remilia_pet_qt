@@ -130,7 +130,13 @@ jobs:
       # ============ 资源目录跨平台路径 ============
       - name: 20. 检查 m_resourceDir 路径使用正斜杠
         run: |
-          grep -q StandardPaths.*AppDataLocation.*resources src/petwindow.cpp || { echo FAIL; exit 1; }
+          grep -q StandardPaths.*GenericDataLocation.*RemiliaPet/resources src/petwindow.cpp || { echo FAIL; exit 1; }
+echo OK
+
+      - name: 20b. 检查 loadOverrides 使用 GenericDataLocation
+        run: |
+          awk '/^void DesktopPet::loadOverrides/,/^}/' src/petwindow.cpp > /tmp/lo.txt
+          grep -q StandardPaths.*GenericDataLocation /tmp/lo.txt || { echo FAIL; exit 1; }
           echo OK
 
       - name: 21. 检查 onOpenAll 去除尾部斜杠
