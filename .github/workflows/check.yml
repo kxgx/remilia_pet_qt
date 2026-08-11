@@ -188,12 +188,18 @@ jobs:
           grep -q 'make_latest: false' .github/workflows/static.yml || { echo FAIL: static.yml must keep make_latest: false; exit 1; }
           echo OK: static.yml make_latest: false
 
-      - name: 29. 检查 CMakeLists.txt 与 installer.iss 版本号一致
+      - name: 29. 检查版本号与 tag 一致
         run: |
           CMAKE_VER=$(grep -oP 'project\(RemiliaPet VERSION \K[0-9.]+' CMakeLists.txt)
           ISS_VER=$(grep -oP 'MyAppVersion "\K[0-9.]+' installer.iss)
+          # 1. 文件间一致
           if [ "$CMAKE_VER" != "$ISS_VER" ]; then echo FAIL: CMakeLists.txt=$CMAKE_VER installer.iss=$ISS_VER; exit 1; fi
-          echo OK: versions match $CMAKE_VER
+          # 2. 与 git tag 一致（仅 tag 触发时校验）
+          TAG_VER=$(echo "$GITHUB_REF" | grep -oP 'refs/tags/v\K[0-9.]+' || true)
+          if [ -n "$TAG_VER" ] && [ "$TAG_VER" != "$CMAKE_VER" ]; then
+            echo FAIL: tag v$TAG_VER but project version is $CMAKE_VER; exit 1
+          fi
+          echo OK: versions match $CMAKE_VER (tag=$TAG_VER)
 
       - name: 汇总
         run: echo "✅ 全部 29 项约束检查通过"
