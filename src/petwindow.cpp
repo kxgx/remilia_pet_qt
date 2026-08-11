@@ -81,16 +81,23 @@ static void openDirInFM(const QString &dirPath) {
     QStringList fms = detectFileManagers();
     for (const QString &fm : fms) {
         qint64 pid = 0;
-        // Try 1: launch FM directly with PID crash detection
+        // Try 1: launch FM directly
         if (QProcess::startDetached(fm, {path}, QString(), &pid)) {
             QThread::msleep(800);
             if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
                 return;
-            // PID died: either D-Bus single-instance exit (FM opened OK)
-            // or crash (broken GStreamer). Try next FM to be safe.
+            // PID died. For nautilus on GNOME this may be normal D-Bus
+            // single-instance handoff. Check if any nautilus is still alive.
+            if (fm == "nautilus") {
+                QProcess pgrep;
+                pgrep.start("pgrep", {"-x", "nautilus"});
+                pgrep.waitForFinished(2000);
+                if (pgrep.exitCode() == 0)
+                    return; // desktop nautilus still running — D-Bus OK
+            }
+            // Otherwise: crash or not installed, try next FM
         }
-        // Try 2: launch with GStreamer suppressed (for systems with
-        // broken GStreamer where direct launch crashes immediately)
+        // Try 2: launch with GStreamer suppressed (for broken systems)
         QStringList envArgs = {"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path};
         if (QProcess::startDetached("/usr/bin/env", envArgs, QString(), &pid)
             || QProcess::startDetached("/bin/env", envArgs, QString(), &pid)) {
