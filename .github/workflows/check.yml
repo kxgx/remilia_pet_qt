@@ -179,7 +179,7 @@ jobs:
 
       - name: 28. 检查 CMakeLists.txt 与 installer.iss 版本号一致
         run: |
-          CMAKE_VER=$(grep -oP 'VERSION \K[0-9.]+' CMakeLists.txt | head -1)
+          CMAKE_VER=$(grep -oP 'project\(RemiliaPet VERSION \K[0-9.]+' CMakeLists.txt)
           ISS_VER=$(grep -oP 'MyAppVersion "\K[0-9.]+' installer.iss)
           if [ "$CMAKE_VER" != "$ISS_VER" ]; then echo FAIL: CMakeLists.txt=$CMAKE_VER installer.iss=$ISS_VER; exit 1; fi
           echo OK: versions match $CMAKE_VER
