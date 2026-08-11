@@ -167,5 +167,10 @@ jobs:
           if grep -q 'm_resourceDir.*applicationDirPath' src/petwindow.cpp; then echo FAIL: m_resourceDir still references applicationDirPath; exit 1; fi
           echo OK: m_resourceDir migrated to QStandardPaths
 
+      - name: 26. 检查 static.yml 不标记 latest
+        run: |
+          grep -q 'make_latest: false' .github/workflows/static.yml || { echo FAIL: static.yml must keep make_latest: false; exit 1; }
+          echo OK: static.yml make_latest: false
+
       - name: 汇总
-        run: echo "✅ 全部 25 项约束检查通过"
+        run: echo "✅ 全部 26 项约束检查通过"
