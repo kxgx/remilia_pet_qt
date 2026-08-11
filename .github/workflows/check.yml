@@ -190,12 +190,12 @@ jobs:
 
       - name: 29. 检查版本号与 tag 一致
         run: |
-          CMAKE_VER=$(sed -n 's/.*project(RemiliaPet VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
-          ISS_VER=$(sed -n 's/.*MyAppVersion "\([0-9.]*\)".*/\1/p' installer.iss)
+          CMAKE_VER=$(grep 'project(RemiliaPet VERSION' CMakeLists.txt | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+          ISS_VER=$(grep 'MyAppVersion' installer.iss | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
           # 1. 文件间一致
           if [ "$CMAKE_VER" != "$ISS_VER" ]; then echo FAIL: CMakeLists.txt=$CMAKE_VER installer.iss=$ISS_VER; exit 1; fi
           # 2. 与 git tag 一致（仅 tag 触发时校验）
-          TAG_VER=$(echo "$GITHUB_REF" | sed -n 's|refs/tags/v\([0-9.]*\)|\1|p')
+          TAG_VER=$(echo "$GITHUB_REF" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
           if [ -n "$TAG_VER" ] && [ "$TAG_VER" != "$CMAKE_VER" ]; then
             echo FAIL: tag v$TAG_VER but project version is $CMAKE_VER; exit 1
           fi
