@@ -923,7 +923,12 @@ private:
     void onOpenAll() {
         QString dir = m_pet->m_resourceDir;
         if (dir.endsWith(QChar('/'))) dir.chop(1);
-        QDir().mkpath(dir);
+        QDir d(dir);
+        if (!d.exists()) d.mkpath(".");
+        // Ensure all resource subdirectories exist (same logic as per-row open buttons)
+        QStringList subDirs = {"gif", "audio", "cards", "drawing"};
+        for (const QString &sd : subDirs)
+            d.mkpath(sd);
         QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
     }
 
