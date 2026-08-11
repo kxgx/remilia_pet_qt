@@ -199,7 +199,7 @@ jobs:
           if [ -n "$TAG_VER" ] && [ "$TAG_VER" != "$CMAKE_VER" ]; then
             echo FAIL: tag v$TAG_VER but project version is $CMAKE_VER; exit 1
           fi
-          echo OK: versions match $CMAKE_VER (tag=$TAG_VER)
+          echo "OK: versions match $CMAKE_VER [tag=$TAG_VER]"
 
       - name: 汇总
         run: echo "✅ 全部 29 项约束检查通过"
