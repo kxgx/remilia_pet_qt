@@ -93,9 +93,12 @@ static void openDirInFM(const QString &dirPath) {
             // FM died (crash), try next
         }
     }
-    // All FMs failed — show path instead of triggering xdg-open/nautilus again
+    // All FMs failed — show path with install suggestion
     QMessageBox::information(nullptr, QString::fromWCharArray(L"蕾米埃尔桌宠"),
-        QString::fromWCharArray(L"请手动打开资源目录:\n") + path);
+        QString::fromWCharArray(L"资源目录:\n") + path
+        + QString::fromWCharArray(L"\n\n当前系统文件管理器无法使用，建议安装:\n"
+            "    sudo apt install thunar\n"
+            "安装后再试即可正常打开。"));
     return;
 #endif
     QDesktopServices::openUrl(QUrl::fromLocalFile(path));
