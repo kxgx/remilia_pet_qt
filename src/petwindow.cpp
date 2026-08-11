@@ -1291,7 +1291,7 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     int smh = qMax(5, (int)(10 * m_scale));
     menu.setStyleSheet(menuStylesheet(fs,pv,ph,mv,mh,br,ibr,mp,bw,smv,smh));
 
-    QAction *drawAction = menu.addAction(QString::fromUtf8("\u2728 \u5E78\u8FD4\u62BD\u5361"));
+    QAction *drawAction = menu.addAction(QString::fromUtf8("\u2728 \u5E78\u8FD0\u62BD\u5361"));
     QAction *timerAction = menu.addAction(QString::fromUtf8("\u23F0 \u95F9\u949F\u8BA1\u65F6"));
     QAction *drawingAction = menu.addAction(QString::fromUtf8("\U0001F3A8 \u968F\u673A\u753B\u753B"));
     QAction *volumeAction = menu.addAction(QString::fromUtf8("\U0001F50A \u97F3\u91CF\u8C03\u8282"));
