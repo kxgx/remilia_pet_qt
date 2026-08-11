@@ -53,11 +53,24 @@ echo [4/7] Installing vcpkg...
 echo %date% %time% [4/7] vcpkg clone >> %LOG%
 cd /d C:\
 if exist C:\vcpkg rmdir /s /q C:\vcpkg
-git clone https://github.com/microsoft/vcpkg.git >> %LOG% 2>&1
-if errorlevel 1 (
-  echo %date% %time% [FAIL] vcpkg clone >> %LOG%
-  goto :done
+
+:: Retry clone up to 3 times with --depth 1
+set RETRY=0
+:retry_clone
+set /a RETRY+=1
+echo %date% %time% vcpkg clone attempt !RETRY!/3 >> %LOG%
+git clone --depth 1 https://github.com/microsoft/vcpkg.git >> %LOG% 2>&1
+if not errorlevel 1 goto :clone_ok
+if !RETRY! LSS 3 (
+  echo %date% %time% clone failed, retrying in 10s... >> %LOG%
+  if exist C:\vcpkg rmdir /s /q C:\vcpkg
+  timeout /t 10 /nobreak >nul
+  goto :retry_clone
 )
+echo %date% %time% [FAIL] vcpkg clone after 3 attempts >> %LOG%
+goto :done
+
+:clone_ok
 cd C:\vcpkg
 call bootstrap-vcpkg.bat >> %LOG% 2>&1
 vcpkg integrate install >> %LOG% 2>&1
@@ -68,11 +81,22 @@ echo %date% %time% [OK] vcpkg >> %LOG%
 :: ==========================================
 echo [5/7] Installing Qt6 static deps (~30-60 min)...
 echo %date% %time% [5/7] Qt6 static >> %LOG%
+
+set RETRY=0
+:retry_qt6
+set /a RETRY+=1
+echo %date% %time% Qt6 install attempt !RETRY!/3 >> %LOG%
 vcpkg install qt6[core,multimedia,gui,widgets]:x64-windows-static-md >> %LOG% 2>&1
-if errorlevel 1 (
-  echo %date% %time% [FAIL] Qt6 >> %LOG%
-  goto :done
+if not errorlevel 1 goto :qt6_ok
+if !RETRY! LSS 3 (
+  echo %date% %time% Qt6 failed, retrying in 10s... >> %LOG%
+  timeout /t 10 /nobreak >nul
+  goto :retry_qt6
 )
+echo %date% %time% [FAIL] Qt6 after 3 attempts >> %LOG%
+goto :done
+
+:qt6_ok
 echo %date% %time% [OK] Qt6 >> %LOG%
 
 :: ==========================================
