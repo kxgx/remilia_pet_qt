@@ -188,18 +188,24 @@ jobs:
           grep -q 'make_latest: false' .github/workflows/static.yml || { echo FAIL: static.yml must keep make_latest: false; exit 1; }
           echo OK: static.yml make_latest: false
 
-      - name: 29. 检查版本号与 tag 一致
+      - name: 29. 检查所有版本号一致（CMakeLists + installer.iss + build.yml .deb + tag）
         run: |
           CMAKE_VER=$(grep 'project(RemiliaPet VERSION' CMakeLists.txt | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
           ISS_VER=$(grep 'MyAppVersion' installer.iss | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
-          # 1. 文件间一致
-          if [ "$CMAKE_VER" != "$ISS_VER" ]; then echo FAIL: CMakeLists.txt=$CMAKE_VER installer.iss=$ISS_VER; exit 1; fi
-          # 2. 与 git tag 一致（仅 tag 触发时校验）
+          FAIL=0
+          # 1. CMakeLists.txt ↔ installer.iss
+          if [ "$CMAKE_VER" != "$ISS_VER" ]; then echo "FAIL: CMakeLists.txt=$CMAKE_VER installer.iss=$ISS_VER"; FAIL=1; fi
+          # 2. CMakeLists.txt ↔ build.yml .deb DEBIAN/control Version
+          for ver in $(grep '          Version:' .github/workflows/build.yml | sed 's/.*Version: *//'); do
+            if [ "$ver" != "$CMAKE_VER" ]; then echo "FAIL: build.yml .deb Version:$ver != $CMAKE_VER"; FAIL=1; fi
+          done
+          # 3. 与 git tag 一致（仅 tag 触发时校验）
           TAG_VER=$(echo "$GITHUB_REF" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
           if [ -n "$TAG_VER" ] && [ "$TAG_VER" != "$CMAKE_VER" ]; then
-            echo FAIL: tag v$TAG_VER but project version is $CMAKE_VER; exit 1
+            echo "FAIL: tag v$TAG_VER but project version is $CMAKE_VER"; FAIL=1
           fi
-          echo "OK: versions match $CMAKE_VER [tag=$TAG_VER]"
+          if [ "$FAIL" = "1" ]; then exit 1; fi
+          echo "OK: all versions match $CMAKE_VER [tag=$TAG_VER]"
 
       - name: 汇总
         run: echo "✅ 全部 29 项约束检查通过"
