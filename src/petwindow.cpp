@@ -750,6 +750,7 @@ public:
         QString btnStyle = QString("QPushButton{background:#FF8DA1;color:#111;border:none;border-radius:2px;font-weight:bold;font-size:%1px;padding:%2px %3px;}QPushButton:hover{background:#FFA5B5;}QPushButton:disabled{background:#666;color:#999;}").arg(btnFs).arg(btnPad).arg(qMax(2,(int)(4*scale)));
         for (auto *btn : m_allBtns) btn->setStyleSheet(btnStyle);
         m_replaceAllBtn->setStyleSheet(btnStyle);
+        m_openAllBtn->setStyleSheet(btnStyle);
         positionNearPet();
     }
 
@@ -783,7 +784,10 @@ private:
         m_closeBtn = new QPushButton(QString::fromUtf8("\u2715"), this);
         m_closeBtn->setCursor(Qt::PointingHandCursor);
         connect(m_closeBtn, &QPushButton::clicked, this, &ResourceWindow::closeResourceWindow);
-        topBar->addWidget(m_titleLabel); topBar->addWidget(m_replaceAllBtn); topBar->addStretch(); topBar->addWidget(m_closeBtn);
+        m_openAllBtn = new QPushButton(QString::fromUtf8("\u6253\u5f00\u5168\u90e8\u76ee\u5f55"), this);
+        m_openAllBtn->setCursor(Qt::PointingHandCursor);
+        connect(m_openAllBtn, &QPushButton::clicked, this, &ResourceWindow::onOpenAll);
+        topBar->addWidget(m_titleLabel); topBar->addWidget(m_replaceAllBtn); topBar->addWidget(m_openAllBtn); topBar->addStretch(); topBar->addWidget(m_closeBtn);
 
         QLabel *hint = new QLabel(QString::fromUtf8("\u70b9\u201c\u66ff\u6362\u201d\u9009\u6587\u4ef6\uff0c\u6216\u201c\u5168\u90e8\u66ff\u6362\u201d\u6279\u91cf\u66ff\u6362"), this);
         hint->setStyleSheet("color:#888;font-size:10px;padding:2px 4px;"); hint->setWordWrap(true);
@@ -916,6 +920,11 @@ private:
         QMessageBox::information(this, QString::fromUtf8("\u5168\u90e8\u66ff\u6362"), QString::fromUtf8("\u5df2\u66ff\u6362 %1 \u4e2a\u6587\u4ef6").arg(count));
     }
 
+    void onOpenAll() {
+        QDir().mkpath(m_pet->m_resourceDir);
+        QDesktopServices::openUrl(QUrl::fromLocalFile(m_pet->m_resourceDir));
+    }
+
     void closeResourceWindow() { m_pet->m_resourceWindow = nullptr; close(); }
     void positionNearPet() {
         if (m_pet) { QRect pr = m_pet->geometry(); move(pr.x()+pr.width()+10, pr.y()+(pr.height()-height())/2); }
@@ -927,7 +936,7 @@ private:
     }
     DesktopPet *m_pet; float m_scale;
     QVBoxLayout *m_mainLayout = nullptr; QLabel *m_titleLabel = nullptr;
-    QPushButton *m_closeBtn = nullptr; QPushButton *m_replaceAllBtn = nullptr;
+    QPushButton *m_closeBtn = nullptr; QPushButton *m_replaceAllBtn = nullptr; QPushButton *m_openAllBtn = nullptr; QPushButton *m_openAllBtn = nullptr;
     QListWidget *m_resList = nullptr;
     QList<QPushButton*> m_allBtns;
 };
