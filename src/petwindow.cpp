@@ -921,8 +921,10 @@ private:
     }
 
     void onOpenAll() {
-        QDir().mkpath(m_pet->m_resourceDir);
-        QDesktopServices::openUrl(QUrl::fromLocalFile(m_pet->m_resourceDir));
+        QString dir = m_pet->m_resourceDir;
+        if (dir.endsWith(QChar('/'))) dir.chop(1);
+        QDir().mkpath(dir);
+        QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
     }
 
     void closeResourceWindow() { m_pet->m_resourceWindow = nullptr; close(); }
