@@ -131,7 +131,7 @@ jobs:
       - name: 20. 检查 m_resourceDir 路径使用正斜杠
         run: |
           grep -q StandardPaths.*GenericDataLocation.*RemiliaPet/resources src/petwindow.cpp || { echo FAIL; exit 1; }
-echo OK
+          echo OK
 
       - name: 20b. 检查 loadOverrides 使用 GenericDataLocation
         run: |
