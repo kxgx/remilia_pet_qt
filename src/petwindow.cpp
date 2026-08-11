@@ -81,16 +81,19 @@ static void openDirInFM(const QString &dirPath) {
     QStringList fms = detectFileManagers();
     for (const QString &fm : fms) {
         qint64 pid = 0;
-        QStringList envArgs = (fm == "xdg-open")
-            ? QStringList{"GST_PLUGIN_SYSTEM_PATH=/dev/null", "xdg-open", path}
-            : QStringList{"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path};
-        if (QProcess::startDetached("/usr/bin/env", envArgs, QString(), &pid)
-            || QProcess::startDetached("/bin/env", envArgs, QString(), &pid)) {
-            // Wait briefly to detect if FM crashed immediately
+        // Try 1: launch FM directly (no GStreamer suppression)
+        if (QProcess::startDetached(fm, {path}, QString(), &pid)) {
             QThread::msleep(500);
             if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
                 return;
-            // FM died (crash), try next
+        }
+        // Try 2: launch with GStreamer suppressed (for old/broken ARM64 systems)
+        QStringList envArgs = {"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path};
+        if (QProcess::startDetached("/usr/bin/env", envArgs, QString(), &pid)
+            || QProcess::startDetached("/bin/env", envArgs, QString(), &pid)) {
+            QThread::msleep(500);
+            if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
+                return;
         }
     }
     // All FMs failed — show path with install suggestion
