@@ -127,5 +127,28 @@ jobs:
           if grep -qrE 'actions/[^@]+@v[1-4]\b' .github/workflows/; then echo "FAIL: actions/* version < v5 found (Node 20 deprecated)"; grep -rnE 'actions/[^@]+@v[1-4]\b' .github/workflows/; exit 1; fi
           echo "OK: all actions/* >= v5"
 
+      # ============ 资源目录跨平台路径 ============
+      - name: 20. 检查 m_resourceDir 路径使用正斜杠
+        run: |
+          grep -q applicationDirPath.*resources src/petwindow.cpp || { echo FAIL; exit 1; }
+          echo OK
+
+      - name: 21. 检查 onOpenAll 去除尾部斜杠
+        run: |
+          awk /void.onOpenAll/,/}/ src/petwindow.cpp > /tmp/oa.txt
+          grep -q endsWith.*chop /tmp/oa.txt || { echo FAIL; exit 1; }
+          echo OK
+
+      - name: 22. 检查 onOpenAll 调用 mkpath
+        run: |
+          awk /void.onOpenAll/,/}/ src/petwindow.cpp > /tmp/oa.txt
+          grep -q mkpath /tmp/oa.txt || { echo FAIL; exit 1; }
+          echo OK
+
+      - name: 23. 检查 QDesktopServices::openUrl
+        run: |
+          grep -q QDesktopServices::openUrl src/petwindow.cpp || { echo FAIL; exit 1; }
+          echo OK
+
       - name: 汇总
-        run: echo "✅ 全部 19 项约束检查通过"
+        run: echo "✅ 全部 23 项约束检查通过"
