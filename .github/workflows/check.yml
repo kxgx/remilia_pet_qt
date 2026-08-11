@@ -177,5 +177,12 @@ jobs:
           grep -q 'make_latest: true' .github/workflows/build.yml || { echo FAIL: build.yml must keep make_latest: true; exit 1; }
           echo OK: build.yml make_latest: true
 
+      - name: 28. 检查 CMakeLists.txt 与 installer.iss 版本号一致
+        run: |
+          CMAKE_VER=$(grep -oP 'VERSION \K[0-9.]+' CMakeLists.txt | head -1)
+          ISS_VER=$(grep -oP 'MyAppVersion "\K[0-9.]+' installer.iss)
+          if [ "$CMAKE_VER" != "$ISS_VER" ]; then echo FAIL: CMakeLists.txt=$CMAKE_VER installer.iss=$ISS_VER; exit 1; fi
+          echo OK: versions match $CMAKE_VER
+
       - name: 汇总
-        run: echo "✅ 全部 27 项约束检查通过"
+        run: echo "✅ 全部 28 项约束检查通过"
