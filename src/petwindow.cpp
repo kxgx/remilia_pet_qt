@@ -19,6 +19,7 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <QPointer>
+#include <QProcess>
 #include <QRandomGenerator>
 #include <QPixmap>
 #include <QStyle>
@@ -40,7 +41,6 @@
 #include <QFileDialog>
 #include <QDesktopServices>
 #include <QFileInfo>
-#include <QFileInfo>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
@@ -55,6 +55,21 @@
 static const QColor PINK(255, 141, 161);
 
 // ========== DesktopPet resource override ==========
+
+// Open a directory in the system file manager.
+// On Linux, uses QProcess to isolate from GStreamer plugin crashes
+// (e.g. nautilus crashing on old libgstplay with undefined gst_message_writable_details).
+static void openDirInFM(const QString &dirPath) {
+    QString path = dirPath;
+    if (path.endsWith(QChar('/'))) path.chop(1);
+#ifdef Q_OS_LINUX
+    if (QProcess::startDetached("gio", {"open", path}))
+        return;
+    QProcess::startDetached("xdg-open", {path});
+#else
+    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+#endif
+}
 
 QString DesktopPet::resolveResourcePath(const QString &qrcPath) const
 {
@@ -853,7 +868,7 @@ private:
             // Open folder button
             QPushButton *ob = new QPushButton(QString::fromUtf8("\u6253\u5f00"));
             ob->setCursor(Qt::PointingHandCursor); ob->setFixedWidth(qMax(28,(int)(38*m_scale)));
-            connect(ob, &QPushButton::clicked, this, [this, sd]() { QString p = m_pet->m_resourceDir + sd; QDir().mkpath(p); QDesktopServices::openUrl(QUrl::fromLocalFile(p)); });
+            connect(ob, &QPushButton::clicked, this, [this, sd]() { QString p = m_pet->m_resourceDir + sd; QDir().mkpath(p); openDirInFM(p); });
 
             // Delete button
             QPushButton *db = new QPushButton(QString::fromUtf8("\u5220\u9664"));
@@ -923,14 +938,13 @@ private:
 
     void onOpenAll() {
         QString dir = m_pet->m_resourceDir;
-        if (dir.endsWith(QChar('/'))) dir.chop(1);
         QDir d(dir);
         if (!d.exists()) d.mkpath(".");
         // Ensure all resource subdirectories exist (same logic as per-row open buttons)
         QStringList subDirs = {"gif", "audio", "cards", "drawing"};
         for (const QString &sd : subDirs)
             d.mkpath(sd);
-        QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
+        openDirInFM(dir);
     }
 
     void closeResourceWindow() { m_pet->m_resourceWindow = nullptr; close(); }
