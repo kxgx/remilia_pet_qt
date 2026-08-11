@@ -63,7 +63,7 @@ jobs:
             RemiliaPet_Qt6-windows-x64-static.exe
           draft: false
           prerelease: false
-          make_latest: true
+          make_latest: false
 
 #      - name: 发布到 Gitee Release
 #        run: |
