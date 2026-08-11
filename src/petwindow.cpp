@@ -67,10 +67,17 @@ static void openDirInFM(const QString &dirPath) {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
 #ifdef Q_OS_LINUX
-    // 1. gio open (with GStreamer suppressed)
-    if (launchNoGst("gio", {"open", path}))
-        return;
-    // 2. xdg-open
+    // 1. gio — test first, old ARM64 GLib may crash gio itself
+    {
+        QProcess test;
+        test.start("gio", {"version"});
+        test.waitForFinished(2000);
+        if (test.exitCode() == 0 && test.error() == QProcess::UnknownError) {
+            if (launchNoGst("gio", {"open", path}))
+                return;
+        }
+    }
+    // 2. xdg-open (GStreamer suppressed)
     if (launchNoGst("xdg-open", {path}))
         return;
     // 3. dbus-send fallback
