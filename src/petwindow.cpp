@@ -81,7 +81,7 @@ void DesktopPet::loadOverrides()
 {
     QStringList cand;
     cand << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/resources/"
-         << QApplication::applicationDirPath() + QString::fromUtf8("/\u8D44\u6E90/");
+         << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QString::fromUtf8("/\u8D44\u6E90/");
     m_resourceDir.clear();
     for (const QString &d : cand) { if (QDir(d).exists()) { m_resourceDir = d; break; } }
     if (m_resourceDir.isEmpty()) { m_resourceDir = cand.first(); return; }
