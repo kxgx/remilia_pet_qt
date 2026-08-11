@@ -150,5 +150,16 @@ jobs:
           grep -q QDesktopServices::openUrl src/petwindow.cpp || { echo FAIL; exit 1; }
           echo OK
 
+      - name: 24. 检查 loadOverrides 使用 QStandardPaths 非 applicationDirPath
+        run: |
+          awk '/^void DesktopPet::loadOverrides/,/^}/' src/petwindow.cpp > /tmp/lo.txt
+          if grep -q 'applicationDirPath' /tmp/lo.txt; then echo FAIL: loadOverrides must use QStandardPaths; exit 1; fi
+          echo OK: loadOverrides uses QStandardPaths
+
+      - name: 25. 检查 m_resourceDir 不再使用旧路径 applicationDirPath
+        run: |
+          if grep -q 'm_resourceDir.*applicationDirPath' src/petwindow.cpp; then echo FAIL: m_resourceDir still references applicationDirPath; exit 1; fi
+          echo OK: m_resourceDir migrated to QStandardPaths
+
       - name: 汇总
-        run: echo "✅ 全部 23 项约束检查通过"
+        run: echo "✅ 全部 25 项约束检查通过"
