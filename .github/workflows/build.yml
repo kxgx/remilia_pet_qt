@@ -201,13 +201,29 @@ jobs:
           Icon=remilia-pet
           X-GNOME-Autostart-enabled=true
           AUTOSTART
+          # systemd user service (modern distros)
+          mkdir -p $DEB/usr/lib/systemd/user
+          cat > $DEB/usr/lib/systemd/user/remilia-pet.service << 'SYSTEMD'
+          [Unit]
+          Description=蕾米埃尔桌宠 (Remilia Pet)
+          After=graphical-session.target
+          PartOf=graphical-session.target
+
+          [Service]
+          ExecStart=/opt/remilia-pet/remilia-pet
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=default.target
+          SYSTEMD
           cat > $DEB/DEBIAN/control << 'CONTROL'
           Package: remilia-pet
           Version: 1.0.8
           Section: utils
           Priority: optional
           Architecture: amd64
-          Depends: libc6, libgl1, libpulse0, libasound2
+          Depends: libc6, libgl1, libpulse0, libasound2, libglib2.0-bin
           Maintainer: kxgx
           Description: 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
           CONTROL
@@ -216,7 +232,14 @@ jobs:
           set -e
           echo "✅ 蕾米埃尔桌宠 已安装"
           echo "   终端运行: remilia-pet"
-          echo "   开机自启已启用 (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
+          # 检测并选择合适的自启方式
+          if command -v systemctl &>/dev/null && systemctl --user &>/dev/null 2>&1; then
+            systemctl --global enable remilia-pet.service 2>/dev/null && \
+              echo "   自启方式: systemd user service (取消: sudo systemctl --global disable remilia-pet.service)" || \
+              echo "   ⚠ systemd --global enable 失败，使用 XDG autostart (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
+          else
+            echo "   自启方式: XDG autostart (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
+          fi
           POSTINST
           chmod 755 $DEB/DEBIAN/postinst
           dpkg-deb --build $DEB RemiliaPet_Qt6-linux-x64.deb
@@ -330,13 +353,29 @@ jobs:
           Icon=remilia-pet
           X-GNOME-Autostart-enabled=true
           AUTOSTART
+          # systemd user service (modern distros)
+          mkdir -p $DEB/usr/lib/systemd/user
+          cat > $DEB/usr/lib/systemd/user/remilia-pet.service << 'SYSTEMD'
+          [Unit]
+          Description=蕾米埃尔桌宠 (Remilia Pet)
+          After=graphical-session.target
+          PartOf=graphical-session.target
+
+          [Service]
+          ExecStart=/opt/remilia-pet/remilia-pet
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=default.target
+          SYSTEMD
           cat > $DEB/DEBIAN/control << 'CONTROL'
           Package: remilia-pet
           Version: 1.0.8
           Section: utils
           Priority: optional
           Architecture: arm64
-          Depends: libc6, libgl1, libpulse0, libasound2
+          Depends: libc6, libgl1, libpulse0, libasound2, libglib2.0-bin
           Maintainer: kxgx
           Description: 蕾米埃尔桌宠 (Remilia Pet) - 桌面宠物应用
           CONTROL
@@ -345,7 +384,14 @@ jobs:
           set -e
           echo "✅ 蕾米埃尔桌宠 已安装"
           echo "   终端运行: remilia-pet"
-          echo "   开机自启已启用 (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
+          # 检测并选择合适的自启方式
+          if command -v systemctl &>/dev/null && systemctl --user &>/dev/null 2>&1; then
+            systemctl --global enable remilia-pet.service 2>/dev/null && \
+              echo "   自启方式: systemd user service (取消: sudo systemctl --global disable remilia-pet.service)" || \
+              echo "   ⚠ systemd --global enable 失败，使用 XDG autostart (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
+          else
+            echo "   自启方式: XDG autostart (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
+          fi
           POSTINST
           chmod 755 $DEB/DEBIAN/postinst
           dpkg-deb --build $DEB RemiliaPet_Qt6-linux-arm64.deb
