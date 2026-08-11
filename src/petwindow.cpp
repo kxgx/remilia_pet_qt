@@ -93,6 +93,10 @@ static void openDirInFM(const QString &dirPath) {
             // FM died (crash), try next
         }
     }
+    // All FMs failed — show path instead of triggering xdg-open/nautilus again
+    QMessageBox::information(nullptr, QString::fromWCharArray(L"蕾米埃尔桌宠"),
+        QString::fromWCharArray(L"请手动打开资源目录:\n") + path);
+    return;
 #endif
     QDesktopServices::openUrl(QUrl::fromLocalFile(path));
 }
