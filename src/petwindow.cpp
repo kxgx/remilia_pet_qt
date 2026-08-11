@@ -80,7 +80,7 @@ QString DesktopPet::resolveResourcePath(const QString &qrcPath) const
 void DesktopPet::loadOverrides()
 {
     QStringList cand;
-    cand << QApplication::applicationDirPath() + "/resources/"
+    cand << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/resources/"
          << QApplication::applicationDirPath() + QString::fromUtf8("/\u8D44\u6E90/");
     m_resourceDir.clear();
     for (const QString &d : cand) { if (QDir(d).exists()) { m_resourceDir = d; break; } }
@@ -963,7 +963,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     m_audioDir = QApplication::applicationDirPath() + "/../audio/";
     m_cardsDir = ":/cards/";
     m_drawingDir = ":/drawing/";
-    m_resourceDir = QApplication::applicationDirPath() + "/resources/";
+    m_resourceDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/resources/";
 
     m_fontFamily = QSettings().value("fontFamily").toString(); m_fontSize = QSettings().value("fontSize", -1).toInt(); m_fontBold = QSettings().value("fontBold", true).toBool();
     m_systemDefaultFont = QApplication::font();

@@ -130,7 +130,7 @@ jobs:
       # ============ 资源目录跨平台路径 ============
       - name: 20. 检查 m_resourceDir 路径使用正斜杠
         run: |
-          grep -q applicationDirPath.*resources src/petwindow.cpp || { echo FAIL; exit 1; }
+          grep -q StandardPaths.*AppDataLocation.*resources src/petwindow.cpp || { echo FAIL; exit 1; }
           echo OK
 
       - name: 21. 检查 onOpenAll 去除尾部斜杠
