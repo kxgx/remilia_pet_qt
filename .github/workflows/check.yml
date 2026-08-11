@@ -139,9 +139,9 @@ jobs:
           grep -q StandardPaths.*GenericDataLocation /tmp/lo.txt || { echo FAIL; exit 1; }
           echo OK
 
-      - name: 21. 检查 onOpenAll 去除尾部斜杠
+      - name: 21. 检查 openDirInFM 去除尾部斜杠
         run: |
-          awk /void.onOpenAll/,/}/ src/petwindow.cpp > /tmp/oa.txt
+          awk /static.void.openDirInFM/,/^}/ src/petwindow.cpp > /tmp/oa.txt
           grep -q endsWith.*chop /tmp/oa.txt || { echo FAIL; exit 1; }
           echo OK
 
