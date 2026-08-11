@@ -476,10 +476,6 @@ jobs:
           merge-multiple: true
       - name: 列出构件
         run: ls -la
-      - name: 确保 Release 非草稿
-        run: gh release edit "${{ github.ref_name }}" --draft=false --repo "${{ github.repository }}" 2>/dev/null || true
-        env:
-          GH_TOKEN: ${{ github.token }}
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v3
         with:
