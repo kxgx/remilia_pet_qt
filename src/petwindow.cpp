@@ -57,18 +57,24 @@ static const QColor PINK(255, 141, 161);
 // ========== DesktopPet resource override ==========
 
 // Open a directory in the system file manager.
-// On Linux, uses QProcess to isolate from GStreamer plugin crashes
-// (e.g. nautilus crashing on old libgstplay with undefined gst_message_writable_details).
+// On Linux, uses QProcess. First tests gio (best isolation from
+// GStreamer plugin crashes), then xdg-open, finally QDesktopServices.
 static void openDirInFM(const QString &dirPath) {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
 #ifdef Q_OS_LINUX
-    if (QProcess::startDetached("gio", {"open", path}))
+    // Test gio first — some old ARM64 systems have broken GLib that crashes gio itself
+    QProcess test;
+    test.start("gio", {"version"});
+    test.waitForFinished(2000);
+    if (test.exitCode() == 0 && test.error() == QProcess::UnknownError) {
+        if (QProcess::startDetached("gio", {"open", path}))
+            return;
+    }
+    if (QProcess::startDetached("xdg-open", {path}))
         return;
-    QProcess::startDetached("xdg-open", {path});
-#else
-    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
 #endif
+    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
 }
 
 QString DesktopPet::resolveResourcePath(const QString &qrcPath) const
