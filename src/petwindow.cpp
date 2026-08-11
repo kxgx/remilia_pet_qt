@@ -936,7 +936,7 @@ private:
     }
     DesktopPet *m_pet; float m_scale;
     QVBoxLayout *m_mainLayout = nullptr; QLabel *m_titleLabel = nullptr;
-    QPushButton *m_closeBtn = nullptr; QPushButton *m_replaceAllBtn = nullptr; QPushButton *m_openAllBtn = nullptr; QPushButton *m_openAllBtn = nullptr;
+    QPushButton *m_closeBtn = nullptr; QPushButton *m_replaceAllBtn = nullptr; QPushButton *m_openAllBtn = nullptr;
     QListWidget *m_resList = nullptr;
     QList<QPushButton*> m_allBtns;
 };
