@@ -6,6 +6,22 @@ set LOG=C:\OEM\install.log
 echo %date% %time% === RemiliaPet auto config start === > %LOG%
 
 :: ==========================================
+:: 0. Setup Proxy (192.168.2.54:9081)
+:: ==========================================
+echo [0/7] Setting up proxy...
+echo %date% %time% [0/7] Proxy: 192.168.2.54:9081 >> %LOG%
+set HTTP_PROXY=http://192.168.2.54:9081
+set HTTPS_PROXY=http://192.168.2.54:9081
+set http_proxy=http://192.168.2.54:9081
+set https_proxy=http://192.168.2.54:9081
+set NO_PROXY=localhost,127.0.0.1,192.168.2.0/24,.local
+set no_proxy=localhost,127.0.0.1,192.168.2.0/24,.local
+:: git proxy (will take effect after git installed in step 3)
+git config --global http.proxy http://192.168.2.54:9081 2>nul
+git config --global https.proxy http://192.168.2.54:9081 2>nul
+echo %date% %time% [OK] Proxy env vars set >> %LOG%
+
+:: ==========================================
 :: 1. Install Chocolatey
 :: ==========================================
 echo [1/7] Installing Chocolatey...
@@ -16,6 +32,9 @@ if errorlevel 1 (
   goto :done
 )
 echo %date% %time% [OK] Chocolatey >> %LOG%
+
+:: Chocolatey proxy
+choco config set proxy http://192.168.2.54:9081 >> %LOG% 2>&1
 
 :: Refresh PATH after Chocolatey install
 call refreshenv 2>nul
@@ -45,6 +64,11 @@ if errorlevel 1 (
 )
 echo %date% %time% [OK] Git >> %LOG%
 set "PATH=C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;%PATH%"
+
+:: Git proxy
+git config --global http.proxy http://192.168.2.54:9081 >> %LOG% 2>&1
+git config --global https.proxy http://192.168.2.54:9081 >> %LOG% 2>&1
+echo %date% %time% [OK] Git proxy configured >> %LOG%
 
 :: ==========================================
 :: 4. Install vcpkg
