@@ -172,5 +172,10 @@ jobs:
           grep -q 'make_latest: false' .github/workflows/static.yml || { echo FAIL: static.yml must keep make_latest: false; exit 1; }
           echo OK: static.yml make_latest: false
 
+      - name: 27. 检查 build.yml 标记 latest（主 CI）
+        run: |
+          grep -q 'make_latest: true' .github/workflows/build.yml || { echo FAIL: build.yml must keep make_latest: true; exit 1; }
+          echo OK: build.yml make_latest: true
+
       - name: 汇总
-        run: echo "✅ 全部 26 项约束检查通过"
+        run: echo "✅ 全部 27 项约束检查通过"
