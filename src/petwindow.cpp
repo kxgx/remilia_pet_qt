@@ -56,15 +56,11 @@ static const QColor PINK(255, 141, 161);
 
 // ========== DesktopPet resource override ==========
 
-// On Linux: suppress GStreamer to avoid nautilus crashes (old ARM64 libgstplay symbol error)
+// On Linux: suppress GStreamer via env (QProcess::startDetached ignores setProcessEnvironment)
 static bool launchNoGst(const QString &program, const QStringList &args) {
-    QProcess proc;
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    env.insert("GST_PLUGIN_SYSTEM_PATH", "/dev/null");
-    proc.setProcessEnvironment(env);
-    proc.setProgram(program);
-    proc.setArguments(args);
-    return proc.startDetached();
+    QStringList fullArgs;
+    fullArgs << "GST_PLUGIN_SYSTEM_PATH=/dev/null" << program << args;
+    return QProcess::startDetached("/usr/bin/env", fullArgs);
 }
 
 static void openDirInFM(const QString &dirPath) {
