@@ -14,8 +14,8 @@ set HTTP_PROXY=http://192.168.2.54:9081
 set HTTPS_PROXY=http://192.168.2.54:9081
 set http_proxy=http://192.168.2.54:9081
 set https_proxy=http://192.168.2.54:9081
-set NO_PROXY=localhost,127.0.0.1,192.168.2.0/24,.local
-set no_proxy=localhost,127.0.0.1,192.168.2.0/24,.local
+set NO_PROXY=localhost,127.0.0.1
+set no_proxy=localhost,127.0.0.1
 :: git proxy (will take effect after git installed in step 3)
 git config --global http.proxy http://192.168.2.54:9081 2>nul
 git config --global https.proxy http://192.168.2.54:9081 2>nul
