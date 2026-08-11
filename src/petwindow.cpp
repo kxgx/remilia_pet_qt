@@ -57,13 +57,25 @@ static const QColor PINK(255, 141, 161);
 // ========== DesktopPet resource override ==========
 
 // Open a directory in the system file manager.
-// On Linux, uses QProcess. First tests gio (best isolation from
-// GStreamer plugin crashes), then xdg-open, finally QDesktopServices.
+// On Linux: dbus-send (Freedesktop FileManager1, bypasses nautilus GStreamer) → gio → xdg-open → QDesktopServices
 static void openDirInFM(const QString &dirPath) {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
 #ifdef Q_OS_LINUX
-    // Test gio first — some old ARM64 systems have broken GLib that crashes gio itself
+    // 1. dbus-send — Freedesktop 标准，直接调文件管理器，不经过 shell/GStreamer
+    QProcess dbus;
+    dbus.start("dbus-send", {
+        "--session",
+        "--dest=org.freedesktop.FileManager1",
+        "/org/freedesktop/FileManager1",
+        "org.freedesktop.FileManager1.ShowItems",
+        "array:string:file://" + path,
+        "string:"
+    });
+    dbus.waitForFinished(3000);
+    if (dbus.exitCode() == 0)
+        return;
+    // 2. gio open
     QProcess test;
     test.start("gio", {"version"});
     test.waitForFinished(2000);
@@ -71,9 +83,11 @@ static void openDirInFM(const QString &dirPath) {
         if (QProcess::startDetached("gio", {"open", path}))
             return;
     }
+    // 3. xdg-open
     if (QProcess::startDetached("xdg-open", {path}))
         return;
 #endif
+    // 4. Qt 兜底
     QDesktopServices::openUrl(QUrl::fromLocalFile(path));
 }
 
