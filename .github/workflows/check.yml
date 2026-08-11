@@ -12,7 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # ============ QSettings 持久化 ============
+      # ============================================================
+      # 一、QSettings & 代码约束
+      # ============================================================
       - name: 1. 检查 main.cpp 中 orgName/appName 已设置
         run: |
           grep -q 'setOrganizationName' src/main.cpp || { echo "FAIL: setOrganizationName missing in main.cpp"; exit 1; }
@@ -45,45 +47,7 @@ jobs:
           grep -q 'qBound' /tmp/load.txt || { echo "FAIL: loadSettings missing qBound (clamp), may still use reject logic"; exit 1; }
           echo "OK: loadSettings uses clamp (qBound)"
 
-      # ============ CMake ============
-      - name: 6. 检查 macOS 图标使用 POST_BUILD 拷贝
-        run: |
-          grep -q 'POST_BUILD' CMakeLists.txt || { echo "FAIL: CMakeLists.txt missing POST_BUILD"; exit 1; }
-          grep -q 'icon\.icns' CMakeLists.txt || { echo "FAIL: CMakeLists.txt missing icon.icns reference"; exit 1; }
-          echo "OK: icon.icns POST_BUILD copy present"
-
-      - name: 7. 检查 macOS 使用 CGWindowLevelForKey
-        run: |
-          grep -q 'CGWindowLevelForKey' src/petwindow.cpp || { echo "FAIL: macOS topmost must use CGWindowLevelForKey, not hardcoded 5"; exit 1; }
-          echo "OK: CGWindowLevelForKey used"
-
-      # ============ CI / build.yml ============
-      - name: 8. 检查 Linux CI 包含 qt6-wayland
-        run: |
-          grep -q 'qt6-wayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qt6-wayland in apt deps"; exit 1; }
-          echo "OK: qt6-wayland in CI deps"
-
-      - name: 9. 检查 deb 包不再依赖 GStreamer（改用 QSoundEffect+WAV）
-        run: |
-          if grep -q 'gstreamer' .github/workflows/build.yml; then echo "FAIL: build.yml must not reference gstreamer (use QSoundEffect+WAV)"; exit 1; fi
-          echo "OK: no GStreamer dependency, using QSoundEffect+WAV"
-
-      - name: 10. 检查 Linux CI 使用 dpkg-deb 打包 .deb
-        run: |
-          grep -q 'dpkg-deb --build' .github/workflows/build.yml || { echo "FAIL: build.yml missing dpkg-deb --build ( .deb packaging)"; exit 1; }
-          echo "OK: dpkg-deb --build present"
-
-      - name: 11. 检查 Linux CI 使用 alien 转换 .rpm
-        run: |
-          grep -q 'alien -r' .github/workflows/build.yml || { echo "FAIL: build.yml missing alien -r ( .rpm conversion)"; exit 1; }
-          echo "OK: alien -r present"
-
-      - name: 12. 检查 build.yml 不再包含 Arch 打包 job（改用 APM 转 deb）
-        run: |
-          if grep -q 'linux-arch' .github/workflows/build.yml; then echo "FAIL: build.yml must not contain linux-arch jobs (Arch users convert .deb via APM)"; exit 1; fi
-          echo "OK: no Arch packaging jobs, Arch users use APM to convert .deb"
-
-      - name: 13. 检查托盘提示为固定字符串
+      - name: 6. 检查托盘提示为固定字符串
         run: |
           awk '/^void DesktopPet::applyMouseTransparent/,/^}/' src/petwindow.cpp > /tmp/mouse.txt
           if grep -q 'setToolTip.*m_mouseTransparent\|m_mouseTransparent.*setToolTip' /tmp/mouse.txt; then
@@ -92,92 +56,139 @@ jobs:
           fi
           echo "OK: tray tooltip is fixed string"
 
-      - name: 14. 检查打包 Wayland 完整插件链（平台+子插件+库）
+      - name: 7. 检查 macOS 使用 CGWindowLevelForKey
+        run: |
+          grep -q 'CGWindowLevelForKey' src/petwindow.cpp || { echo "FAIL: macOS topmost must use CGWindowLevelForKey, not hardcoded 5"; exit 1; }
+          echo "OK: CGWindowLevelForKey used"
+
+      - name: 8. 检查音频使用 QSoundEffect 而非 QMediaPlayer
+        run: |
+          grep -q 'QSoundEffect' src/petwindow.h || { echo "FAIL: must use QSoundEffect for audio, not QMediaPlayer"; exit 1; }
+          if grep -q 'QMediaPlayer\|QAudioOutput' src/petwindow.h; then echo "FAIL: QMediaPlayer/QAudioOutput must be replaced with QSoundEffect"; exit 1; fi
+          echo "OK: QSoundEffect used for audio"
+
+      # ============================================================
+      # 二、资源目录跨平台路径
+      # ============================================================
+      - name: 9. 检查 m_resourceDir 使用 GenericDataLocation
+        run: |
+          grep -q StandardPaths.*GenericDataLocation.*RemiliaPet/resources src/petwindow.cpp || { echo FAIL; exit 1; }
+          echo OK
+
+      - name: 10. 检查 loadOverrides 使用 GenericDataLocation
+        run: |
+          awk '/^void DesktopPet::loadOverrides/,/^}/' src/petwindow.cpp > /tmp/lo.txt
+          grep -q StandardPaths.*GenericDataLocation /tmp/lo.txt || { echo FAIL; exit 1; }
+          echo OK
+
+      - name: 11. 检查 loadOverrides 优先使用 QStandardPaths
+        run: |
+          awk '/^void DesktopPet::loadOverrides/,/^}/' src/petwindow.cpp > /tmp/lo.txt
+          grep -q 'QStandardPaths' /tmp/lo.txt || { echo FAIL: loadOverrides missing QStandardPaths as primary candidate; exit 1; }
+          echo OK: loadOverrides has QStandardPaths + applicationDirPath fallbacks
+
+      - name: 12. 检查 m_resourceDir 不再使用旧路径 applicationDirPath
+        run: |
+          if grep -q 'm_resourceDir.*applicationDirPath' src/petwindow.cpp; then echo FAIL: m_resourceDir still references applicationDirPath; exit 1; fi
+          echo OK: m_resourceDir migrated to QStandardPaths
+
+      - name: 13. 检查 openDirInFM 去除尾部斜杠
+        run: |
+          awk /static.void.openDirInFM/,/^}/ src/petwindow.cpp > /tmp/oa.txt
+          grep -q endsWith.*chop /tmp/oa.txt || { echo FAIL; exit 1; }
+          echo OK
+
+      - name: 14. 检查 onOpenAll 调用 mkpath
+        run: |
+          awk /void.onOpenAll/,/}/ src/petwindow.cpp > /tmp/oa.txt
+          grep -q mkpath /tmp/oa.txt || { echo FAIL; exit 1; }
+          echo OK
+
+      - name: 15. 检查 QDesktopServices::openUrl（非 Linux fallback）
+        run: |
+          grep -q QDesktopServices::openUrl src/petwindow.cpp || { echo FAIL; exit 1; }
+          echo OK
+
+      # ============================================================
+      # 三、CMake 约束
+      # ============================================================
+      - name: 16. 检查 macOS 图标使用 POST_BUILD 拷贝
+        run: |
+          grep -q 'POST_BUILD' CMakeLists.txt || { echo "FAIL: CMakeLists.txt missing POST_BUILD"; exit 1; }
+          grep -q 'icon\.icns' CMakeLists.txt || { echo "FAIL: CMakeLists.txt missing icon.icns reference"; exit 1; }
+          echo "OK: icon.icns POST_BUILD copy present"
+
+      # ============================================================
+      # 四、CI build.yml 约束
+      # ============================================================
+      - name: 17. 检查 Linux CI 包含 qt6-wayland
+        run: |
+          grep -q 'qt6-wayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qt6-wayland in apt deps"; exit 1; }
+          echo "OK: qt6-wayland in CI deps"
+
+      - name: 18. 检查 deb 包不再依赖 GStreamer
+        run: |
+          if grep -q 'gstreamer' .github/workflows/build.yml; then echo "FAIL: build.yml must not reference gstreamer (use QSoundEffect+WAV)"; exit 1; fi
+          echo "OK: no GStreamer dependency, using QSoundEffect+WAV"
+
+      - name: 19. 检查 Linux CI 使用 dpkg-deb 打包 .deb
+        run: |
+          grep -q 'dpkg-deb --build' .github/workflows/build.yml || { echo "FAIL: build.yml missing dpkg-deb --build ( .deb packaging)"; exit 1; }
+          echo "OK: dpkg-deb --build present"
+
+      - name: 20. 检查 Linux CI 使用 alien 转换 .rpm
+        run: |
+          grep -q 'alien -r' .github/workflows/build.yml || { echo "FAIL: build.yml missing alien -r ( .rpm conversion)"; exit 1; }
+          echo "OK: alien -r present"
+
+      - name: 21. 检查 build.yml 不再包含 Arch 打包 job
+        run: |
+          if grep -q 'linux-arch' .github/workflows/build.yml; then echo "FAIL: build.yml must not contain linux-arch jobs"; exit 1; fi
+          echo "OK: no Arch packaging jobs"
+
+      - name: 22. 检查打包 Wayland 完整插件链
         run: |
           grep -q 'qwayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qwayland platform plugin copy"; exit 1; }
           grep -q 'wayland-shell-integration' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-shell-integration sub-plugin"; exit 1; }
           grep -q 'wayland-graphics-integration-client' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-graphics-integration-client sub-plugin"; exit 1; }
           grep -q 'wayland-decoration-client' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-decoration-client sub-plugin"; exit 1; }
           grep -q 'libQt6WaylandEglClientHwIntegration' .github/workflows/build.yml || { echo "FAIL: build.yml missing libQt6WaylandEglClientHwIntegration"; exit 1; }
-          echo "OK: full Wayland plugin chain bundled (platform+shell+graphics+decoration+egl)"
+          echo "OK: full Wayland plugin chain bundled"
 
-      - name: 15. 检查 .deb launcher 使用 usr/bin 路径 (FHS)
+      - name: 23. 检查 .deb launcher 使用 usr/bin 路径 (FHS)
         run: |
-          grep -q 'usr/bin/蕾米埃尔桌宠_Qt6' .github/workflows/build.yml || { echo "FAIL: .deb launcher must use usr/bin/ path (linuxdeploy FHS)"; exit 1; }
+          grep -q 'usr/bin/蕾米埃尔桌宠_Qt6' .github/workflows/build.yml || { echo "FAIL: .deb launcher must use usr/bin/ path"; exit 1; }
           echo "OK: .deb launcher points to usr/bin/"
 
-      - name: 16. 检查 Linux launcher 使用 XCB 避免 Wayland 兼容问题
+      - name: 24. 检查 Linux launcher 使用 XCB 避免 Wayland 兼容问题
         run: |
-          grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml || { echo "FAIL: Linux launcher must set QT_QPA_PLATFORM=xcb (avoid Wayland shell integration issues)"; exit 1; }
+          grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml || { echo "FAIL: Linux launcher must set QT_QPA_PLATFORM=xcb"; exit 1; }
           echo "OK: QT_QPA_PLATFORM=xcb set in all launchers"
 
-      - name: 17. 检查 macOS CI 移除 aws/tap 避免 Homebrew 信任警告
+      - name: 25. 检查 macOS CI 移除 aws/tap 避免 Homebrew 警告
         run: |
-          grep -q 'brew untap aws/tap' .github/workflows/build.yml || { echo "FAIL: build.yml missing brew untap aws/tap to suppress Homebrew trust warning"; exit 1; }
+          grep -q 'brew untap aws/tap' .github/workflows/build.yml || { echo "FAIL: build.yml missing brew untap aws/tap"; exit 1; }
           echo "OK: aws/tap untap present"
 
-      - name: 18. 检查音频使用 QSoundEffect 而非 QMediaPlayer
+      - name: 26. 检查 actions/* 官方版本 >= v5
         run: |
-          grep -q 'QSoundEffect' src/petwindow.h || { echo "FAIL: must use QSoundEffect for audio, not QMediaPlayer"; exit 1; }
-          if grep -q 'QMediaPlayer\|QAudioOutput' src/petwindow.h; then echo "FAIL: QMediaPlayer/QAudioOutput must be replaced with QSoundEffect"; exit 1; fi
-          echo "OK: QSoundEffect used for audio"
-
-      - name: 19. 检查 actions/* 官方版本 >= v5 (Node 24)
-        run: |
-          if grep -qrE 'actions/[^@]+@v[1-4]\b' .github/workflows/; then echo "FAIL: actions/* version < v5 found (Node 20 deprecated)"; grep -rnE 'actions/[^@]+@v[1-4]\b' .github/workflows/; exit 1; fi
+          if grep -qrE 'actions/[^@]+@v[1-4]\b' .github/workflows/; then echo "FAIL: actions/* version < v5 found"; grep -rnE 'actions/[^@]+@v[1-4]\b' .github/workflows/; exit 1; fi
           echo "OK: all actions/* >= v5"
 
-      # ============ 资源目录跨平台路径 ============
-      - name: 20. 检查 m_resourceDir 路径使用正斜杠
-        run: |
-          grep -q StandardPaths.*GenericDataLocation.*RemiliaPet/resources src/petwindow.cpp || { echo FAIL; exit 1; }
-          echo OK
-
-      - name: 20b. 检查 loadOverrides 使用 GenericDataLocation
-        run: |
-          awk '/^void DesktopPet::loadOverrides/,/^}/' src/petwindow.cpp > /tmp/lo.txt
-          grep -q StandardPaths.*GenericDataLocation /tmp/lo.txt || { echo FAIL; exit 1; }
-          echo OK
-
-      - name: 21. 检查 openDirInFM 去除尾部斜杠
-        run: |
-          awk /static.void.openDirInFM/,/^}/ src/petwindow.cpp > /tmp/oa.txt
-          grep -q endsWith.*chop /tmp/oa.txt || { echo FAIL; exit 1; }
-          echo OK
-
-      - name: 22. 检查 onOpenAll 调用 mkpath
-        run: |
-          awk /void.onOpenAll/,/}/ src/petwindow.cpp > /tmp/oa.txt
-          grep -q mkpath /tmp/oa.txt || { echo FAIL; exit 1; }
-          echo OK
-
-      - name: 23. 检查 QDesktopServices::openUrl
-        run: |
-          grep -q QDesktopServices::openUrl src/petwindow.cpp || { echo FAIL; exit 1; }
-          echo OK
-
-      - name: 24. 检查 loadOverrides 优先使用 QStandardPaths
-        run: |
-          awk '/^void DesktopPet::loadOverrides/,/^}/' src/petwindow.cpp > /tmp/lo.txt
-          grep -q 'QStandardPaths' /tmp/lo.txt || { echo FAIL: loadOverrides missing QStandardPaths as primary candidate; exit 1; }
-          echo OK: loadOverrides has QStandardPaths + applicationDirPath fallbacks
-
-      - name: 25. 检查 m_resourceDir 不再使用旧路径 applicationDirPath
-        run: |
-          if grep -q 'm_resourceDir.*applicationDirPath' src/petwindow.cpp; then echo FAIL: m_resourceDir still references applicationDirPath; exit 1; fi
-          echo OK: m_resourceDir migrated to QStandardPaths
-
-      - name: 26. 检查 static.yml 不标记 latest
-        run: |
-          grep -q 'make_latest: false' .github/workflows/static.yml || { echo FAIL: static.yml must keep make_latest: false; exit 1; }
-          echo OK: static.yml make_latest: false
-
+      # ============================================================
+      # 五、发布策略
+      # ============================================================
       - name: 27. 检查 build.yml 标记 latest（主 CI）
         run: |
           grep -q 'make_latest: true' .github/workflows/build.yml || { echo FAIL: build.yml must keep make_latest: true; exit 1; }
           echo OK: build.yml make_latest: true
 
-      - name: 28. 检查 CMakeLists.txt 与 installer.iss 版本号一致
+      - name: 28. 检查 static.yml 不标记 latest
+        run: |
+          grep -q 'make_latest: false' .github/workflows/static.yml || { echo FAIL: static.yml must keep make_latest: false; exit 1; }
+          echo OK: static.yml make_latest: false
+
+      - name: 29. 检查 CMakeLists.txt 与 installer.iss 版本号一致
         run: |
           CMAKE_VER=$(grep -oP 'project\(RemiliaPet VERSION \K[0-9.]+' CMakeLists.txt)
           ISS_VER=$(grep -oP 'MyAppVersion "\K[0-9.]+' installer.iss)
@@ -185,4 +196,4 @@ jobs:
           echo OK: versions match $CMAKE_VER
 
       - name: 汇总
-        run: echo "✅ 全部 28 项约束检查通过"
+        run: echo "✅ 全部 29 项约束检查通过"
