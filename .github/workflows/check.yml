@@ -176,7 +176,7 @@ jobs:
           echo "OK: all actions/* >= v5"
 
       # ============================================================
-      # 五、发布策略
+      # 五、发布策略（#27-29）+ Unicode 字符码表（#30）
       # ============================================================
       - name: 27. 检查 build.yml 标记 latest（主 CI）
         run: |
@@ -207,5 +207,34 @@ jobs:
           if [ "$FAIL" = "1" ]; then exit 1; fi
           echo "OK: all versions match $CMAKE_VER [tag=$TAG_VER]"
 
+      - name: 30. 检查 Unicode 字符码表与源码一致
+        run: |
+          FAIL=0
+          # Extract all fromUtf8 escape strings from petwindow.cpp
+          grep -oP 'fromUtf8\("\K[^"]*(?="\))' src/petwindow.cpp | sort -u > /tmp/code.txt
+          # Extract all fromWCharArray literal strings
+          grep -oP 'fromWCharArray\(L"\K[^"]*(?="\))' src/petwindow.cpp | sort -u > /tmp/code_wc.txt
+          echo "=== fromUtf8 ==="
+          while read -r str; do
+            [ -z "$str" ] && continue
+            if ! grep -qF "$str" 项目约束文件.md; then
+              echo "UNREGISTERED fromUtf8: $str"
+              FAIL=1
+            fi
+          done < /tmp/code.txt
+          echo "=== fromWCharArray ==="
+          while read -r str; do
+            [ -z "$str" ] && continue
+            if ! grep -qF "$str" 项目约束文件.md; then
+              echo "UNREGISTERED fromWCharArray: $str"
+              FAIL=1
+            fi
+          done < /tmp/code_wc.txt
+          if [ "$FAIL" = "1" ]; then
+            echo "请更新 项目约束文件.md §1.15 Unicode 字符码表"
+            exit 1
+          fi
+          echo "OK: Unicode 字符码表与源码一致 (fromUtf8:$(wc -l < /tmp/code.txt) fromWCharArray:$(wc -l < /tmp/code_wc.txt))"
+
       - name: 汇总
-        run: echo "✅ 全部 29 项约束检查通过"
+        run: echo "✅ 全部 30 项约束检查通过"
