@@ -20,6 +20,7 @@
 #include <QMessageBox>
 #include <QPointer>
 #include <QProcess>
+#include <QThread>
 #include <QRandomGenerator>
 #include <QPixmap>
 #include <QStyle>
@@ -79,21 +80,17 @@ static void openDirInFM(const QString &dirPath) {
 #ifdef Q_OS_LINUX
     QStringList fms = detectFileManagers();
     for (const QString &fm : fms) {
-        QProcess proc;
-        if (fm == "xdg-open") {
-            // Last resort: xdg-open with GStreamer suppressed
-            if (QProcess::startDetached("/usr/bin/env",
-                    {"GST_PLUGIN_SYSTEM_PATH=/dev/null", "xdg-open", path})
-                || QProcess::startDetached("/bin/env",
-                    {"GST_PLUGIN_SYSTEM_PATH=/dev/null", "xdg-open", path}))
+        qint64 pid = 0;
+        QStringList envArgs = (fm == "xdg-open")
+            ? QStringList{"GST_PLUGIN_SYSTEM_PATH=/dev/null", "xdg-open", path}
+            : QStringList{"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path};
+        if (QProcess::startDetached("/usr/bin/env", envArgs, QString(), &pid)
+            || QProcess::startDetached("/bin/env", envArgs, QString(), &pid)) {
+            // Wait briefly to detect if FM crashed immediately
+            QThread::msleep(500);
+            if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
                 return;
-        } else {
-            // Try to launch file manager directly with GStreamer suppressed
-            if (QProcess::startDetached("/usr/bin/env",
-                    {"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path})
-                || QProcess::startDetached("/bin/env",
-                    {"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path}))
-                return;
+            // FM died (crash), try next
         }
     }
 #endif
