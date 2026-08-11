@@ -56,44 +56,45 @@ static const QColor PINK(255, 141, 161);
 
 // ========== DesktopPet resource override ==========
 
-// On Linux: suppress GStreamer via env (QProcess::startDetached ignores setProcessEnvironment)
-static bool launchNoGst(const QString &program, const QStringList &args) {
-    QStringList fullArgs;
-    fullArgs << "GST_PLUGIN_SYSTEM_PATH=/dev/null" << program << args;
-    return QProcess::startDetached("/usr/bin/env", fullArgs);
+// On Linux: detect desktop environment, call file manager directly to bypass xdg-open
+static QStringList detectFileManagers() {
+    QString de = qEnvironmentVariable("XDG_CURRENT_DESKTOP", "").toLower();
+    QStringList fms;
+    if (de.contains("gnome"))   fms << "nautilus";
+    if (de.contains("kde"))     fms << "dolphin";
+    if (de.contains("xfce"))    fms << "thunar";
+    if (de.contains("mate"))    fms << "caja";
+    if (de.contains("lxqt") || de.contains("lxde")) fms << "pcmanfm";
+    if (de.contains("cinnamon")) fms << "nemo";
+    if (de.contains("budgie"))  fms << "nautilus";
+    if (de.contains("deepin"))  fms << "dde-file-manager";
+    // Generic fallbacks (lightweight, widely available)
+    fms << "pcmanfm" << "thunar" << "nautilus" << "dolphin" << "xdg-open";
+    return fms;
 }
 
 static void openDirInFM(const QString &dirPath) {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
 #ifdef Q_OS_LINUX
-    // 1. gio — test first, old ARM64 GLib may crash gio itself
-    {
-        QProcess test;
-        test.start("gio", {"version"});
-        test.waitForFinished(2000);
-        if (test.exitCode() == 0 && test.error() == QProcess::UnknownError) {
-            if (launchNoGst("gio", {"open", path}))
+    QStringList fms = detectFileManagers();
+    for (const QString &fm : fms) {
+        QProcess proc;
+        if (fm == "xdg-open") {
+            // Last resort: xdg-open with GStreamer suppressed
+            if (QProcess::startDetached("/usr/bin/env",
+                    {"GST_PLUGIN_SYSTEM_PATH=/dev/null", "xdg-open", path})
+                || QProcess::startDetached("/bin/env",
+                    {"GST_PLUGIN_SYSTEM_PATH=/dev/null", "xdg-open", path}))
+                return;
+        } else {
+            // Try to launch file manager directly with GStreamer suppressed
+            if (QProcess::startDetached("/usr/bin/env",
+                    {"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path})
+                || QProcess::startDetached("/bin/env",
+                    {"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path}))
                 return;
         }
-    }
-    // 2. xdg-open (GStreamer suppressed)
-    if (launchNoGst("xdg-open", {path}))
-        return;
-    // 3. dbus-send fallback
-    {
-        QProcess dbus;
-        dbus.start("dbus-send", {
-            "--session",
-            "--dest=org.freedesktop.FileManager1",
-            "/org/freedesktop/FileManager1",
-            "org.freedesktop.FileManager1.ShowItems",
-            "array:string:file://" + path,
-            "string:"
-        });
-        dbus.waitForFinished(3000);
-        if (dbus.exitCode() == 0)
-            return;
     }
 #endif
     QDesktopServices::openUrl(QUrl::fromLocalFile(path));
