@@ -1,4 +1,4 @@
-name: 静态编译（NAS Docker）
+name: 静态编译（本地runner）
 
 on:
   push:
