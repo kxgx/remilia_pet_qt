@@ -232,15 +232,33 @@ jobs:
           set -e
           echo "✅ 蕾米埃尔桌宠 已安装"
           echo "   终端运行: remilia-pet"
-          # 检测并选择合适的自启方式（优先 XDG autostart，兜底 systemd）
+          # 检测发行版版本，选择自启方式（现代桌面→XDG，老旧/无桌面→systemd）
+          if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            DID="${ID}"; DVER="${VERSION_ID}"
+          else
+            DID="unknown"; DVER="0"
+          fi
+          USE_XDG=0
           if [ -d /etc/xdg/autostart ]; then
+            case "$DID" in
+              ubuntu)   [ "${DVER%%.*}" -ge 18 ] && USE_XDG=1 ;;
+              debian)   [ "${DVER%%.*}" -ge 10 ] && USE_XDG=1 ;;
+              fedora)   [ "${DVER%%.*}" -ge 30 ] && USE_XDG=1 ;;
+              centos|rhel) [ "${DVER%%.*}" -ge 8 ] && USE_XDG=1 ;;
+              arch|manjaro) USE_XDG=1 ;;
+              opensuse*) [ "${DVER%%.*}" -ge 15 ] && USE_XDG=1 ;;
+              *)        USE_XDG=1 ;;
+            esac
+          fi
+          if [ "$USE_XDG" = "1" ]; then
             echo "   自启方式: XDG autostart (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
           elif command -v systemctl &>/dev/null && systemctl --user &>/dev/null 2>&1; then
             systemctl --global enable remilia-pet.service 2>/dev/null && \
               echo "   自启方式: systemd user service (取消: sudo systemctl --global disable remilia-pet.service)" || \
               echo "   ⚠ 自启配置失败，请手动设置"
           else
-            echo "   ⚠ 未检测到桌面环境，自启可能不生效"
+            echo "   ⚠ 无法自动配置自启，请手动设置"
           fi
           POSTINST
           chmod 755 $DEB/DEBIAN/postinst
@@ -386,15 +404,33 @@ jobs:
           set -e
           echo "✅ 蕾米埃尔桌宠 已安装"
           echo "   终端运行: remilia-pet"
-          # 检测并选择合适的自启方式（优先 XDG autostart，兜底 systemd）
+          # 检测发行版版本，选择自启方式（现代桌面→XDG，老旧/无桌面→systemd）
+          if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            DID="${ID}"; DVER="${VERSION_ID}"
+          else
+            DID="unknown"; DVER="0"
+          fi
+          USE_XDG=0
           if [ -d /etc/xdg/autostart ]; then
+            case "$DID" in
+              ubuntu)   [ "${DVER%%.*}" -ge 18 ] && USE_XDG=1 ;;
+              debian)   [ "${DVER%%.*}" -ge 10 ] && USE_XDG=1 ;;
+              fedora)   [ "${DVER%%.*}" -ge 30 ] && USE_XDG=1 ;;
+              centos|rhel) [ "${DVER%%.*}" -ge 8 ] && USE_XDG=1 ;;
+              arch|manjaro) USE_XDG=1 ;;
+              opensuse*) [ "${DVER%%.*}" -ge 15 ] && USE_XDG=1 ;;
+              *)        USE_XDG=1 ;;
+            esac
+          fi
+          if [ "$USE_XDG" = "1" ]; then
             echo "   自启方式: XDG autostart (取消: sudo rm /etc/xdg/autostart/remilia-pet.desktop)"
           elif command -v systemctl &>/dev/null && systemctl --user &>/dev/null 2>&1; then
             systemctl --global enable remilia-pet.service 2>/dev/null && \
               echo "   自启方式: systemd user service (取消: sudo systemctl --global disable remilia-pet.service)" || \
               echo "   ⚠ 自启配置失败，请手动设置"
           else
-            echo "   ⚠ 未检测到桌面环境，自启可能不生效"
+            echo "   ⚠ 无法自动配置自启，请手动设置"
           fi
           POSTINST
           chmod 755 $DEB/DEBIAN/postinst
