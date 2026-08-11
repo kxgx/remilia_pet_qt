@@ -80,14 +80,14 @@ static void openDirInFM(const QString &dirPath) {
 #ifdef Q_OS_LINUX
     QStringList fms = detectFileManagers();
     for (const QString &fm : fms) {
+        // Try 1: launch FM directly (no PID check — nautilus uses D-Bus
+        // single-instance, launched process exits immediately after sending
+        // D-Bus message to the already-running instance)
+        if (QProcess::startDetached(fm, {path}))
+            return;
+        // Try 2: launch with GStreamer suppressed, PID check OK here
+        // because /usr/bin/env exec's into the FM and PID stays alive
         qint64 pid = 0;
-        // Try 1: launch FM directly (no GStreamer suppression)
-        if (QProcess::startDetached(fm, {path}, QString(), &pid)) {
-            QThread::msleep(500);
-            if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
-                return;
-        }
-        // Try 2: launch with GStreamer suppressed (for old/broken ARM64 systems)
         QStringList envArgs = {"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path};
         if (QProcess::startDetached("/usr/bin/env", envArgs, QString(), &pid)
             || QProcess::startDetached("/bin/env", envArgs, QString(), &pid)) {
