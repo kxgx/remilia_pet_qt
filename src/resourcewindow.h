@@ -38,6 +38,7 @@ private:
     float m_scale;
     QVBoxLayout *m_mainLayout = nullptr;
     QLabel *m_titleLabel = nullptr;
+    QLabel *m_hintLabel = nullptr;
     QPushButton *m_closeBtn = nullptr;
     QPushButton *m_replaceAllBtn = nullptr;
     QPushButton *m_openAllBtn = nullptr;

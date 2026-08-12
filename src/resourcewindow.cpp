@@ -54,6 +54,34 @@ void ResourceWindow::updateScaleAndPosition(float scale)
     for (auto *btn : m_allBtns) btn->setStyleSheet(btnStyle);
     m_replaceAllBtn->setStyleSheet(btnStyle);
     m_openAllBtn->setStyleSheet(btnStyle);
+
+    // Row text/widths must scale with the window (labels don't inherit the list font)
+    int rowFs = qMax(8, (int)(11*scale));
+    int nameW = qMax(80, (int)(150*scale));
+    int statusW = qMax(35, (int)(48*scale));
+    int rbW = qMax(30, (int)(40*scale));
+    int odW = qMax(28, (int)(38*scale));
+    for (int i = 0; i < m_resList->count(); i++) {
+        QWidget *row = m_resList->itemWidget(m_resList->item(i));
+        if (!row || !row->layout()) continue; // category header (scales via list font)
+        QLayout *rowLay = row->layout();
+        QString key = row->property("resourceKey").toString();
+        bool over = !key.isEmpty() && m_pet->m_resourceOverrides.contains(key);
+        // initUi layout order: name(0), status(1), replace(2), open(3), delete(4)
+        if (auto *nl = qobject_cast<QLabel*>(rowLay->itemAt(0)->widget())) {
+            nl->setFixedWidth(nameW);
+            nl->setStyleSheet(QString("color:#fff;font-weight:bold;font-size:%1px;").arg(rowFs));
+        }
+        if (auto *sl = qobject_cast<QLabel*>(rowLay->itemAt(1)->widget())) {
+            sl->setFixedWidth(statusW);
+            sl->setStyleSheet(QString("%1;font-size:%2px;").arg(over ? "color:#5f5;" : "color:#888;").arg(rowFs));
+        }
+        if (auto *rb = qobject_cast<QPushButton*>(rowLay->itemAt(2)->widget())) rb->setFixedWidth(rbW);
+        if (auto *ob = qobject_cast<QPushButton*>(rowLay->itemAt(3)->widget())) ob->setFixedWidth(odW);
+        if (auto *db = qobject_cast<QPushButton*>(rowLay->itemAt(4)->widget())) db->setFixedWidth(odW);
+    }
+    if (m_hintLabel)
+        m_hintLabel->setStyleSheet(QString("color:#888;font-size:%1px;padding:2px 4px;").arg(qMax(8, (int)(10*scale))));
     positionNearPet();
 }
 
@@ -82,7 +110,9 @@ void ResourceWindow::refreshRow(QLabel *sl, QPushButton *db, const QString &key)
 {
     bool s = m_pet->m_resourceOverrides.contains(key);
     sl->setText(s ? QString::fromUtf8("\u5df2\u66ff\u6362") : QString::fromUtf8("\u9ed8\u8ba4"));
-    sl->setStyleSheet(s ? "color:#5f5;" : "color:#888;");
+    // Keep font-size so the status text stays scaled after updates
+    int fs = qMax(8, (int)(11 * m_scale));
+    sl->setStyleSheet(QString("%1;font-size:%2px;").arg(s ? "color:#5f5;" : "color:#888;").arg(fs));
     db->setEnabled(s);
 }
 
@@ -120,8 +150,8 @@ void ResourceWindow::initUi()
     connect(m_openAllBtn, &QPushButton::clicked, this, &ResourceWindow::onOpenAll);
     topBar->addWidget(m_titleLabel); topBar->addWidget(m_replaceAllBtn); topBar->addWidget(m_openAllBtn); topBar->addStretch(); topBar->addWidget(m_closeBtn);
 
-    QLabel *hint = new QLabel(QString::fromUtf8("\u70b9\u201c\u66ff\u6362\u201d\u9009\u6587\u4ef6\uff0c\u6216\u201c\u5168\u90e8\u66ff\u6362\u201d\u6279\u91cf\u66ff\u6362"), this);
-    hint->setStyleSheet("color:#888;font-size:10px;padding:2px 4px;"); hint->setWordWrap(true);
+    m_hintLabel = new QLabel(QString::fromUtf8("\u70b9\u201c\u66ff\u6362\u201d\u9009\u6587\u4ef6\uff0c\u6216\u201c\u5168\u90e8\u66ff\u6362\u201d\u6279\u91cf\u66ff\u6362"), this);
+    m_hintLabel->setStyleSheet("color:#888;font-size:10px;padding:2px 4px;"); m_hintLabel->setWordWrap(true);
 
     m_resList = new QListWidget(this);
     m_resList->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
@@ -203,7 +233,7 @@ void ResourceWindow::initUi()
         QListWidgetItem *it = new QListWidgetItem();
         it->setSizeHint(row->sizeHint()); m_resList->addItem(it); m_resList->setItemWidget(it, row);
     }
-    m_mainLayout->addLayout(topBar); m_mainLayout->addWidget(hint); m_mainLayout->addWidget(m_resList, 1);
+    m_mainLayout->addLayout(topBar); m_mainLayout->addWidget(m_hintLabel); m_mainLayout->addWidget(m_resList, 1);
 }
 
 void ResourceWindow::onReplaceAll()
