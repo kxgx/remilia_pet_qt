@@ -211,8 +211,8 @@ jobs:
       - name: 30. 检查 Unicode 字符码表与源码一致
         run: |
           FAIL=0
-          # Extract all fromUtf8 escape strings from petwindow.cpp
-          grep -oP 'fromUtf8\("\K[^"]*(?="\))' src/petwindow.cpp | sort -u > /tmp/code.txt
+          # Extract all fromUtf8 escape strings from all source files
+          grep -oPh 'fromUtf8\("\K[^"]*(?="\))' src/*.cpp | sort -u > /tmp/code.txt
           echo "=== fromUtf8 ==="
           while read -r str; do
             [ -z "$str" ] && continue

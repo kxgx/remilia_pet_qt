@@ -46,6 +46,10 @@ set(SOURCES
     src/petwindow.h
     src/audioplayer.cpp
     src/audioplayer.h
+    src/inappfiledialog.cpp
+    src/inappfiledialog.h
+    src/resourcewindow.cpp
+    src/resourcewindow.h
     resources.qrc
 )
 
