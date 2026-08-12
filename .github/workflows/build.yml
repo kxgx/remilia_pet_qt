@@ -512,7 +512,17 @@ jobs:
             Write-Host "Created release: $RELEASE_ID"
           }
           Get-ChildItem RemiliaPet_Qt6-* -Exclude *static* | ForEach-Object {
-            Write-Host "Uploading $($_.Name)..."
-            Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/assets?name=$($_.Name)" -Method Post -Headers $headers -InFile $_.FullName
+            $name = $_.Name
+            Write-Host "Uploading $name..."
+            for ($r = 0; $r -lt 3; $r++) {
+              try {
+                Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/assets?name=$name" -Method Post -Headers $headers -ContentType "application/octet-stream" -InFile $_.FullName
+                Write-Host "  OK"
+                break
+              } catch {
+                if ($r -lt 2) { Write-Host "  Retry $($r+1)/3 after 15s..."; Start-Sleep 15 }
+                else { Write-Host "  FAILED"; throw }
+              }
+            }
           }
           Write-Host "Done: Gitee dynamic release"
