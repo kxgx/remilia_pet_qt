@@ -485,42 +485,42 @@ jobs:
           prerelease: false
           make_latest: true
 
-#  gitee:
-#    name: 同步到 Gitee
-#    needs: release
-#    if: startsWith(github.ref, 'refs/tags/')
-#    runs-on: [self-hosted, linux, x64]
-#    steps:
-#      - name: 下载 GitHub Release 文件
-#        run: |
-#          TAG=${GITHUB_REF#refs/tags/}
-#          VERSION=${TAG#v}
-#          URL="https://api.github.com/repos/kxgx/remilia_pet_qt/releases/tags/$TAG"
-#          RELEASE=$(curl -sL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$URL")
-#          ASSETS=$(echo "$RELEASE" | python3 -c "import sys,json; print('\n'.join([a['browser_download_url'] for a in json.load(sys.stdin)['assets']]))")
-#          for URL in $ASSETS; do
-#            NAME=$(basename "$URL")
-#            echo "Downloading $NAME from GitHub..."
-#            curl -sL -o "$NAME" "$URL"
-#          done
-#          ls -la
-#      - name: 发布到 Gitee Release
-#        run: |
-#          TAG=${GITHUB_REF#refs/tags/}
-#          VERSION=${TAG#v}
+  gitee:
+    name: 发布到 Gitee
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - name: 下载 GitHub Release 文件
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          URL="https://api.github.com/repos/kxgx/remilia_pet_qt/releases/tags/$TAG"
+          RELEASE=$(curl -sL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$URL")
+          ASSETS=$(echo "$RELEASE" | python3 -c "import sys,json; print('\n'.join([a['browser_download_url'] for a in json.load(sys.stdin)['assets']]))")
+          for URL in $ASSETS; do
+            NAME=$(basename "$URL")
+            echo "Downloading $NAME from GitHub..."
+            curl -sL -o "$NAME" "$URL"
+          done
+          ls -la
+      - name: 发布到 Gitee Release
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
 
-#          RESP=$(curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases" \
-#            -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" \
-#            -H "Content-Type: application/json" \
-#            -d "{\"tag_name\":\"$TAG\",\"name\":\"v$VERSION\",\"body\":\"全平台动态链接版本\",\"target_commitish\":\"master\"}")
-#          echo "Create release: $RESP"
-#          RELEASE_ID=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)[\"id\"])")
+          RESP=$(curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases" \
+            -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"tag_name\":\"$TAG\",\"name\":\"v$VERSION\",\"body\":\"全平台动态链接版本\",\"target_commitish\":\"master\"}")
+          echo "Create release: $RESP"
+          RELEASE_ID=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)[\"id\"])")
 
-#          for FILE in RemiliaPet_Qt6-*; do
-#            echo "Uploading $FILE..."
-#            curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases/$RELEASE_ID/assets?name=$FILE" \
-#              -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" \
-#              --data-binary "@$FILE"
-#          done
+          for FILE in RemiliaPet_Qt6-*; do
+            echo "Uploading $FILE..."
+            curl -s -X POST "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt/releases/$RELEASE_ID/assets?name=$FILE" \
+              -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" \
+              --data-binary "@$FILE"
+          done
 
-#          echo "✅ Gitee Release 发布完成"
+          echo "✅ Gitee Release 发布完成"
