@@ -80,14 +80,19 @@ jobs:
       - name: 解压并重命名
         run: |
           unzip -q RemiliaPet_Qt6-win-x64-static.zip -d release/
-          mv release/蕾米埃尔桌宠_Qt6.exe RemiliaPet_Qt6-windows-x64-static.exe
+          PORTABLE=$(find release/ -name "*.exe" ! -name "*Setup*" | head -1)
+          echo "Found portable: $PORTABLE"
+          mv "$PORTABLE" RemiliaPet_Qt6-windows-x64-static.exe
+          SETUP=$(find release/ -name "*Setup*.exe" | head -1)
+          echo "Found setup: $SETUP"
+          cp "$SETUP" RemiliaPet_Qt6-windows-x64-static-Setup.exe
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           files: |
             RemiliaPet_Qt6-win-x64-static.zip
             RemiliaPet_Qt6-windows-x64-static.exe
-            release/RemiliaPet_Qt6-windows-x64-static-Setup.exe
+            RemiliaPet_Qt6-windows-x64-static-Setup.exe
           draft: false
           prerelease: false
           make_latest: false
