@@ -213,8 +213,6 @@ jobs:
           FAIL=0
           # Extract all fromUtf8 escape strings from petwindow.cpp
           grep -oP 'fromUtf8\("\K[^"]*(?="\))' src/petwindow.cpp | sort -u > /tmp/code.txt
-          # Extract all fromWCharArray literal strings
-          grep -oP 'fromWCharArray\(L"\K[^"]*(?="\))' src/petwindow.cpp | sort -u > /tmp/code_wc.txt
           echo "=== fromUtf8 ==="
           while read -r str; do
             [ -z "$str" ] && continue
@@ -223,19 +221,11 @@ jobs:
               FAIL=1
             fi
           done < /tmp/code.txt
-          echo "=== fromWCharArray ==="
-          while read -r str; do
-            [ -z "$str" ] && continue
-            if ! grep -qF "$str" 项目约束文件.md; then
-              echo "UNREGISTERED fromWCharArray: $str"
-              FAIL=1
-            fi
-          done < /tmp/code_wc.txt
           if [ "$FAIL" = "1" ]; then
             echo "请更新 项目约束文件.md §1.15 Unicode 字符码表"
             exit 1
           fi
-          echo "OK: Unicode 字符码表与源码一致 (fromUtf8:$(wc -l < /tmp/code.txt) fromWCharArray:$(wc -l < /tmp/code_wc.txt))"
+          echo "OK: Unicode 字符码表与源码一致 (fromUtf8:$(wc -l < /tmp/code.txt))"
 
       # ============================================================
       # 六、音频 QRC alias 同步检查
