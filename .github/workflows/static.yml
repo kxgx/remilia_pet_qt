@@ -132,10 +132,10 @@ jobs:
             Write-Host "Created release: $RELEASE_ID"
           }
           # Delete old assets before re-upload
-          $assets = Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/assets" -Headers $headers
-          foreach ($a in $assets) {
+          $release = Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID" -Headers $headers
+          foreach ($a in $release.assets) {
             Write-Host "Deleting old asset: $($a.name)"
-            Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/assets/$($a.id)" -Method Delete -Headers $headers
+            Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/attach_files/$($a.id)" -Method Delete -Headers $headers
           }
           Get-ChildItem release/*.exe, release/*.zip | ForEach-Object {
             $name = $_.Name
