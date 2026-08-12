@@ -81,9 +81,11 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 | 工作流 | 触发条件 | 职责 |
 |--------|---------|------|
 | [check.yml](.github/workflows/check.yml) | push master / PR | 32 项约束检查（不构建） |
-| [build.yml](.github/workflows/build.yml) | tag `v*` | 全平台动态编译 + GitHub Release（主 CI，标记 latest） |
-| [static.yml](.github/workflows/static.yml) | tag `v*` | Windows 静态编译 + 安装器（副 CI，不标记 latest） |
+| [build.yml](.github/workflows/build.yml) | tag `v*` | 全平台动态编译 + Windows 静态编译（`static` job，NAS 自托管 runner）+ GitHub Release（动态版标记 latest，静态版不标记） |
 | [dev.yml](.github/workflows/dev.yml) | 手动触发 | Linux AppImage 开发测试（含 GStreamer） |
+| [sync.yml](.github/workflows/sync.yml) | push master / 手动 | 多仓同步：GitHub → 极狐 GitLab |
+
+> 原 `static.yml` 副 CI 已合并进 `build.yml`（`static`/`release-static` job）。
 
 `build.yml` 自动编译覆盖以下平台：
 
@@ -103,11 +105,11 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 推送 `v` 开头的标签（如 `v1.0.0`）自动触发全平台构建并创建 GitHub Release。也可在 Actions 页面手动触发。
 
-> 正式发布时手动上传 Windows x64 静态编译版本（便携版 + 安装器）到 Release。
+> 静态版（便携版 + 安装器）由 CI 的 `static`/`release-static` job（NAS 自托管 runner）自动编译并发布，无需手动上传。
 
 ## 静态编译版本
 
-> 由于 vcpkg 编译 Qt 静态库的中间产物体积超过 19 GB，超出 GitHub Actions 缓存上限（10 GB），静态链接版本仅支持本地编译。CI 上通过自托管 runner（NAS Windows 虚拟机）完成静态构建。
+> 由于 vcpkg 编译 Qt 静态库的中间产物体积超过 19 GB，超出 GitHub Actions 缓存上限（10 GB），静态链接版本无法使用 GitHub 托管 runner。CI 上通过自托管 runner（NAS Windows 虚拟机）完成静态构建（本地也可编译）。
 
 ### 编译环境要求
 
