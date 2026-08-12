@@ -283,11 +283,11 @@ jobs:
             exit 1
           fi
           # Must have qWarning when temp file still missing
-          if ! grep -q 'qWarning.*preloadSounds.*temp file still missing' /tmp/ps.txt; then
-            echo "FAIL: preloadSounds must log qWarning when temp file still missing"
+          if ! grep -q 'qWarning.*resolveSoundSource.*temp file still missing' /tmp/ps.txt; then
+            echo "FAIL: resolveSoundSource must log qWarning when temp file still missing"
             exit 1
           fi
-          echo "OK: preloadSounds has defensive error logging"
+          echo "OK: resolveSoundSource has defensive error logging"
 
       - name: 汇总
         run: echo "✅ 全部 32 项约束检查通过"
