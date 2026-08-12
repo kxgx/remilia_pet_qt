@@ -42,7 +42,7 @@ jobs:
           }
           if (-not $iscc) {
             Write-Host "Downloading Inno Setup..."
-            $url = "https://files.jrsoftware.org/is/6/innosetup-6.4.1.exe"
+            $url = "https://files.jrsoftware.org/is/6/innosetup-6.7.3.exe"
             $tmp = "$env:TEMP\innosetup-installer.exe"
             Invoke-WebRequest -Uri $url -OutFile $tmp
             Write-Host "Installing to user scope (no admin)..."
