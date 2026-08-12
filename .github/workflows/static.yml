@@ -131,9 +131,12 @@ jobs:
             Write-Host "GitHub release not ready, using fallback"
             $releaseBody = "All platforms"
           }
-          $body = @{tag_name=$TAG; name="v$VERSION"; body=$releaseBody; target_commitish="master"} | ConvertTo-Json
-          $RESP = Invoke-RestMethod -Uri "$repo/releases" -Method Post -Headers $headers -ContentType "application/json" -Body $body
-          $RELEASE_ID = $RESP.id
+          $body = @{tag_name=$TAG; name="v$VERSION"; body=$releaseBody; target_commitish="master"} | ConvertTo-Json -Compress
+          $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+          [System.IO.File]::WriteAllText("$env:TEMP\gitee_body.json", $body, $utf8NoBom)
+          $RESP = & curl.exe -s -X POST "$repo/releases" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/json; charset=utf-8" --data-binary "@$env:TEMP\gitee_body.json"
+          Remove-Item "$env:TEMP\gitee_body.json"
+          $RELEASE_ID = ($RESP | ConvertFrom-Json).id
           Write-Host "Created release: $RELEASE_ID"
           Get-ChildItem release/*.exe, release/*.zip | ForEach-Object {
             $name = $_.Name
