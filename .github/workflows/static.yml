@@ -106,14 +106,9 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: RemiliaPet_Qt6-win-x64-static
-      - name: 解压并重命名
+      - name: 解压并列出
         run: |
           Expand-Archive -Path RemiliaPet_Qt6-win-x64-static.zip -DestinationPath release/
-          $cn = Get-ChildItem release/*.exe | Where-Object { $_.Name -like '*桌宠*' }
-          if ($cn) {
-            Rename-Item $cn.FullName "RemiliaPet_Qt6-windows-x64-static.exe"
-            Write-Host "Renamed $($cn.Name) -> RemiliaPet_Qt6-windows-x64-static.exe"
-          }
           Get-ChildItem release/
       - name: 发布到 Gitee Release
         run: |
@@ -122,21 +117,16 @@ jobs:
           $repo = "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt"
           $headers = @{Authorization="token ${{ secrets.GITEE_TOKEN }}"}
           try {
-            $existing = Invoke-RestMethod -Uri "$repo/releases/tags/$TAG" -Headers $headers
-            $RELEASE_ID = $existing.id
-            Write-Host "Using existing release: $RELEASE_ID"
+            $old = Invoke-RestMethod -Uri "$repo/releases/tags/$TAG" -Headers $headers
+            Write-Host "Deleting old release $($old.id)..."
+            Invoke-RestMethod -Uri "$repo/releases/$($old.id)" -Method Delete -Headers $headers
           } catch {
-            $body = @{tag_name=$TAG; name="v$VERSION"; body="All platforms"; target_commitish="master"} | ConvertTo-Json
-            $RESP = Invoke-RestMethod -Uri "$repo/releases" -Method Post -Headers $headers -ContentType "application/json" -Body $body
-            $RELEASE_ID = $RESP.id
-            Write-Host "Created release: $RELEASE_ID"
+            Write-Host "No old release to delete"
           }
-          # Delete old assets before re-upload
-          $release = Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID" -Headers $headers
-          foreach ($a in $release.assets) {
-            Write-Host "Deleting old asset: $($a.name)"
-            & curl.exe -s -X DELETE "$repo/releases/$RELEASE_ID/attach_files/$($a.id)?access_token=${{ secrets.GITEE_TOKEN }}"
-          }
+          $body = @{tag_name=$TAG; name="v$VERSION"; body="All platforms"; target_commitish="master"} | ConvertTo-Json
+          $RESP = Invoke-RestMethod -Uri "$repo/releases" -Method Post -Headers $headers -ContentType "application/json" -Body $body
+          $RELEASE_ID = $RESP.id
+          Write-Host "Created release: $RELEASE_ID"
           Get-ChildItem release/*.exe, release/*.zip | ForEach-Object {
             $name = $_.Name
             Write-Host "Uploading $name..."
