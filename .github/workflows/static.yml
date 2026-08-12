@@ -37,23 +37,20 @@ jobs:
       - name: 编译安装器 (Inno Setup)
         run: |
           $iscc = $null
-          foreach ($p in @("C:\Program Files (x86)\Inno Setup 6\iscc.exe", "$env:LOCALAPPDATA\Inno Setup 6\iscc.exe")) {
+          foreach ($p in @("C:\Program Files (x86)\Inno Setup 6\iscc.exe", "$env:LOCALAPPDATA\Inno Setup\iscc.exe")) {
             if (Test-Path $p) { $iscc = $p; break }
           }
           if (-not $iscc) {
-            Write-Host "Fetching latest Inno Setup 6 release from GitHub..."
-            $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/jrsoftware/issrc/releases"
-            $latest = $releases | Where-Object { $_.tag_name -match '^v6\.' } | Select-Object -First 1
-            if (-not $latest) { throw "No Inno Setup 6 release found" }
-            $asset = $latest.assets | Where-Object { $_.name -match '^innosetup-.*\.exe$' } | Select-Object -First 1
-            if (-not $asset) { throw "No .exe asset found in $($latest.tag_name)" }
-            $url = $asset.browser_download_url
-            Write-Host "Downloading $($asset.name) ($($latest.tag_name))..."
+            Write-Host "Fetching latest Inno Setup from GitHub..."
+            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/jrsoftware/issrc/releases/latest"
+            $asset = $release.assets | Where-Object { $_.name -match '^innosetup-.*\.exe$' } | Select-Object -First 1
+            if (-not $asset) { throw "No .exe asset found" }
+            Write-Host "Downloading $($asset.name) ($($release.tag_name))..."
             $tmp = "$env:TEMP\innosetup-installer.exe"
-            Invoke-WebRequest -Uri $url -OutFile $tmp
+            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $tmp
             Write-Host "Installing to user scope (no admin)..."
-            & $tmp /VERYSILENT /DIR="$env:LOCALAPPDATA\Inno Setup 6" /NOICONS /NORESTART | Out-Null
-            $iscc = "$env:LOCALAPPDATA\Inno Setup 6\iscc.exe"
+            & $tmp /VERYSILENT /DIR="$env:LOCALAPPDATA\Inno Setup" /NOICONS /NORESTART | Out-Null
+            $iscc = "$env:LOCALAPPDATA\Inno Setup\iscc.exe"
           }
           & $iscc /DBuildDir="C:\remilia_build\static\Release" installer.iss
           $setupExe = Get-ChildItem -Path . -Filter "*Setup*.exe" | Select-Object -First 1
