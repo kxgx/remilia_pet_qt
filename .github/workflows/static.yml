@@ -41,8 +41,14 @@ jobs:
             if (Test-Path $p) { $iscc = $p; break }
           }
           if (-not $iscc) {
-            Write-Host "Downloading Inno Setup..."
-            $url = "https://files.jrsoftware.org/is/6/innosetup-6.7.3.exe"
+            Write-Host "Fetching latest Inno Setup 6 release from GitHub..."
+            $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/jrsoftware/issrc/releases"
+            $latest = $releases | Where-Object { $_.tag_name -match '^v6\.' } | Select-Object -First 1
+            if (-not $latest) { throw "No Inno Setup 6 release found" }
+            $asset = $latest.assets | Where-Object { $_.name -match '^innosetup-.*\.exe$' } | Select-Object -First 1
+            if (-not $asset) { throw "No .exe asset found in $($latest.tag_name)" }
+            $url = $asset.browser_download_url
+            Write-Host "Downloading $($asset.name) ($($latest.tag_name))..."
             $tmp = "$env:TEMP\innosetup-installer.exe"
             Invoke-WebRequest -Uri $url -OutFile $tmp
             Write-Host "Installing to user scope (no admin)..."
