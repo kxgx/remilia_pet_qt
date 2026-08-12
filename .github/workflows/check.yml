@@ -269,17 +269,17 @@ jobs:
           fi
           echo "OK: QRC audio aliases match preloadSounds (all .wav)"
 
-      - name: 32. 检查 preloadSounds 有 QRC 提取失败的防御性日志
+      - name: 32. 检查 resolveSoundSource 有 QRC 提取失败的防御性日志
         run: |
-          awk '/^void DesktopPet::preloadSounds/,/^}/' src/petwindow.cpp > /tmp/ps.txt
+          awk '/^QString DesktopPet::resolveSoundSource/,/^}/' src/petwindow.cpp > /tmp/ps.txt
           # Must have qWarning on QRC open failure
-          if ! grep -q 'qWarning.*preloadSounds.*QRC resource not found' /tmp/ps.txt; then
-            echo "FAIL: preloadSounds must log qWarning when QRC resource not found"
+          if ! grep -q 'qWarning.*resolveSoundSource.*QRC resource not found' /tmp/ps.txt; then
+            echo "FAIL: resolveSoundSource must log qWarning when QRC resource not found"
             exit 1
           fi
           # Must have qWarning on temp file write failure
-          if ! grep -q 'qWarning.*preloadSounds.*cannot write temp' /tmp/ps.txt; then
-            echo "FAIL: preloadSounds must log qWarning when temp file write fails"
+          if ! grep -q 'qWarning.*resolveSoundSource.*cannot write temp' /tmp/ps.txt; then
+            echo "FAIL: resolveSoundSource must log qWarning when temp file write fails"
             exit 1
           fi
           # Must have qWarning when temp file still missing
