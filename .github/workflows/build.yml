@@ -1,4 +1,4 @@
-﻿name: 跨平台构建（动态版）
+﻿name: 跨平台构建与发布
 
 on:
   push:
@@ -460,10 +460,73 @@ jobs:
           path: RemiliaPet_Qt6-linux-arm64.tar.gz
 
   # ===================================================================
-  # Release
+  # Windows x64 静态版 (NAS runner)
+  # ===================================================================
+  static:
+    name: Windows x64 静态版
+    runs-on: [self-hosted, Windows, X64, nas]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 添加 Git usr/bin 到 PATH
+        run: echo "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: 清理源码（保留 dist-static）
+        run: git clean -xdf -e dist-static
+
+      - name: 配置 CMake
+        run: |
+          New-Item -ItemType Directory -Force -Path C:/remilia_build
+          cmake -B C:/remilia_build/static -S . -G "Visual Studio 17 2022" -T version=14.44 `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static-md `
+            -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+
+      - name: 编译
+        run: cmake --build C:/remilia_build/static --config Release --parallel
+
+      - name: 准备 dist-static 目录
+        run: New-Item -ItemType Directory -Force -Path dist-static
+
+      - name: 复制便携版 exe
+        run: Copy-Item C:/remilia_build/static/Release/*.exe dist-static/
+
+      - name: 编译安装器 (Inno Setup)
+        run: |
+          $iscc = $null
+          foreach ($p in @("C:\Program Files (x86)\Inno Setup 6\iscc.exe", "$env:LOCALAPPDATA\InnoSetup\iscc.exe")) {
+            if (Test-Path $p) { $iscc = $p; break }
+          }
+          if (-not $iscc) {
+            Write-Host "Fetching latest Inno Setup from GitHub..."
+            $release = Invoke-RestMethod -Uri "https://api.github.com/repos/jrsoftware/issrc/releases/latest"
+            $asset = $release.assets | Where-Object { $_.name -match '^innosetup-.*\.exe$' } | Select-Object -First 1
+            if (-not $asset) { throw "No .exe asset found" }
+            Write-Host "Downloading $($asset.name) ($($release.tag_name))..."
+            $tmp = "$env:TEMP\innosetup-installer.exe"
+            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $tmp
+            Write-Host "Installing to user scope (no admin)..."
+            & $tmp /VERYSILENT /SUPPRESSMSGBOXES /DIR="$env:LOCALAPPDATA\InnoSetup" /NOICONS /NORESTART | Out-Null
+            $iscc = "$env:LOCALAPPDATA\InnoSetup\iscc.exe"
+          }
+          & $iscc /DBuildDir="C:\remilia_build\static\Release" installer.iss
+          $setupExe = Get-ChildItem -Path Output -Filter "*Setup*.exe" | Select-Object -First 1
+          Copy-Item $setupExe.FullName dist-static/RemiliaPet_Qt6-windows-x64-static-Setup.exe
+          Write-Host "Installer: $($setupExe.Name) -> dist-static/RemiliaPet_Qt6-windows-x64-static-Setup.exe"
+
+      - name: 打包 zip
+        run: Compress-Archive -Path dist-static/* -DestinationPath dist-static/RemiliaPet_Qt6-win-x64-static.zip
+
+      - name: 上传构件
+        uses: actions/upload-artifact@v6
+        with:
+          name: RemiliaPet_Qt6-win-x64-static
+          path: dist-static/
+
+  # ===================================================================
+  # Release - 动态版
   # ===================================================================
   release:
-    name: 发布
+    name: 发布动态版
     needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
@@ -476,7 +539,7 @@ jobs:
           merge-multiple: true
       - name: 列出构件
         run: ls -la
-      - name: 创建 GitHub Release
+      - name: 创建 GitHub Release (动态版)
         uses: softprops/action-gh-release@v3
         with:
           files: |
@@ -485,9 +548,46 @@ jobs:
           prerelease: false
           make_latest: true
 
+  # ===================================================================
+  # Release - 静态版
+  # ===================================================================
+  release-static:
+    name: 发布静态版
+    needs: [static]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: RemiliaPet_Qt6-win-x64-static
+      - name: 解压并重命名
+        run: |
+          unzip -q RemiliaPet_Qt6-win-x64-static.zip -d release/
+          PORTABLE=$(find release/ -name "*.exe" ! -name "*Setup*" | head -1)
+          echo "Found portable: $PORTABLE"
+          mv "$PORTABLE" RemiliaPet_Qt6-windows-x64-static.exe
+          SETUP=$(find release/ -name "*Setup*.exe" | head -1)
+          echo "Found setup: $SETUP"
+          cp "$SETUP" RemiliaPet_Qt6-windows-x64-static-Setup.exe
+      - name: 创建 GitHub Release (静态版)
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            RemiliaPet_Qt6-win-x64-static.zip
+            RemiliaPet_Qt6-windows-x64-static.exe
+            RemiliaPet_Qt6-windows-x64-static-Setup.exe
+          draft: false
+          prerelease: false
+          make_latest: false
+
+  # ===================================================================
+  # Gitee Release (统一：动态 + 静态，单 job 无竞争)
+  # ===================================================================
   gitee:
-    name: 发布动态版到 Gitee
-    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64]
+    name: 发布到 Gitee
+    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64, static]
     if: always() && startsWith(github.ref, 'refs/tags/')
     runs-on: [self-hosted, Windows, X64, nas]
     steps:
@@ -495,40 +595,59 @@ jobs:
         with:
           pattern: RemiliaPet_Qt6-**
           merge-multiple: true
+      - name: 解压静态版并重命名
+        run: |
+          Expand-Archive -Path RemiliaPet_Qt6-win-x64-static.zip -DestinationPath release/
+          $cn = Get-ChildItem release/*.exe | Where-Object { $_.Name -like '*桌宠*' }
+          if ($cn) {
+            Rename-Item $cn.FullName "RemiliaPet_Qt6-windows-x64-static.exe"
+            Write-Host "Renamed $($cn.Name) -> RemiliaPet_Qt6-windows-x64-static.exe"
+          }
+          Get-ChildItem release/
       - name: 发布到 Gitee Release
         run: |
           $TAG = $env:GITHUB_REF -replace '^refs/tags/', ''
           $VERSION = $TAG -replace '^v', ''
           $repo = "https://gitee.com/api/v5/repos/xingguangk/remilia_pet_qt"
           $headers = @{Authorization="token ${{ secrets.GITEE_TOKEN }}"}
-          try {
-            $old = Invoke-RestMethod -Uri "$repo/releases/tags/$TAG" -Headers $headers
-            Write-Host "Deleting old release $($old.id)..."
-            Invoke-RestMethod -Uri "$repo/releases/$($old.id)" -Method Delete -Headers $headers
-          } catch {
-            Write-Host "No old release to delete"
-          }
+
           try {
             $gh = Invoke-RestMethod -Uri "https://api.github.com/repos/kxgx/remilia_pet_qt/releases/tags/$TAG" -Headers @{Authorization="token ${{ secrets.GITHUB_TOKEN }}"}
             $releaseBody = $gh.body
             Write-Host "Got GitHub release body ($($releaseBody.Length) chars)"
           } catch {
             Write-Host "GitHub release not ready, using fallback"
-            $releaseBody = "All platforms (dynamic)"
+            $releaseBody = "All platforms"
           }
-          $body = @{tag_name=$TAG; name="v$VERSION"; body=$releaseBody; target_commitish="master"} | ConvertTo-Json -Compress
-          $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-          [System.IO.File]::WriteAllText("$env:TEMP\gitee_body.json", $body, $utf8NoBom)
-          $RESP = & curl.exe -s -X POST "$repo/releases" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/json; charset=utf-8" --data-binary "@$env:TEMP\gitee_body.json"
-          Remove-Item "$env:TEMP\gitee_body.json"
-          $RELEASE_ID = ($RESP | ConvertFrom-Json).id
-          Write-Host "Created release: $RELEASE_ID"
+
+          # Get or create release (no delete — single job, no race)
+          try {
+            $release = Invoke-RestMethod -Uri "$repo/releases/tags/$TAG" -Headers $headers
+            Write-Host "Found existing release: $($release.id), updating body..."
+            $RELEASE_ID = $release.id
+            $body = @{tag_name=$TAG; name="v$VERSION"; body=$releaseBody; target_commitish="master"} | ConvertTo-Json -Compress
+            $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+            [System.IO.File]::WriteAllText("$env:TEMP\gitee_patch.json", $body, $utf8NoBom)
+            & curl.exe -s -X PATCH "$repo/releases/$RELEASE_ID" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/json; charset=utf-8" --data-binary "@$env:TEMP\gitee_patch.json"
+            Remove-Item "$env:TEMP\gitee_patch.json"
+          } catch {
+            Write-Host "Creating new release..."
+            $body = @{tag_name=$TAG; name="v$VERSION"; body=$releaseBody; target_commitish="master"} | ConvertTo-Json -Compress
+            $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+            [System.IO.File]::WriteAllText("$env:TEMP\gitee_body.json", $body, $utf8NoBom)
+            $RESP = & curl.exe -s -X POST "$repo/releases" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/json; charset=utf-8" --data-binary "@$env:TEMP\gitee_body.json"
+            Remove-Item "$env:TEMP\gitee_body.json"
+            $RELEASE_ID = ($RESP | ConvertFrom-Json).id
+            Write-Host "Created release: $RELEASE_ID"
+          }
+
+          # Upload dynamic files
           Get-ChildItem RemiliaPet_Qt6-* -Exclude *static* | ForEach-Object {
             $name = $_.Name
             Write-Host "Uploading $name..."
             for ($r = 0; $r -lt 3; $r++) {
               try {
-                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/attach_files" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -F "file=@$($_.FullName);filename=$name"
+                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/assets?name=$name" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" --data-binary "@$($_.FullName)"
                 Write-Host "  OK"
                 break
               } catch {
@@ -537,4 +656,20 @@ jobs:
               }
             }
           }
-          Write-Host "Done: Gitee dynamic release"
+
+          # Upload static files
+          Get-ChildItem release/*.exe, release/*.zip | ForEach-Object {
+            $name = $_.Name
+            Write-Host "Uploading $name..."
+            for ($r = 0; $r -lt 3; $r++) {
+              try {
+                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/assets?name=$name" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" --data-binary "@$($_.FullName)"
+                Write-Host "  OK"
+                break
+              } catch {
+                if ($r -lt 2) { Write-Host "  Retry $($r+1)/3 after 15s..."; Start-Sleep 15 }
+                else { Write-Host "  FAILED"; throw }
+              }
+            }
+          }
+          Write-Host "Done: Gitee release complete"
