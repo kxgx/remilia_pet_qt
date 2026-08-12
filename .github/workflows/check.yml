@@ -101,7 +101,7 @@ jobs:
 
       - name: 14. 检查 onOpenAll 调用 mkpath
         run: |
-          awk '/void.onOpenAll/,/}/' src/resourcewindow.cpp > /tmp/oa.txt
+          awk '/void.*onOpenAll/,/^}/' src/resourcewindow.cpp > /tmp/oa.txt
           grep -q mkpath /tmp/oa.txt || { echo FAIL; exit 1; }
           echo OK
 
