@@ -53,7 +53,7 @@ jobs:
             $iscc = "$env:LOCALAPPDATA\InnoSetup\iscc.exe"
           }
           & $iscc /DBuildDir="C:\remilia_build\static\Release" installer.iss
-          $setupExe = Get-ChildItem -Path . -Filter "*Setup*.exe" | Select-Object -First 1
+          $setupExe = Get-ChildItem -Path Output -Filter "*Setup*.exe" | Select-Object -First 1
           Copy-Item $setupExe.FullName dist-static/RemiliaPet_Qt6-windows-x64-static-Setup.exe
           Write-Host "Installer: $($setupExe.Name) -> dist-static/RemiliaPet_Qt6-windows-x64-static-Setup.exe"
 
