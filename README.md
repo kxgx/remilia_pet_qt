@@ -102,27 +102,51 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 ## 静态编译版本
 
-由于 vcpkg 静态编译 Qt 的首次编译时间过长（约 1-2 小时），且编译产物体积超过 19 GB，超出 GitHub Actions 缓存上限（10 GB），**静态链接版本仅支持本地编译**。
+> 由于 vcpkg 编译 Qt 静态库的中间产物体积超过 19 GB，超出 GitHub Actions 缓存上限（10 GB），静态链接版本仅支持本地编译。CI 上通过自托管 runner（NAS Windows 虚拟机）完成静态构建。
 
-当前可本地编译的静态版本：
+### 编译环境要求
+
+| 工具 | 版本/说明 |
+|------|----------|
+| Visual Studio | 2022（含 MSVC v14.44 工具集 + Windows SDK 10.0.26100） |
+| CMake | 3.16+ |
+| vcpkg | 最新版，安装 `qtbase[gui,widgets,jpeg,png,network]` |
+| Inno Setup | 6.x（仅打包安装器时需要） |
+| 磁盘空间 | 至少 30 GB（vcpkg 编译 Qt 约 19 GB + 构建约 2 GB） |
+
+### 当前支持平台
 
 | 平台 | 架构 | 状态 |
 |------|------|------|
-| Windows | x64 | ✅ 可编译（`cmake -B build-static -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_TOOLCHAIN_FILE=...`） |
-| Windows | ARM64 | ❌ vcpkg 编译 `qtdeclarative` 等依赖存在问题，暂不支持 |
+| Windows | x64 | ✅ 可编译（`x64-windows-static-md` triplet） |
+| Windows | ARM64 | ❌ vcpkg 编译 `qtdeclarative` 等依赖存在问题 |
 
-静态版本编译出的单个 EXE 约 57 MB，无需任何 DLL 即可独立运行。
+### 构建产物
 
-### 本地静态编译命令
+| 产物 | 大小 | 说明 |
+|------|------|------|
+| 便携版 EXE | 约 57 MB | 单文件，无需 DLL，解压即用 |
+| 安装器 Setup.exe | 约 30 MB | Inno Setup 打包，安装到 Program Files |
+
+### 本地编译步骤
 
 ```powershell
-# 需要先安装 vcpkg
-cmake -B build-static -S . -G "Visual Studio 17 2022" `
-  -DVCPKG_TARGET_TRIPLET=x64-windows-static `
-  -DCMAKE_TOOLCHAIN_FILE="E:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+# 1. 安装 vcpkg 并编译 Qt 静态库（首次约 1-2 小时）
+vcpkg install qtbase[gui,widgets,jpeg,png,network] --triplet x64-windows-static-md
 
+# 2. 配置 CMake
+cmake -B build-static -S . -G "Visual Studio 17 2022" -T version=14.44 `
+  -DVCPKG_TARGET_TRIPLET=x64-windows-static-md `
+  -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+
+# 3. 编译
 cmake --build build-static --config Release --parallel
+
+# 4. （可选）打包安装器
+& "C:\Program Files (x86)\Inno Setup 6\iscc.exe" /DBuildDir="build-static\Release" installer.iss
 ```
+
+构建输出在 `build-static/Release/` 目录，Inno Setup 安装器输出在 `Output/`。
 
 ## 运行环境
 
