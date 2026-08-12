@@ -642,7 +642,7 @@ jobs:
             Write-Host "Uploading $name..."
             for ($r = 0; $r -lt 3; $r++) {
               try {
-                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/assets?name=$name" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/octet-stream" --data-binary "@$($_.FullName)"
+                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/attach_files" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -F "file=@$($_.FullName);filename=$name"
                 Write-Host "  OK"
                 break
               } catch {
@@ -658,7 +658,7 @@ jobs:
             Write-Host "Uploading $name..."
             for ($r = 0; $r -lt 3; $r++) {
               try {
-                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/assets?name=$name" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/octet-stream" --data-binary "@$($_.FullName)"
+                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/attach_files" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -F "file=@$($_.FullName);filename=$name"
                 Write-Host "  OK"
                 break
               } catch {
