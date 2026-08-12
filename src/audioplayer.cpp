@@ -1,5 +1,4 @@
 #define MINIAUDIO_IMPLEMENTATION
-#define MA_DEBUG_OUTPUT
 #include "miniaudio.h"
 #include "audioplayer.h"
 #include <QFileInfo>
@@ -33,21 +32,17 @@ int        AudioPlayer::s_engineRef = 0;
 void AudioPlayer::initEngine() {
     if (s_engineRef++ == 0) {
         s_engine = new ma_engine;
-        audioLog(QStringLiteral("ma_engine_init starting..."));
         ma_result r = ma_engine_init(nullptr, s_engine);
         if (r != MA_SUCCESS) {
             QString err = QStringLiteral("ma_engine_init FAILED: ") + ma_result_description(r);
             qWarning() << "AudioPlayer:" << err;
             audioLog(err);
-        } else {
-            audioLog(QStringLiteral("ma_engine_init SUCCESS"));
         }
     }
 }
 
 void AudioPlayer::shutdownEngine() {
     if (--s_engineRef == 0) {
-        audioLog(QStringLiteral("ma_engine_uninit"));
         ma_engine_uninit(s_engine);
         delete s_engine;
         s_engine = nullptr;
@@ -101,7 +96,6 @@ void AudioPlayer::setSource(const QString &path) {
         m_sound = nullptr;
         return;
     }
-    audioLog(QStringLiteral("loaded: ") + path);
     ma_sound_set_volume(m_sound, m_volume);
     m_loaded = true;
 }
@@ -117,7 +111,6 @@ void AudioPlayer::play() {
         audioLog(QStringLiteral("play: not loaded, skipped"));
         return;
     }
-    audioLog(QStringLiteral("play"));
     ma_sound_seek_to_pcm_frame(m_sound, 0);
     ma_sound_start(m_sound);
 }
