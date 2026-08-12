@@ -1447,7 +1447,10 @@ void DesktopPet::preloadSounds() {
         if (srcPath.startsWith("qrc:") || srcPath.startsWith(":")) {
             QString tmpFile = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/remilia_" + f;
             if (!QFile::exists(tmpFile)) {
-                QFile qrcFile(srcPath);
+                QString qrcPath = srcPath;
+                if (qrcPath.startsWith("qrc:"))
+                    qrcPath = qrcPath.mid(3);
+                QFile qrcFile(qrcPath);
                 if (qrcFile.open(QIODevice::ReadOnly)) {
                     QFile out(tmpFile);
                     if (out.open(QIODevice::WriteOnly)) {

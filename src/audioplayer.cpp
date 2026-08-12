@@ -1,7 +1,9 @@
 #define MINIAUDIO_IMPLEMENTATION
+#define MA_DEBUG_OUTPUT
 #include "miniaudio.h"
 #include "audioplayer.h"
 #include <QFileInfo>
+#include <QDebug>
 
 // ── Shared engine (reference counted) ──────────────────────────────
 ma_engine *AudioPlayer::s_engine = nullptr;
@@ -10,7 +12,9 @@ int        AudioPlayer::s_engineRef = 0;
 void AudioPlayer::initEngine() {
     if (s_engineRef++ == 0) {
         s_engine = new ma_engine;
-        ma_engine_init(nullptr, s_engine);
+        ma_result r = ma_engine_init(nullptr, s_engine);
+        if (r != MA_SUCCESS)
+            qWarning() << "AudioPlayer: ma_engine_init failed:" << ma_result_description(r);
     }
 }
 
@@ -53,13 +57,15 @@ void AudioPlayer::setSource(const QString &path) {
     m_sound = new ma_sound;
     QByteArray utf8 = path.toUtf8();
     ma_result r = ma_sound_init_from_file(s_engine, utf8.constData(),
-                                           MA_SOUND_FLAG_NO_SPATIALIZATION,
+                                           0,
                                            nullptr, nullptr, m_sound);
     if (r != MA_SUCCESS) {
+        qWarning() << "AudioPlayer: load failed:" << ma_result_description(r) << "path:" << path;
         delete m_sound;
         m_sound = nullptr;
         return;
     }
+    qDebug() << "AudioPlayer: loaded" << path;
     ma_sound_set_volume(m_sound, m_volume);
     m_loaded = true;
 }
