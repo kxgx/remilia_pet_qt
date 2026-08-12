@@ -1123,7 +1123,9 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     else if (chosen == resourceAction) startResourceFeature();
     else if (chosen == topAction) toggleStayOnTop();
     else if (chosen == mouseAction) toggleMouseTransparent();
+#ifdef Q_OS_MAC
     else if (chosen == autoStartAction) setAutoStart(!m_autoStart);
+#endif
     else if (chosen == resetAction) resetScale();
     else if (chosen == fontDefault) {
         m_fontFamily.clear();
@@ -1513,7 +1515,7 @@ void DesktopPet::applyAutoStart()
         if (cls) {
             id mainApp = ((id (*)(Class, SEL))objc_msgSend)(cls, sel_registerName("mainApp"));
             if (mainApp) {
-                NSInteger status = ((NSInteger (*)(id, SEL))objc_msgSend)(mainApp, sel_registerName("status"));
+                long status = ((long (*)(id, SEL))objc_msgSend)(mainApp, sel_registerName("status"));
                 if (status != 1) { // 1 = SMAppServiceStatusEnabled
                     ((id (*)(id, SEL, id*))objc_msgSend)(mainApp, sel_registerName("registerAndReturnError:"), nullptr);
                 }
