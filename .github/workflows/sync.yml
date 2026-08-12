@@ -20,7 +20,11 @@ jobs:
           git remote add jihulab https://oauth2:${{ secrets.JIHULAB_TOKEN }}@jihulab.com/kxgx/remilia_pet_qt.git
           git fetch jihulab master
           git checkout -b sync-tmp FETCH_HEAD
-          git merge origin/master -X ours -m "sync: GitHub → 极狐"
+          git merge origin/master -X ours -m "sync: GitHub → 极狐" || {
+            # modify/delete conflict: accept deletion from GitHub side
+            git diff --name-only --diff-filter=UD | while read f; do git rm -f "$f" 2>/dev/null; done
+            git commit --no-edit
+          }
           git push jihulab sync-tmp:master
           git push jihulab --tags --force || echo "tag force push failed (may be protected), continuing..."
 
