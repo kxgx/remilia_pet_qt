@@ -106,9 +106,14 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: RemiliaPet_Qt6-win-x64-static
-      - name: 解压并列出
+      - name: 解压并重命名
         run: |
           Expand-Archive -Path RemiliaPet_Qt6-win-x64-static.zip -DestinationPath release/
+          $cn = Get-ChildItem release/*.exe | Where-Object { $_.Name -like '*桌宠*' }
+          if ($cn) {
+            Rename-Item $cn.FullName "RemiliaPet_Qt6-windows-x64-static.exe"
+            Write-Host "Renamed $($cn.Name) -> RemiliaPet_Qt6-windows-x64-static.exe"
+          }
           Get-ChildItem release/
       - name: 发布到 Gitee Release
         run: |
@@ -125,6 +130,12 @@ jobs:
             $RESP = Invoke-RestMethod -Uri "$repo/releases" -Method Post -Headers $headers -ContentType "application/json" -Body $body
             $RELEASE_ID = $RESP.id
             Write-Host "Created release: $RELEASE_ID"
+          }
+          # Delete old assets before re-upload
+          $assets = Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/assets" -Headers $headers
+          foreach ($a in $assets) {
+            Write-Host "Deleting old asset: $($a.name)"
+            Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/assets/$($a.id)" -Method Delete -Headers $headers
           }
           Get-ChildItem release/*.exe, release/*.zip | ForEach-Object {
             $name = $_.Name

@@ -511,6 +511,12 @@ jobs:
             $RELEASE_ID = $RESP.id
             Write-Host "Created release: $RELEASE_ID"
           }
+          # Delete old assets before re-upload
+          $assets = Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/assets" -Headers $headers
+          foreach ($a in $assets) {
+            Write-Host "Deleting old asset: $($a.name)"
+            Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/assets/$($a.id)" -Method Delete -Headers $headers
+          }
           Get-ChildItem RemiliaPet_Qt6-* -Exclude *static* | ForEach-Object {
             $name = $_.Name
             Write-Host "Uploading $name..."
