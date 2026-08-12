@@ -61,11 +61,12 @@ jobs:
           grep -q 'CGWindowLevelForKey' src/petwindow.cpp || { echo "FAIL: macOS topmost must use CGWindowLevelForKey, not hardcoded 5"; exit 1; }
           echo "OK: CGWindowLevelForKey used"
 
-      - name: 8. 检查音频使用 QSoundEffect 而非 QMediaPlayer
+      - name: 8. 检查音频使用 miniaudio/AudioPlayer 而非 Qt Multimedia
         run: |
-          grep -q 'QSoundEffect' src/petwindow.h || { echo "FAIL: must use QSoundEffect for audio, not QMediaPlayer"; exit 1; }
-          if grep -q 'QMediaPlayer\|QAudioOutput' src/petwindow.h; then echo "FAIL: QMediaPlayer/QAudioOutput must be replaced with QSoundEffect"; exit 1; fi
-          echo "OK: QSoundEffect used for audio"
+          grep -q 'AudioPlayer' src/petwindow.h || { echo "FAIL: must use AudioPlayer (miniaudio) for audio"; exit 1; }
+          if grep -q 'QSoundEffect\|QMediaPlayer\|QAudioOutput' src/petwindow.h; then echo "FAIL: QSoundEffect/QMediaPlayer/QAudioOutput must be removed (use AudioPlayer)"; exit 1; fi
+          if grep -q 'Qt6::Multimedia' CMakeLists.txt; then echo "FAIL: CMakeLists.txt must not link Qt6::Multimedia"; exit 1; fi
+          echo "OK: AudioPlayer (miniaudio) used, no Qt Multimedia"
 
       # ============================================================
       # 二、资源目录跨平台路径
@@ -128,8 +129,8 @@ jobs:
 
       - name: 18. 检查 deb 包不再依赖 GStreamer
         run: |
-          if grep -q 'gstreamer' .github/workflows/build.yml; then echo "FAIL: build.yml must not reference gstreamer (use QSoundEffect+WAV)"; exit 1; fi
-          echo "OK: no GStreamer dependency, using QSoundEffect+WAV"
+          if grep -q 'gstreamer' .github/workflows/build.yml; then echo "FAIL: build.yml must not reference gstreamer (use miniaudio+WAV)"; exit 1; fi
+          echo "OK: no GStreamer dependency, using miniaudio+WAV"
 
       - name: 19. 检查 Linux CI 使用 dpkg-deb 打包 .deb
         run: |
