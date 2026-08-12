@@ -172,7 +172,7 @@ void ResourceWindow::initUi()
             QString fp = QFileDialog::getOpenFileName(this, QString::fromUtf8("\u9009\u62e9\u66ff\u6362\u6587\u4ef6"), QString(), filter);
             if (fp.isEmpty()) return;
             copyFileToOverride(fp, sd, bn, ext);
-            m_pet->applyResourceChanges();
+            m_pet->scheduleResourceReload();
             QPushButton *db = nullptr;
             QLayout *rowLay = qobject_cast<QPushButton*>(sender())->parentWidget()->layout();
             for (int i=0;i<rowLay->count();i++) {
@@ -187,7 +187,7 @@ void ResourceWindow::initUi()
         // Open folder button
         QPushButton *ob = new QPushButton(QString::fromUtf8("\u6253\u5f00"));
         ob->setCursor(Qt::PointingHandCursor); ob->setFixedWidth(qMax(28,(int)(38*m_scale)));
-        connect(ob, &QPushButton::clicked, this, [this, sd]() { QString p = m_pet->m_resourceDir + sd; QDir().mkpath(p); openDirInFM(p, [this] { m_pet->applyResourceChanges(); }); });
+        connect(ob, &QPushButton::clicked, this, [this, sd]() { QString p = m_pet->m_resourceDir + sd; QDir().mkpath(p); openDirInFM(p, [this] { m_pet->scheduleResourceReload(); }); });
 
         // Delete button
         QPushButton *db = new QPushButton(QString::fromUtf8("\u5220\u9664"));
@@ -195,7 +195,7 @@ void ResourceWindow::initUi()
         connect(db, &QPushButton::clicked, this, [this, k, sl, db]() {
             QString fp = m_pet->m_resourceOverrides.value(k);
             if (!fp.isEmpty() && QFile::exists(fp)) QFile::remove(fp);
-            m_pet->applyResourceChanges();
+            m_pet->scheduleResourceReload();
             refreshRow(sl, db, k);
         });
         m_allBtns.append(rb); m_allBtns.append(ob); m_allBtns.append(db);
@@ -254,7 +254,7 @@ void ResourceWindow::onReplaceAll()
             QApplication::processEvents();
         }
     }
-    if (count > 0) m_pet->applyResourceChanges(); // re-apply once after the whole batch
+    if (count > 0) m_pet->scheduleResourceReload(); // re-apply once after the whole batch
     QMessageBox::information(this, QString::fromUtf8("\u5168\u90e8\u66ff\u6362"), QString::fromUtf8("\u5df2\u66ff\u6362 %1 \u4e2a\u6587\u4ef6").arg(count));
 }
 
@@ -266,7 +266,7 @@ void ResourceWindow::onOpenAll()
     QStringList subDirs = {"gif", "audio", "cards", "drawing"};
     for (const QString &sd : subDirs)
         d.mkpath(sd);
-    openDirInFM(dir, [this] { m_pet->applyResourceChanges(); });
+    openDirInFM(dir, [this] { m_pet->scheduleResourceReload(); });
 }
 
 void ResourceWindow::closeResourceWindow() { m_pet->m_resourceWindow = nullptr; close(); }

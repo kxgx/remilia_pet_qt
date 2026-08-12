@@ -24,6 +24,7 @@
 #include <QStyle>
 #include <QPropertyAnimation>
 #include <QGraphicsOpacityEffect>
+#include <QFileSystemWatcher>
 #include <QPainter>
 #include <QLineEdit>
 #include <QIntValidator>
@@ -105,24 +106,50 @@ void DesktopPet::refreshOverrides()
     loadOverrides();
 }
 
-// Unified entry to re-apply overrides after files changed in the in-app file manager:
-// re-scan overrides, refresh native sizes, re-source audio, recreate the current GIF,
-// and sync ResourceWindow status rows if it is open.
-void DesktopPet::applyResourceChanges()
+// Debounced reload entry: file-manager signals and external watcher events both route
+// here, so bursts of changes coalesce into a single applyResourceChanges().
+void DesktopPet::scheduleResourceReload()
 {
-    refreshOverrides();
-    preloadNativeSizes();
-    reloadSounds();
-    // Force recreate: destroy current movie so setState always reloads
-    if (m_movie) {
-        disconnect(m_movie, &QMovie::frameChanged, this, &DesktopPet::manualPaintFrame);
-        m_movie->stop();
-        delete m_movie;
-        m_movie = nullptr;
+    if (m_resourceWatchTimer)
+        m_resourceWatchTimer->start(); // restart the debounce window
+    else
+        applyResourceChanges();
+}
+
+void DesktopPet::startResourceWatcher()
+{
+    m_resourceWatcher = new QFileSystemWatcher(this);
+    connect(m_resourceWatcher, &QFileSystemWatcher::directoryChanged, this, &DesktopPet::onResourceWatchChanged);
+    connect(m_resourceWatcher, &QFileSystemWatcher::fileChanged, this, &DesktopPet::onResourceWatchChanged);
+    m_resourceWatchTimer = new QTimer(this);
+    m_resourceWatchTimer->setSingleShot(true);
+    m_resourceWatchTimer->setInterval(300);
+    connect(m_resourceWatchTimer, &QTimer::timeout, this, &DesktopPet::applyResourceChanges);
+    syncResourceWatcher();
+}
+
+// Rebuild the watch set: resource root + existing subdirs + all override files.
+// File-level watches also cover in-place overwrites on Linux (dir watches don't).
+void DesktopPet::syncResourceWatcher()
+{
+    if (!m_resourceWatcher) return;
+    QStringList paths;
+    paths << m_resourceDir;
+    const QStringList subDirs = {"gif", "audio", "cards", "drawing"};
+    for (const QString &s : subDirs) {
+        QString d = m_resourceDir + s;
+        if (QDir(d).exists()) paths << d;
     }
-    setState(m_state);
-    if (auto *rw = dynamic_cast<ResourceWindow*>(m_resourceWindow.data()))
-        rw->refreshAllRows();
+    for (const QString &f : m_resourceOverrides) paths << f;
+    for (const QString &p : m_resourceWatcher->directories()) m_resourceWatcher->removePath(p);
+    for (const QString &p : m_resourceWatcher->files()) m_resourceWatcher->removePath(p);
+    m_resourceWatcher->addPaths(paths);
+}
+
+void DesktopPet::onResourceWatchChanged(const QString &)
+{
+    syncResourceWatcher(); // watched paths may have been deleted/recreated
+    scheduleResourceReload();
 }
 
 // ========== DrawEffectWindow ==========
@@ -701,6 +728,16 @@ public:
         positionNearPet();
     }
 
+    // Reload author.png — the override may have changed via the file manager
+    void reloadAuthorPix() {
+        m_authorPix = QPixmap(m_pet->resolveResourcePath(":/drawing/author.png"));
+        if (m_authorPix.isNull()) {
+            m_imgLabel->clear();
+            return;
+        }
+        updateScaleAndPosition(m_scale);
+    }
+
 private:
     void closeAuthorWindow() {
         m_pet->m_authorWindow = nullptr;
@@ -755,6 +792,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
 
     // Overrides must load before native sizes/sounds/initial state so they apply at startup
     loadOverrides();
+    startResourceWatcher();
 
     preloadNativeSizes();
     setMinimumSize(140, 100);
@@ -925,6 +963,31 @@ void DesktopPet::updateSideWindowPositions() {
         if (w->isVisible()) w->updateScaleAndPosition(m_scale);
     if (auto *w = dynamic_cast<ResourceWindow*>(m_resourceWindow.data()))
         if (w->isVisible()) w->updateScaleAndPosition(m_scale);
+}
+
+// Unified entry to re-apply overrides after files changed in the in-app file manager:
+// re-scan overrides, refresh native sizes, re-source audio, recreate the current GIF,
+// adapt open side windows, and sync ResourceWindow/AuthorWindow contents.
+// Defined here (not near refreshOverrides) so AuthorWindow is a complete type.
+void DesktopPet::applyResourceChanges()
+{
+    refreshOverrides();
+    preloadNativeSizes();
+    reloadSounds();
+    // Force recreate: destroy current movie so setState always reloads
+    if (m_movie) {
+        disconnect(m_movie, &QMovie::frameChanged, this, &DesktopPet::manualPaintFrame);
+        m_movie->stop();
+        delete m_movie;
+        m_movie = nullptr;
+    }
+    setState(m_state); // pet window adapts to the new GIF native size
+    updateSideWindowPositions(); // open side windows re-scale and stick to the pet
+    if (auto *rw = dynamic_cast<ResourceWindow*>(m_resourceWindow.data()))
+        rw->refreshAllRows();
+    if (auto *aw = dynamic_cast<AuthorWindow*>(m_authorWindow.data()))
+        aw->reloadAuthorPix();
+    syncResourceWatcher(); // watched override files may have changed
 }
 
 // ---------- Idle ----------

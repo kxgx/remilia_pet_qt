@@ -17,6 +17,7 @@ class TimerWindow;
 class VolumeSliderWindow;
 class AuthorWindow;
 class ResourceWindow;
+class QFileSystemWatcher;
 
 class DesktopPet : public QLabel {
     Q_OBJECT
@@ -44,6 +45,9 @@ public:
 
     // Re-apply resource overrides after files changed in the in-app file manager
     void applyResourceChanges();
+    // Debounced entry: file-manager signals and external watcher events both route here,
+    // so bursts of changes coalesce into a single applyResourceChanges().
+    void scheduleResourceReload();
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -55,6 +59,7 @@ protected:
 
 private slots:
     void checkIdle();
+    void onResourceWatchChanged(const QString &path);
 
 private:
     void setState(State state);
@@ -153,6 +158,12 @@ private:
     // Resource overrides (directory-based): resourceKey -> absoluteFilePath
     QString m_resourceDir;
     QMap<QString, QString> m_resourceOverrides;
+
+    // Watches the resource directories so external changes apply immediately too
+    QFileSystemWatcher *m_resourceWatcher = nullptr;
+    QTimer *m_resourceWatchTimer = nullptr;
+    void startResourceWatcher();
+    void syncResourceWatcher();
 
 
 };
