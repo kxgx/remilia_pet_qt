@@ -1098,11 +1098,6 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     QAction *mouseAction = menu.addAction(QString::fromUtf8("\u9F20\u6807\u7A7F\u900F"));
     mouseAction->setCheckable(true);
     mouseAction->setChecked(m_mouseTransparent);
-#ifdef Q_OS_MAC
-    QAction *autoStartAction = menu.addAction(QString::fromUtf8("\u5F00\u673A\u81EA\u542F"));
-    autoStartAction->setCheckable(true);
-    autoStartAction->setChecked(m_autoStart);
-#endif
     QAction *resetAction = menu.addAction(QString::fromUtf8("重置大小 (100%)"));
     menu.addSeparator();
     QAction *hideAction = menu.addAction(QString::fromUtf8("隐藏桌宠"));
@@ -1123,9 +1118,6 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     else if (chosen == resourceAction) startResourceFeature();
     else if (chosen == topAction) toggleStayOnTop();
     else if (chosen == mouseAction) toggleMouseTransparent();
-#ifdef Q_OS_MAC
-    else if (chosen == autoStartAction) setAutoStart(!m_autoStart);
-#endif
     else if (chosen == resetAction) resetScale();
     else if (chosen == fontDefault) {
         m_fontFamily.clear();
@@ -1323,7 +1315,6 @@ void DesktopPet::saveSettings() {
     s.setValue("globalVolume", m_volume);
     s.setValue("stayOnTop", m_stayOnTop);
     s.setValue("mouseTransparent", m_mouseTransparent);
-    s.setValue("autoStart", m_autoStart);
     s.sync();
 }
 
@@ -1359,9 +1350,6 @@ void DesktopPet::loadSettings() {
     // 5. Mouse transparent — apply without toggling (toggle would flip the value back!)
     m_mouseTransparent = s.value("mouseTransparent", false).toBool();
     applyMouseTransparent();
-    // 6. Auto-start on login
-    m_autoStart = s.value("autoStart", false).toBool();
-    applyAutoStart();
 }
 
 void DesktopPet::setupTrayIcon() {
@@ -1383,11 +1371,6 @@ void DesktopPet::setupTrayIcon() {
     m_trayMouseAction = m_trayMenu->addAction(QString::fromUtf8("鼠标穿透"));
     m_trayMouseAction->setCheckable(true);
     connect(m_trayMouseAction, &QAction::triggered, this, &DesktopPet::toggleMouseTransparent);
-#ifdef Q_OS_MAC
-    QAction *trayAutoStartAction = m_trayMenu->addAction(QString::fromUtf8("\u5F00\u673A\u81EA\u542F"));
-    trayAutoStartAction->setCheckable(true);
-    connect(trayAutoStartAction, &QAction::triggered, this, [this]() { setAutoStart(!m_autoStart); });
-#endif
     m_trayMenu->addSeparator();
     QAction *quitAction = m_trayMenu->addAction(QString::fromUtf8("退出程序"));
     connect(quitAction, &QAction::triggered, qApp, []() { qApp->exit(0); });
@@ -1490,71 +1473,4 @@ void DesktopPet::applyStayOnTop() {
     updateWindowFlag(m_volumeWindow);
     updateWindowFlag(m_authorWindow);
     updateWindowFlag(m_resourceWindow);
-}
-
-// ========== macOS Auto-Start ==========
-
-void DesktopPet::setAutoStart(bool on)
-{
-    m_autoStart = on;
-    applyAutoStart();
-    saveSettings();
-}
-
-bool DesktopPet::isAutoStart() const
-{
-    return m_autoStart;
-}
-
-void DesktopPet::applyAutoStart()
-{
-#ifdef Q_OS_MAC
-    if (m_autoStart) {
-        // Try SMAppService first (macOS 13+)
-        Class cls = objc_getClass("SMAppService");
-        if (cls) {
-            id mainApp = ((id (*)(Class, SEL))objc_msgSend)(cls, sel_registerName("mainApp"));
-            if (mainApp) {
-                long status = ((long (*)(id, SEL))objc_msgSend)(mainApp, sel_registerName("status"));
-                if (status != 1) { // 1 = SMAppServiceStatusEnabled
-                    ((bool (*)(id, SEL, id*))objc_msgSend)(mainApp, sel_registerName("registerAndReturnError:"), nullptr);
-                }
-                return;
-            }
-        }
-        // Fallback: LaunchAgent plist (macOS 10.4+)
-        QString dir = QDir::homePath() + "/Library/LaunchAgents";
-        QDir().mkpath(dir);
-        QString plistPath = dir + "/com.remilia.pet.plist";
-        QFile f(plistPath);
-        if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            f.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-                    "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" "
-                    "\"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
-                    "<plist version=\"1.0\">\n<dict>\n"
-                    "    <key>Label</key>\n    <string>com.remilia.pet</string>\n"
-                    "    <key>ProgramArguments</key>\n    <array>\n"
-                    "        <string>open</string>\n"
-                    "        <string>-a</string>\n"
-                    "        <string>\u857E\u7C73\u57C3\u5C14\u684C\u5BA0_Qt6</string>\n"
-                    "    </array>\n"
-                    "    <key>RunAtLoad</key>\n    <true/>\n"
-                    "</dict>\n</plist>\n");
-            f.close();
-        }
-    } else {
-        // Try SMAppService unregister first
-        Class cls = objc_getClass("SMAppService");
-        if (cls) {
-            id mainApp = ((id (*)(Class, SEL))objc_msgSend)(cls, sel_registerName("mainApp"));
-            if (mainApp) {
-                ((bool (*)(id, SEL, id*))objc_msgSend)(mainApp, sel_registerName("unregisterAndReturnError:"), nullptr);
-            }
-        }
-        // Also remove LaunchAgent plist
-        QString plistPath = QDir::homePath() + "/Library/LaunchAgents/com.remilia.pet.plist";
-        if (QFile::exists(plistPath))
-            QFile::remove(plistPath);
-    }
-#endif
 }

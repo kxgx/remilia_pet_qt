@@ -121,13 +121,9 @@ private:
     // Stay on top
     bool m_stayOnTop = true;
     bool m_mouseTransparent = false;
-    bool m_autoStart = false;
     void toggleMouseTransparent();
     void applyMouseTransparent();
     void applyStayOnTop();
-    void setAutoStart(bool on);
-    bool isAutoStart() const;
-    void applyAutoStart();
     QAction *m_trayMouseAction = nullptr;
     QString m_fontFamily;
     int m_fontSize = -1;
