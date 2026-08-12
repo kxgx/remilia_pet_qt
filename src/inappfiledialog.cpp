@@ -1,5 +1,7 @@
 #include "inappfiledialog.h"
 
+#include <QPointer>
+
 const QColor PINK(255, 141, 161);
 
 InAppFileDialog::InAppFileDialog(const QString &dirPath, QWidget *parent)
@@ -333,7 +335,9 @@ void openDirInFM(const QString &dirPath)
 {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
-    InAppFileDialog *dlg = new InAppFileDialog(path);
-    dlg->show();
+    static QPointer<InAppFileDialog> s_dlg;
+    if (s_dlg) s_dlg->close();
+    s_dlg = new InAppFileDialog(path);
+    s_dlg->show();
 }
 
