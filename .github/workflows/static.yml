@@ -126,7 +126,7 @@ jobs:
             $RELEASE_ID = $RESP.id
             Write-Host "Created release: $RELEASE_ID"
           }
-          Get-ChildItem release/RemiliaPet_Qt6-* | ForEach-Object {
+          Get-ChildItem release/*.exe, release/*.zip | ForEach-Object {
             $name = $_.Name
             Write-Host "Uploading $name..."
             for ($r = 0; $r -lt 3; $r++) {
