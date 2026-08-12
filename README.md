@@ -71,7 +71,16 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 ## GitHub Actions 自动构建
 
-本仓库的 CI 工作流自动编译 **动态链接版本**，覆盖以下平台：
+本仓库包含 4 个 CI 工作流：
+
+| 工作流 | 触发条件 | 职责 |
+|--------|---------|------|
+| [check.yml](.github/workflows/check.yml) | push master / PR | 32 项约束检查（不构建） |
+| [build.yml](.github/workflows/build.yml) | tag `v*` | 全平台动态编译 + GitHub Release（主 CI，标记 latest） |
+| [static.yml](.github/workflows/static.yml) | tag `v*` | Windows 静态编译 + 安装器（副 CI，不标记 latest） |
+| [dev.yml](.github/workflows/dev.yml) | 手动触发 | Linux AppImage 开发测试（含 GStreamer） |
+
+`build.yml` 自动编译覆盖以下平台：
 
 | 平台 | 架构 | Runner | Qt 来源 |
 |------|------|--------|---------|
@@ -82,8 +91,8 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 | Linux | ARM64 | ubuntu-24.04-arm | apt |
 
 > **已知限制**：
-> - **Windows ARM64**：aqtinstall 目前不提供 ARM64 架构的 Qt 预编译包，静态编译也因 vcpkg 的 `qtdeclarative` 依赖问题受阻
-> - **Arch Linux**：不再打包 `.pkg.tar.zst`，使用便携版 `.tar.gz` 解压即用（见下方安装说明）
+> - **Windows ARM64**：aqtinstall 暂无 ARM64 Qt 预编译包；vcpkg 静态编译因 `qtdeclarative` 依赖问题受阻
+> - **Arch Linux**：使用便携版 `.tar.gz`，不打包 `.pkg.tar.zst`
 
 ### 发布正式版
 
