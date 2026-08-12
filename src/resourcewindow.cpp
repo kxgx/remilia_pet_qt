@@ -145,6 +145,10 @@ void ResourceWindow::initUi()
         QPushButton *rb = new QPushButton(QString::fromUtf8("\u66ff\u6362"));
         rb->setCursor(Qt::PointingHandCursor); rb->setFixedWidth(qMax(30,(int)(40*m_scale)));
         QString k = df.key; QString sd = df.subDir; QString ext = df.ext; QString bn = df.key.section('/',1);
+        // Store resource metadata on row widget for onReplaceAll() to use
+        row->setProperty("resourceKey", df.key);
+        row->setProperty("subDir", df.subDir);
+        row->setProperty("ext", df.ext);
         QPointer<QLabel> slPtr = sl;
         connect(rb, &QPushButton::clicked, this, [this, k, sd, bn, ext, slPtr]() {
             QString filter = QString("*%1").arg(ext);
@@ -195,41 +199,43 @@ void ResourceWindow::onReplaceAll()
         QListWidgetItem *it = m_resList->item(i);
         QWidget *row = m_resList->itemWidget(it);
         if (!row || !row->layout()) continue;
-        QHBoxLayout *lay = qobject_cast<QHBoxLayout*>(row->layout());
-        if (!lay || lay->count() < 3) continue;
-        QLabel *nl = qobject_cast<QLabel*>(lay->itemAt(0)->widget());
-        if (!nl) continue;
-        QString name = nl->text();
-        int dash = name.indexOf(" - ");
-        if (dash < 0) continue;
-        QString baseName = name.mid(dash + 3);
-        QStringList exts = {".gif",".wav",".png"};
-        for (const QString &ext : exts) {
-            QFileInfo fi(d.filePath(baseName + ext));
-            if (fi.exists() && fi.isFile()) {
-                QLabel *sl = qobject_cast<QLabel*>(lay->itemAt(1)->widget());
-                QPushButton *db = nullptr;
+        // Use stored metadata instead of parsing label text (avoids Chinese name mismatch)
+        QString key = row->property("resourceKey").toString();
+        QString sd = row->property("subDir").toString();
+        QString ext = row->property("ext").toString();
+        if (key.isEmpty() || sd.isEmpty() || ext.isEmpty()) continue;
+        QString baseName = key.section('/', 1);
+        // Try all extensions for this resource
+        QFileInfo fi(d.filePath(baseName + ext));
+        if (!fi.exists() || !fi.isFile()) {
+            // Also try with common alternate extensions
+            QStringList altExts;
+            if (ext == ".gif") altExts = {".png", ".webp"};
+            else if (ext == ".wav") altExts = {".mp3", ".ogg"};
+            else if (ext == ".png") altExts = {".jpg", ".jpeg", ".bmp"};
+            for (const QString &ae : altExts) {
+                fi = QFileInfo(d.filePath(baseName + ae));
+                if (fi.exists() && fi.isFile()) break;
+            }
+        }
+        if (fi.exists() && fi.isFile()) {
+            QHBoxLayout *lay = qobject_cast<QHBoxLayout*>(row->layout());
+            QLabel *sl = lay ? qobject_cast<QLabel*>(lay->itemAt(1)->widget()) : nullptr;
+            QPushButton *db = nullptr;
+            if (lay) {
                 for (int j = 0; j < lay->count(); j++) {
                     auto *w = lay->itemAt(j)->widget();
                     if (auto *b = qobject_cast<QPushButton*>(w)) {
                         if (b->text() == QString::fromUtf8("\u5220\u9664")) { db = b; break; }
                     }
                 }
-                QString sd = (ext == ".gif") ? "gif" : (ext == ".wav") ? "audio" : "";
-                if (sd.isEmpty()) {
-                    if (baseName.startsWith("card_")) sd = "cards";
-                    else if (baseName.startsWith("drawing_") || baseName == "author") sd = "drawing";
-                    else continue;
-                }
-                copyFileToOverride(fi.absoluteFilePath(), sd, baseName, ext);
-                if (sl && db) {
-                    QString key = sd + "/" + baseName;
-                    m_pet->refreshOverrides();
-                    refreshRow(sl, db, key);
-                }
-                count++;
-                break;
             }
+            copyFileToOverride(fi.absoluteFilePath(), sd, baseName, ext);
+            m_pet->refreshOverrides();
+            if (sl && db) refreshRow(sl, db, key);
+            count++;
+            // Process events to show immediate visual feedback for each replaced file
+            QApplication::processEvents();
         }
     }
     QMessageBox::information(this, QString::fromUtf8("\u5168\u90e8\u66ff\u6362"), QString::fromUtf8("\u5df2\u66ff\u6362 %1 \u4e2a\u6587\u4ef6").arg(count));
