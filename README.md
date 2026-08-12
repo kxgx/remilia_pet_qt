@@ -219,5 +219,5 @@ cd 解压目录 && ./AppRun
 - **Arch / Manjaro**：使用便携版 `.tar.gz` 解压即用（见上方说明）
 - 其他发行版可用 `tar.gz` 便携版直接运行
 
-> **音频**：使用 QSoundEffect + WAV（嵌入 QRC），无需 GStreamer 或额外解码器。
+> **音频**：使用 miniaudio + WAV（嵌入 QRC），无需 GStreamer / FFmpeg / Qt Multimedia。
 > **显示**：默认使用 XCB（X11），Wayland 桌面通过 XWayland 兼容层自动适配。
