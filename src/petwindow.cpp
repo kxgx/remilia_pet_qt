@@ -19,8 +19,6 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <QPointer>
-#include <QProcess>
-#include <QThread>
 #include <QRandomGenerator>
 #include <QPixmap>
 #include <QStyle>
@@ -42,6 +40,8 @@
 #include <QFileDialog>
 #include <QDesktopServices>
 #include <QFileInfo>
+#include <QFileSystemModel>
+#include <QTreeView>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
@@ -57,62 +57,89 @@ static const QColor PINK(255, 141, 161);
 
 // ========== DesktopPet resource override ==========
 
-// Helper: start external process with clean environment (strip LD_LIBRARY_PATH
-// to avoid bundled libs overriding system libdbus/GLib).
-static bool startDetachedClean(const QString &program, const QStringList &args, qint64 *pid = nullptr) {
-    QProcess proc;
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    env.remove(QStringLiteral("LD_LIBRARY_PATH"));
-    proc.setProcessEnvironment(env);
-    proc.setProgram(program);
-    proc.setArguments(args);
-    return proc.startDetached(pid);
-}
+// ====== InAppFileDialog ======
+// Embedded file browser — no external dependencies.
+class InAppFileDialog : public QDialog {
+public:
+    InAppFileDialog(const QString &dirPath, QWidget *parent = nullptr)
+        : QDialog(parent, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool)
+    {
+        setAttribute(Qt::WA_TranslucentBackground);
+        setAttribute(Qt::WA_DeleteOnClose);
+        setWindowTitle(QString::fromUtf8("\u6587\u4ef6\u6d4f\u89c8"));
+        resize(520, 400);
 
-// Linux: open directory via dbus-send -> Qt-based FMs -> dialog.
-// GTK-based FMs / gio / xdg-open removed: they link GLib which may be broken.
+        QVBoxLayout *outerLayout = new QVBoxLayout(this);
+        outerLayout->setContentsMargins(2, 2, 2, 2);
+
+        QWidget *inner = new QWidget();
+        inner->setStyleSheet("background:#1a1a1a;border-radius:8px;");
+        QVBoxLayout *lay = new QVBoxLayout(inner);
+        lay->setContentsMargins(8, 8, 8, 8);
+        lay->setSpacing(6);
+
+        // Title bar
+        QHBoxLayout *titleBar = new QHBoxLayout();
+        QLabel *titleLabel = new QLabel(QString::fromUtf8("\u6587\u4ef6\u6d4f\u89c8"));
+        titleLabel->setStyleSheet("color:#FF8DA1;font-weight:bold;font-size:13px;");
+        QPushButton *closeBtn = new QPushButton(QString::fromUtf8("\u2715"));
+        closeBtn->setFixedSize(20, 20);
+        closeBtn->setCursor(Qt::PointingHandCursor);
+        closeBtn->setStyleSheet("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:10px;font-weight:bold;font-size:10px;}QPushButton:hover{background:#FF8DA1;color:#111;}");
+        connect(closeBtn, &QPushButton::clicked, this, &QDialog::close);
+        titleBar->addWidget(titleLabel);
+        titleBar->addStretch();
+        titleBar->addWidget(closeBtn);
+
+        // Path label
+        QLabel *pathLabel = new QLabel(dirPath);
+        pathLabel->setStyleSheet("color:#888;font-size:10px;padding:2px 4px;");
+        pathLabel->setWordWrap(true);
+
+        // File tree
+        m_model = new QFileSystemModel(this);
+        m_model->setRootPath(dirPath);
+        m_model->setFilter(QDir::AllEntries | QDir::NoDotAndDotDot);
+        QTreeView *tree = new QTreeView();
+        tree->setModel(m_model);
+        tree->setRootIndex(m_model->index(dirPath));
+        tree->hideColumn(1);
+        tree->hideColumn(2);
+        tree->hideColumn(3);
+        tree->setHeaderHidden(true);
+        tree->setStyleSheet("QTreeView{background:#111;color:#ddd;border:1px solid #444;border-radius:4px;font-size:11px;}QTreeView::item:hover{background:#333;}QTreeView::item:selected{background:#FF8DA1;color:#111;}QScrollBar:vertical{width:5px;background:transparent;}QScrollBar::handle:vertical{background:#FF8DA1;border-radius:2px;min-height:15px;}QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}");
+
+        connect(tree, &QTreeView::doubleClicked, this, [this](const QModelIndex &idx) {
+            QString fp = m_model->filePath(idx);
+            if (!fp.isEmpty())
+                QDesktopServices::openUrl(QUrl::fromLocalFile(fp));
+        });
+
+        lay->addLayout(titleBar);
+        lay->addWidget(pathLabel);
+        lay->addWidget(tree, 1);
+        outerLayout->addWidget(inner);
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override {
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        QRectF r(1.0, 1.0, width()-2.0, height()-2.0);
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(PINK, 2));
+        p.drawRoundedRect(r, 10, 10);
+    }
+
+private:
+    QFileSystemModel *m_model = nullptr;
+};
+
 static void openDirInFM(const QString &dirPath) {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
-#ifdef Q_OS_LINUX
-    qint64 pid = 0;
-
-    // 1. dbus-send to FileManager1 -- pure D-Bus, no GLib dependency
-    QString uri = QString::fromUtf8("file://") + path;
-    startDetachedClean("dbus-send",
-            {"--session", "--dest=org.freedesktop.FileManager1",
-             "--type=method_call", "/org/freedesktop/FileManager1",
-             "org.freedesktop.FileManager1.ShowFolders",
-             "array:string:" + uri, "string:" + QString()}));
-    QThread::msleep(300);
-
-    // 2. Qt-based file managers (no GLib dependency)
-    QStringList qtFms;
-    QString de = qEnvironmentVariable("XDG_CURRENT_DESKTOP", "").toLower();
-    if (de.contains("kde"))    qtFms << "dolphin";
-    if (de.contains("lxqt"))   qtFms << "pcmanfm-qt";
-    qtFms << "dolphin" << "pcmanfm-qt";
-
-    for (const QString &fm : qtFms) {
-        pid = 0;
-        if (startDetachedClean(fm, {path}, &pid)) {
-            QThread::msleep(500);
-            if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
-                return;
-        }
-    }
-
-    // 3. All failed -- suggest installing Qt-based FM
-    QMessageBox::information(nullptr, QString::fromWCharArray(L"\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"),
-        QString::fromWCharArray(L"\u8D44\u6E90\u76EE\u5F55:\n") + path
-        + QString::fromWCharArray(L"\n\n\u5F53\u524D\u7CFB\u7EDF\u6587\u4EF6\u7BA1\u7406\u5668\u65E0\u6CD5\u4F7F\u7528\uFF0C\u5EFA\u8BAE\u5B89\u88C5:\n"
-            "    sudo apt install dolphin\n"
-            "\u6216\u8005\n"
-            "    sudo apt install pcmanfm-qt\n"
-            "\u5B83\u4EEC\u57FA\u4E8E Qt \u4E0D\u4F9D\u8D56 GLib/GStreamer\uFF0C\u66F4\u7A33\u5B9A\u3002"));
-    return;
-#endif
-    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    InAppFileDialog *dlg = new InAppFileDialog(path);
+    dlg->show();
 }
 
 QString DesktopPet::resolveResourcePath(const QString &qrcPath) const
