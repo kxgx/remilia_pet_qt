@@ -135,7 +135,7 @@ jobs:
           $release = Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID" -Headers $headers
           foreach ($a in $release.assets) {
             Write-Host "Deleting old asset: $($a.name)"
-            Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/attach_files/$($a.id)" -Method Delete -Headers $headers
+            & curl.exe -s -X DELETE "$repo/releases/$RELEASE_ID/attach_files/$($a.id)?access_token=${{ secrets.GITEE_TOKEN }}"
           }
           Get-ChildItem release/*.exe, release/*.zip | ForEach-Object {
             $name = $_.Name
