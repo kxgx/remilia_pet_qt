@@ -82,13 +82,13 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 `build.yml` 自动编译覆盖以下平台：
 
-| 平台 | 架构 | Runner | Qt 来源 |
-|------|------|--------|---------|
-| Windows | x64 | windows-2022 | aqtinstall |
-| macOS | x64 (Intel) | macos-26-intel | Homebrew |
-| macOS | ARM64 (Apple Silicon) | macos-latest | Homebrew |
-| Linux | x86_64 | ubuntu-latest | apt |
-| Linux | ARM64 | ubuntu-24.04-arm | apt |
+| 平台 | 架构 | Runner | Qt 来源 | 产物大小 |
+|------|------|--------|---------|----------|
+| Windows | x64 | windows-2022 | aqtinstall | ZIP 约 41 MB |
+| macOS | x64 (Intel) | macos-26-intel | Homebrew | DMG 约 57 MB |
+| macOS | ARM64 (Apple Silicon) | macos-latest | Homebrew | DMG 约 54 MB |
+| Linux | x86_64 | ubuntu-latest | apt | tar.gz 约 49 MB |
+| Linux | ARM64 | ubuntu-24.04-arm | apt | tar.gz 约 49 MB |
 
 > **已知限制**：
 > - **Windows ARM64**：aqtinstall 暂无 ARM64 Qt 预编译包；vcpkg 静态编译因 `qtdeclarative` 依赖问题受阻
@@ -125,8 +125,9 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 | 产物 | 大小 | 说明 |
 |------|------|------|
-| 便携版 EXE | 约 57 MB | 单文件，无需 DLL，解压即用 |
-| 安装器 Setup.exe | 约 30 MB | Inno Setup 打包，安装到 Program Files |
+| 便携版 EXE | 约 39 MB | 单文件，无需 DLL，解压即用 |
+| 便携版 ZIP | 约 55 MB | 压缩包，含 EXE |
+| 安装器 Setup.exe | 约 27 MB | Inno Setup 打包，安装到 Program Files |
 
 ### 本地编译步骤
 
