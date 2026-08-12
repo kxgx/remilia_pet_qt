@@ -1455,11 +1455,19 @@ void DesktopPet::preloadSounds() {
                     QFile out(tmpFile);
                     if (out.open(QIODevice::WriteOnly)) {
                         out.write(qrcFile.readAll());
+                        qDebug() << "preloadSounds: extracted" << f << "from QRC to" << tmpFile;
+                    } else {
+                        qWarning() << "preloadSounds: cannot write temp file" << tmpFile;
                     }
+                } else {
+                    qWarning() << "preloadSounds: QRC resource not found:" << qrcPath
+                               << "\u2014 check resources.qrc, alias should match this path";
                 }
             }
             if (QFile::exists(tmpFile))
                 srcPath = tmpFile;
+            else
+                qWarning() << "preloadSounds: temp file still missing for" << f;
         }
         player->setSource(srcPath);
         player->setVolume(m_volume / 100.0f);
