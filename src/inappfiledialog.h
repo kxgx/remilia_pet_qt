@@ -28,6 +28,7 @@
 #include <QPainter>
 #include <QPen>
 #include <QMouseEvent>
+#include <functional>
 
 extern const QColor PINK;
 
@@ -37,6 +38,10 @@ class InAppFileDialog : public QDialog {
     Q_OBJECT
 public:
     explicit InAppFileDialog(const QString &dirPath, QWidget *parent = nullptr);
+
+signals:
+    // Emitted after files were imported/deleted/renamed/created in this dialog
+    void filesChanged();
 
 protected:
     void paintEvent(QPaintEvent *) override;
@@ -89,6 +94,6 @@ private:
     QStringList m_forwardStack;
 };
 
-void openDirInFM(const QString &dirPath);
+void openDirInFM(const QString &dirPath, std::function<void()> onFilesChanged = nullptr);
 
 #endif // INAPPFILEDIALOG_H

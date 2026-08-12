@@ -103,7 +103,17 @@ void DesktopPet::refreshOverrides()
 {
     m_resourceOverrides.clear();
     loadOverrides();
-    // Force reload: destroy current movie so setState always recreates
+}
+
+// Unified entry to re-apply overrides after files changed in the in-app file manager:
+// re-scan overrides, refresh native sizes, re-source audio, recreate the current GIF,
+// and sync ResourceWindow status rows if it is open.
+void DesktopPet::applyResourceChanges()
+{
+    refreshOverrides();
+    preloadNativeSizes();
+    reloadSounds();
+    // Force recreate: destroy current movie so setState always reloads
     if (m_movie) {
         disconnect(m_movie, &QMovie::frameChanged, this, &DesktopPet::manualPaintFrame);
         m_movie->stop();
@@ -111,6 +121,8 @@ void DesktopPet::refreshOverrides()
         m_movie = nullptr;
     }
     setState(m_state);
+    if (auto *rw = dynamic_cast<ResourceWindow*>(m_resourceWindow.data()))
+        rw->refreshAllRows();
 }
 
 // ========== DrawEffectWindow ==========
@@ -741,6 +753,9 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     m_systemDefaultFont = QApplication::font();
     applyFontPreference();
 
+    // Overrides must load before native sizes/sounds/initial state so they apply at startup
+    loadOverrides();
+
     preloadNativeSizes();
     setMinimumSize(140, 100);
 
@@ -765,7 +780,6 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     show();
 
     loadSettings();
-    loadOverrides();
  }
 
 DesktopPet::~DesktopPet() {
@@ -1159,40 +1173,53 @@ void DesktopPet::applyFontPreference() {
     qApp->setFont(f);
 }
 
+// Resolve an audio file to a filesystem path (miniaudio cannot read QRC directly):
+// override file if present, otherwise extract the QRC entry to a temp file.
+QString DesktopPet::resolveSoundSource(const QString &fileName) const
+{
+    QString srcPath = resolveResourcePath("qrc:/audio/" + fileName);
+    if (!srcPath.startsWith("qrc:") && !srcPath.startsWith(":"))
+        return srcPath; // override file — usable directly
+    QString tmpFile = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/remilia_" + fileName;
+    if (!QFile::exists(tmpFile)) {
+        QString qrcPath = srcPath;
+        if (qrcPath.startsWith("qrc:"))
+            qrcPath = qrcPath.mid(3);
+        QFile qrcFile(qrcPath);
+        if (qrcFile.open(QIODevice::ReadOnly)) {
+            QFile out(tmpFile);
+            if (out.open(QIODevice::WriteOnly)) {
+                out.write(qrcFile.readAll());
+                qDebug() << "resolveSoundSource: extracted" << fileName << "from QRC to" << tmpFile;
+            } else {
+                qWarning() << "resolveSoundSource: cannot write temp file" << tmpFile;
+            }
+        } else {
+            qWarning() << "resolveSoundSource: QRC resource not found:" << qrcPath
+                       << "\u2014 check resources.qrc, alias should match this path";
+        }
+    }
+    if (QFile::exists(tmpFile))
+        return tmpFile;
+    qWarning() << "resolveSoundSource: temp file still missing for" << fileName;
+    return srcPath;
+}
+
 void DesktopPet::preloadSounds() {
     QStringList files = {"start.wav", "draw.wav", "drawing.wav", "result.wav", "reset.wav", "alarm.wav", "clock.wav"};
     for (const QString &f : files) {
         auto *player = new AudioPlayer;
-        QString srcPath = resolveResourcePath("qrc:/audio/" + f);
-        // miniaudio needs real filesystem path — extract QRC to temp if needed
-        if (srcPath.startsWith("qrc:") || srcPath.startsWith(":")) {
-            QString tmpFile = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/remilia_" + f;
-            if (!QFile::exists(tmpFile)) {
-                QString qrcPath = srcPath;
-                if (qrcPath.startsWith("qrc:"))
-                    qrcPath = qrcPath.mid(3);
-                QFile qrcFile(qrcPath);
-                if (qrcFile.open(QIODevice::ReadOnly)) {
-                    QFile out(tmpFile);
-                    if (out.open(QIODevice::WriteOnly)) {
-                        out.write(qrcFile.readAll());
-                        qDebug() << "preloadSounds: extracted" << f << "from QRC to" << tmpFile;
-                    } else {
-                        qWarning() << "preloadSounds: cannot write temp file" << tmpFile;
-                    }
-                } else {
-                    qWarning() << "preloadSounds: QRC resource not found:" << qrcPath
-                               << "\u2014 check resources.qrc, alias should match this path";
-                }
-            }
-            if (QFile::exists(tmpFile))
-                srcPath = tmpFile;
-            else
-                qWarning() << "preloadSounds: temp file still missing for" << f;
-        }
-        player->setSource(srcPath);
+        player->setSource(resolveSoundSource(f));
         player->setVolume(m_volume / 100.0f);
         m_sounds[f] = player;
+    }
+}
+
+// Re-source existing players after override audio files changed on disk.
+void DesktopPet::reloadSounds() {
+    for (auto it = m_sounds.begin(); it != m_sounds.end(); ++it) {
+        it.value()->setSource(resolveSoundSource(it.key()));
+        it.value()->setVolume(m_volume / 100.0f);
     }
 }
 

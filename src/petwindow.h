@@ -42,6 +42,9 @@ public:
     int globalVolume() const { return m_volume; }
     void updateSideWindowPositions();
 
+    // Re-apply resource overrides after files changed in the in-app file manager
+    void applyResourceChanges();
+
 protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -108,6 +111,8 @@ private:
     int m_volume = 80;
     QMap<QString, AudioPlayer*> m_sounds;
     void preloadSounds();
+    void reloadSounds();
+    QString resolveSoundSource(const QString &fileName) const;
 
     // Idle timer
     QTimer *m_idleTimer = nullptr;

@@ -300,6 +300,7 @@ void InAppFileDialog::dropEvent(QDropEvent *event)
     }
     if (count > 0) {
         refreshView();
+        emit filesChanged();
         QMessageBox::information(this,
             QString::fromUtf8("\u5bfc\u5165\u6210\u529f"), // 导入成功
             QString::fromUtf8("\u5df2\u5bfc\u5165 %1 \u4e2a\u6587\u4ef6") // 已导入 %1 个文件
@@ -477,6 +478,7 @@ void InAppFileDialog::deleteSelected()
             QString::fromUtf8("\u5df2\u5220\u9664 %1 \u9879").arg(toDelete.size())); // 已删除 %1 项
     }
     refreshView();
+    emit filesChanged();
 }
 
 void InAppFileDialog::renameSelected()
@@ -511,6 +513,7 @@ void InAppFileDialog::renameSelected()
 
     if (QFile::rename(oldPath, newPath)) {
         refreshView();
+        emit filesChanged();
     } else {
         QMessageBox::warning(this,
             QString::fromUtf8("\u91cd\u547d\u540d\u5931\u8d25"),
@@ -577,6 +580,7 @@ void InAppFileDialog::createItem(bool folder)
         m_tree->scrollTo(idx);
     }
     updateStatus();
+    emit filesChanged();
 }
 
 void InAppFileDialog::refreshView()
@@ -720,12 +724,14 @@ void InAppFileDialog::updateStatus()
 
 // --- Convenience function ---
 
-void openDirInFM(const QString &dirPath)
+void openDirInFM(const QString &dirPath, std::function<void()> onFilesChanged)
 {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
     static QPointer<InAppFileDialog> s_dlg;
     if (s_dlg) s_dlg->close();
     s_dlg = new InAppFileDialog(path);
+    if (onFilesChanged)
+        QObject::connect(s_dlg, &InAppFileDialog::filesChanged, s_dlg, onFilesChanged);
     s_dlg->show();
 }

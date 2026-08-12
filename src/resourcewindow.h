@@ -17,6 +17,8 @@ public:
     ResourceWindow(DesktopPet *pet, float scale);
 
     void updateScaleAndPosition(float scale);
+    // Refresh all row status labels/enabled states from current override state
+    void refreshAllRows();
 
 protected:
     void paintEvent(QPaintEvent *) override;
