@@ -229,7 +229,7 @@ private:
     void revealCard() {
         if (m_closed) return;
         m_pet->setState(DesktopPet::Result);
-        m_pet->playSound("result.mp3", false);
+        m_pet->playSound("result.wav", false);
         m_label->setMovie(nullptr);
         int num = QRandomGenerator::global()->bounded(1, 56);
         m_revealedCardPath = m_pet->resolveResourcePath(m_cardsDir + QString("card_%1.png").arg(num));
@@ -531,7 +531,7 @@ private:
             m_isRunning = false;
             m_isFinishedReminding = true;
             m_pet->setState(DesktopPet::Drag);
-            m_pet->playSound("alarm.mp3");
+            m_pet->playSound("alarm.wav");
             m_titleLabel->setText(QString::fromUtf8("\u63D0\u9192"));
             int fs = qMax(7, (int)(14 * m_scale));
             m_statusLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(fs));
@@ -1040,7 +1040,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
 
     setupTrayIcon();
 
-    playSound("start.mp3");
+    playSound("start.wav");
     show();
 
     loadSettings();
@@ -1171,7 +1171,7 @@ void DesktopPet::applyScaleRender() {
 }
 
 void DesktopPet::resetScale() {
-    playSound("reset.mp3");
+    playSound("reset.wav");
     m_scale = 1.0f;
     applyScale();
     saveSettings();
@@ -1439,10 +1439,26 @@ void DesktopPet::applyFontPreference() {
 }
 
 void DesktopPet::preloadSounds() {
-    QStringList files = {"start.mp3", "draw.mp3", "drawing.mp3", "result.mp3", "reset.mp3", "alarm.mp3", "clock.mp3"};
+    QStringList files = {"start.wav", "draw.wav", "drawing.wav", "result.wav", "reset.wav", "alarm.wav", "clock.wav"};
     for (const QString &f : files) {
         auto *player = new AudioPlayer;
-        player->setSource(resolveResourcePath("qrc:/audio/" + f));
+        QString srcPath = resolveResourcePath("qrc:/audio/" + f);
+        // miniaudio needs real filesystem path — extract QRC to temp if needed
+        if (srcPath.startsWith("qrc:") || srcPath.startsWith(":")) {
+            QString tmpFile = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/remilia_" + f;
+            if (!QFile::exists(tmpFile)) {
+                QFile qrcFile(srcPath);
+                if (qrcFile.open(QIODevice::ReadOnly)) {
+                    QFile out(tmpFile);
+                    if (out.open(QIODevice::WriteOnly)) {
+                        out.write(qrcFile.readAll());
+                    }
+                }
+            }
+            if (QFile::exists(tmpFile))
+                srcPath = tmpFile;
+        }
+        player->setSource(srcPath);
         player->setVolume(m_volume / 100.0f);
         m_sounds[f] = player;
     }
@@ -1471,7 +1487,7 @@ void DesktopPet::startDrawCard() {
     m_idleCounter = 0;
     setState(Idle);
     QApplication::processEvents();
-    playSound("draw.mp3");
+    playSound("draw.wav");
     m_effectWindow = new DrawEffectWindow(this, m_cardsDir, m_scale);
     static_cast<DrawEffectWindow*>(m_effectWindow.data())->startShow();
 }
@@ -1480,7 +1496,7 @@ void DesktopPet::startTimerFeature() {
     if (m_isDrawingCard) return;
     closeOtherSideWindows();
     setState(Click);
-    playSound("clock.mp3", false);
+    playSound("clock.wav", false);
     m_idleCounter = 0;
     m_timerWindow = new TimerWindow(this, m_scale);
     m_timerWindow->show();
@@ -1491,7 +1507,7 @@ void DesktopPet::startDrawingFeature() {
     closeOtherSideWindows();
     m_isDrawingCard = true;
     m_idleCounter = 0;
-    playSound("drawing.mp3", false);
+    playSound("drawing.wav", false);
     setState(Sleep);
     QTimer::singleShot(1000, this, &DesktopPet::drawingStep2Idle);
 }
@@ -1537,7 +1553,7 @@ void DesktopPet::startResourceFeature() {
 
 void DesktopPet::onDrawEffectFinished() {
     setState(Result);
-    playSound("result.mp3");
+    playSound("result.wav");
     QTimer::singleShot(1000, this, [this]() {
         m_isDrawingCard = false;
         m_idleCounter = 0;
