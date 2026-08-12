@@ -57,33 +57,34 @@ static const QColor PINK(255, 141, 161);
 
 // ========== DesktopPet resource override ==========
 
-// Linux: open directory bypassing nautilus to avoid GStreamer crash.
-// Strategy: gio (D-Bus, no new process) -> lightweight FMs -> xdg-open -> dialog.
+// Linux: open directory with multi-layer fallback.
+// Key constraint: avoid binaries that link against GLib (gio, nautilus, GTK-based FMs)
+// because some systems have GLib version mismatches (e.g. missing g_string_copy).
+// Strategy: dbus-send (pure D-Bus) -> Qt-based FMs -> GTK-based FMs -> gio -> xdg-open -> dialog.
 static void openDirInFM(const QString &dirPath) {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
 #ifdef Q_OS_LINUX
     qint64 pid = 0;
 
-    // 1. gio open — D-Bus to already-running FM, never launches nautilus
-    if (QProcess::startDetached("gio", {"open", path}, QString(), &pid)) {
-        QThread::msleep(500);
-        if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
-            return;
-    }
+    // 1. dbus-send to FileManager1 -- pure D-Bus, no GLib dependency (unlike gio)
+    //    Fire-and-forget: D-Bus activation returns immediately.
+    QString uri = QString::fromUtf8("file://") + path;
+    QProcess::startDetached("dbus-send",
+            {"--session", "--dest=org.freedesktop.FileManager1",
+             "--type=method_call", "/org/freedesktop/FileManager1",
+             "org.freedesktop.FileManager1.ShowFolders",
+             "array:string:" + uri, "string:" + QString()});
+    QThread::msleep(300);
 
-    // 2. Lightweight file managers (NO nautilus — it depends on broken GStreamer)
+    // 2. Qt-based file managers FIRST (no GLib dependency, safe on any system)
     QString de = qEnvironmentVariable("XDG_CURRENT_DESKTOP", "").toLower();
-    QStringList fms;
-    if (de.contains("kde"))         fms << "dolphin";
-    if (de.contains("xfce"))        fms << "thunar";
-    if (de.contains("mate"))        fms << "caja";
-    if (de.contains("lxqt") || de.contains("lxde")) fms << "pcmanfm";
-    if (de.contains("cinnamon"))    fms << "nemo";
-    if (de.contains("deepin"))      fms << "dde-file-manager";
-    fms << "pcmanfm" << "thunar" << "dolphin" << "caja" << "nemo";
+    QStringList qtFms;
+    if (de.contains("kde"))         qtFms << "dolphin";
+    if (de.contains("lxqt"))        qtFms << "pcmanfm-qt";
+    qtFms << "dolphin" << "pcmanfm-qt";
 
-    for (const QString &fm : fms) {
+    for (const QString &fm : qtFms) {
         pid = 0;
         if (QProcess::startDetached(fm, {path}, QString(), &pid)) {
             QThread::msleep(500);
@@ -92,16 +93,44 @@ static void openDirInFM(const QString &dirPath) {
         }
     }
 
-    // 3. xdg-open — last resort
+    // 3. GTK-based file managers (may fail on broken GLib systems)
+    QStringList gtkFms;
+    if (de.contains("xfce"))        gtkFms << "thunar";
+    if (de.contains("mate"))        gtkFms << "caja";
+    if (de.contains("cinnamon"))    gtkFms << "nemo";
+    if (de.contains("deepin"))      gtkFms << "dde-file-manager";
+    if (de.contains("gnome"))       gtkFms << "nautilus";
+    gtkFms << "thunar" << "caja" << "nemo" << "pcmanfm" << "nautilus";
+
+    for (const QString &fm : gtkFms) {
+        pid = 0;
+        if (QProcess::startDetached(fm, {path}, QString(), &pid)) {
+            QThread::msleep(500);
+            if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
+                return;
+        }
+    }
+
+    // 4. gio open -- may crash on GLib-mismatched systems, kept as late fallback
+    pid = 0;
+    if (QProcess::startDetached("gio", {"open", path}, QString(), &pid)) {
+        QThread::msleep(500);
+        if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
+            return;
+    }
+
+    // 5. xdg-open -- last resort
     if (QProcess::startDetached("xdg-open", {path}))
         return;
 
-    // 4. All failed — show path with install suggestion
-    QMessageBox::information(nullptr, QString::fromWCharArray(L"蕾米埃尔桌宠"),
-        QString::fromWCharArray(L"资源目录:\n") + path
-        + QString::fromWCharArray(L"\n\n当前系统文件管理器无法使用，建议安装:\n"
-            "    sudo apt install thunar\n"
-            "安装后再试即可正常打开。"));
+    // 6. All failed -- show path with install suggestion (Qt-based FMs recommended)
+    QMessageBox::information(nullptr, QString::fromWCharArray(L"\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"),
+        QString::fromWCharArray(L"\u8D44\u6E90\u76EE\u5F55:\n") + path
+        + QString::fromWCharArray(L"\n\n\u5F53\u524D\u7CFB\u7EDF\u6587\u4EF6\u7BA1\u7406\u5668\u65E0\u6CD5\u4F7F\u7528\uFF0C\u5EFA\u8BAE\u5B89\u88C5:\n"
+            "    sudo apt install dolphin\n"
+            "\u6216\u8005\n"
+            "    sudo apt install pcmanfm-qt\n"
+            "\u5B83\u4EEC\u57FA\u4E8E Qt \u4E0D\u4F9D\u8D56 GLib/GStreamer\uFF0C\u66F4\u7A33\u5B9A\u3002"));
     return;
 #endif
     QDesktopServices::openUrl(QUrl::fromLocalFile(path));
