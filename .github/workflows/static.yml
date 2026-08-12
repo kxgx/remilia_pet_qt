@@ -37,7 +37,7 @@ jobs:
       - name: 编译安装器 (Inno Setup)
         run: |
           $iscc = $null
-          foreach ($p in @("C:\Program Files (x86)\Inno Setup 6\iscc.exe", "$env:LOCALAPPDATA\Inno Setup\iscc.exe")) {
+          foreach ($p in @("C:\Program Files (x86)\Inno Setup 6\iscc.exe", "$env:LOCALAPPDATA\InnoSetup\iscc.exe")) {
             if (Test-Path $p) { $iscc = $p; break }
           }
           if (-not $iscc) {
@@ -49,8 +49,8 @@ jobs:
             $tmp = "$env:TEMP\innosetup-installer.exe"
             Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $tmp
             Write-Host "Installing to user scope (no admin)..."
-            & $tmp /VERYSILENT /DIR="$env:LOCALAPPDATA\Inno Setup" /NOICONS /NORESTART | Out-Null
-            $iscc = "$env:LOCALAPPDATA\Inno Setup\iscc.exe"
+            & $tmp /VERYSILENT /SUPPRESSMSGBOXES /DIR="$env:LOCALAPPDATA\InnoSetup" /NOICONS /NORESTART | Out-Null
+            $iscc = "$env:LOCALAPPDATA\InnoSetup\iscc.exe"
           }
           & $iscc /DBuildDir="C:\remilia_build\static\Release" installer.iss
           $setupExe = Get-ChildItem -Path . -Filter "*Setup*.exe" | Select-Object -First 1
