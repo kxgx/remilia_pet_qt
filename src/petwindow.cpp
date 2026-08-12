@@ -103,6 +103,13 @@ void DesktopPet::refreshOverrides()
 {
     m_resourceOverrides.clear();
     loadOverrides();
+    // Force reload: destroy current movie so setState always recreates
+    if (m_movie) {
+        disconnect(m_movie, &QMovie::frameChanged, this, &DesktopPet::manualPaintFrame);
+        m_movie->stop();
+        delete m_movie;
+        m_movie = nullptr;
+    }
     setState(m_state);
 }
 
