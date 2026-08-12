@@ -872,18 +872,17 @@ void DesktopPet::setState(State state) {
     }
 
     QSize orig = m_nativeSizes.value(state, m_maxNativeSize);
-    int cw = qMax(20, (int)(orig.width() * m_scale));
-    int ch = qMax(20, (int)(orig.height() * m_scale));
+    // Window and painted content always share the SAME clamped size, so the
+    // content fills the window at any scale (never drifts apart from it).
+    int cw = qMax(140, qMax(20, (int)(orig.width() * m_scale)));
+    int ch = qMax(100, qMax(20, (int)(orig.height() * m_scale)));
     if (width() != cw || height() != ch) {
         int oldRight = x() + width();
-        cw = qMax(140, cw); ch = qMax(100, ch);
         setFixedSize(cw, ch);
         move(oldRight - cw, y());
     }
-    if (orig.isValid() && orig.width() > 0) {
-        m_currentTargetSize = QSize(qMax(10, (int)(orig.width() * m_scale)),
-                                     qMax(10, (int)(orig.height() * m_scale)));
-    }
+    if (orig.isValid() && orig.width() > 0)
+        m_currentTargetSize = QSize(cw, ch);
 
     m_movie = new QMovie(gifPath, QByteArray(), this);
     m_state = state;
@@ -908,18 +907,18 @@ void DesktopPet::manualPaintFrame(int) {
 }
 
 void DesktopPet::applyScale() {
-    if (!m_maxNativeSize.isValid()) return;
+    QSize orig = m_nativeSizes.value(m_state, m_maxNativeSize);
+    if (!orig.isValid() || orig.width() <= 0) return;
     int oldRight = x() + width();
-    int cw = qMax(20, (int)(m_maxNativeSize.width() * m_scale));
-    int ch = qMax(20, (int)(m_maxNativeSize.height() * m_scale));
-    cw = qMax(140, cw); ch = qMax(100, ch);
+    // Window and content share ONE clamped size. Using m_maxNativeSize here
+    // (old behavior) makes reset/startup size the window by the biggest GIF
+    // while the content stays state-sized — the next wheel zoom then jumps the
+    // window in the opposite direction of the zoom.
+    int cw = qMax(140, qMax(20, (int)(orig.width() * m_scale)));
+    int ch = qMax(100, qMax(20, (int)(orig.height() * m_scale)));
     setFixedSize(cw, ch);
     move(oldRight - cw, y());
-    QSize orig = m_nativeSizes.value(m_state);
-    if (orig.isValid() && orig.width() > 0) {
-        m_currentTargetSize = QSize(qMax(10, (int)(orig.width() * m_scale)),
-                                     qMax(10, (int)(orig.height() * m_scale)));
-    }
+    m_currentTargetSize = QSize(cw, ch);
     if (m_movie) manualPaintFrame(m_movie->currentFrameNumber());
     updateSideWindowPositions();
 }
