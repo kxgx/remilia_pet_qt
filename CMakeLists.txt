@@ -36,29 +36,16 @@ if(STATIC_BUILD)
     endif()
 endif()
 
-# ── vcpkg FFmpeg library path fix (static builds) ──────────────────
-# Qt's internal FindFFmpeg may resolve debug paths; override with Release.
-# Also add LIBPATH since Qt FFmpeg plugin uses bare lib names.
-if(STATIC_BUILD AND DEFINED VCPKG_TARGET_TRIPLET)
-    set(_vcpkg_lib "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib")
-    if(WIN32)
-        set(AVCODEC_LIBRARY  "${_vcpkg_lib}/avcodec.lib"  CACHE FILEPATH "" FORCE)
-        set(AVFORMAT_LIBRARY "${_vcpkg_lib}/avformat.lib" CACHE FILEPATH "" FORCE)
-        set(AVUTIL_LIBRARY   "${_vcpkg_lib}/avutil.lib"   CACHE FILEPATH "" FORCE)
-        set(SWRESAMPLE_LIBRARY "${_vcpkg_lib}/swresample.lib" CACHE FILEPATH "" FORCE)
-        set(SWSCALE_LIBRARY  "${_vcpkg_lib}/swscale.lib"  CACHE FILEPATH "" FORCE)
-    endif()
-    link_directories("${_vcpkg_lib}")
-endif()
-
 # ── Qt packages ─────────────────────────────────────────────────────
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Multimedia)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 
 # ── Sources ─────────────────────────────────────────────────────────
 set(SOURCES
     src/main.cpp
     src/petwindow.cpp
     src/petwindow.h
+    src/audioplayer.cpp
+    src/audioplayer.h
     resources.qrc
 )
 
@@ -100,25 +87,17 @@ target_link_libraries(RemiliaPet PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
-    Qt6::Multimedia
 )
 
 # ── Platform-specific system libraries (static builds) ──────────────
 if(STATIC_BUILD)
     if(WIN32)
         target_link_libraries(RemiliaPet PRIVATE
-            ws2_32 version winmm secur32 ncrypt bcrypt
-            dxguid strmiids mfuuid vfw32
+            ws2_32 version winmm secur32 ncrypt bcrypt dxguid
         )
     elseif(APPLE)
         target_link_libraries(RemiliaPet PRIVATE
             "-framework AppKit"
-            "-framework AudioToolbox"
-            "-framework CoreAudio"
-            "-framework CoreVideo"
-            "-framework VideoToolbox"
-            "-framework CoreMedia"
-            "-framework AVFoundation"
             "-framework Security"
         )
     elseif(UNIX)

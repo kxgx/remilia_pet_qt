@@ -3,7 +3,7 @@
 #include <QLabel>
 #include <QMovie>
 #include <QTimer>
-#include <QSoundEffect>
+#include "audioplayer.h"
 #include <QSystemTrayIcon>
 #include <QMap>
 #include <QPoint>
@@ -104,9 +104,9 @@ private:
     int m_idleCounter = 0;
     bool m_isDrawingCard = false;
 
-    // Audio — QSoundEffect uses system-native APIs (no GStreamer dependency)
+    // Audio — miniaudio directly uses WASAPI/PulseAudio/ALSA/CoreAudio
     int m_volume = 80;
-    QMap<QString, QSoundEffect*> m_sounds;
+    QMap<QString, AudioPlayer*> m_sounds;
     void preloadSounds();
 
     // Idle timer

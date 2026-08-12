@@ -6,11 +6,6 @@
       "name": "qtbase",
       "default-features": false,
       "features": ["gui", "widgets", "jpeg", "png", "network"]
-    },
-    {
-      "name": "qtmultimedia",
-      "default-features": false,
-      "features": ["ffmpeg"]
     }
   ]
 }

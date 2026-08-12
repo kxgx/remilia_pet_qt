@@ -16,9 +16,6 @@ Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin)
 Q_IMPORT_PLUGIN(QXcbIntegrationPlugin)
 #endif
 
-// ── Multimedia backend ─────────────────────────────────────────────
-Q_IMPORT_PLUGIN(QFFmpegMediaPlugin)
-
 // ── Image format plugins (needed for QRC-embedded images) ──────────
 Q_IMPORT_PLUGIN(QGifPlugin)
 Q_IMPORT_PLUGIN(QICOPlugin)

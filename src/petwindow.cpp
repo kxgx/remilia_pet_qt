@@ -57,56 +57,46 @@ static const QColor PINK(255, 141, 161);
 
 // ========== DesktopPet resource override ==========
 
-// On Linux: detect desktop environment, call file manager directly to bypass xdg-open
-static QStringList detectFileManagers() {
-    QString de = qEnvironmentVariable("XDG_CURRENT_DESKTOP", "").toLower();
-    QStringList fms;
-    if (de.contains("gnome"))   fms << "nautilus";
-    if (de.contains("kde"))     fms << "dolphin";
-    if (de.contains("xfce"))    fms << "thunar";
-    if (de.contains("mate"))    fms << "caja";
-    if (de.contains("lxqt") || de.contains("lxde")) fms << "pcmanfm";
-    if (de.contains("cinnamon")) fms << "nemo";
-    if (de.contains("budgie"))  fms << "nautilus";
-    if (de.contains("deepin"))  fms << "dde-file-manager";
-    // Generic fallbacks (lightweight, widely available)
-    fms << "pcmanfm" << "thunar" << "nautilus" << "dolphin" << "xdg-open";
-    return fms;
-}
-
+// Linux: open directory bypassing nautilus to avoid GStreamer crash.
+// Strategy: gio (D-Bus, no new process) -> lightweight FMs -> xdg-open -> dialog.
 static void openDirInFM(const QString &dirPath) {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
 #ifdef Q_OS_LINUX
-    QStringList fms = detectFileManagers();
+    qint64 pid = 0;
+
+    // 1. gio open — D-Bus to already-running FM, never launches nautilus
+    if (QProcess::startDetached("gio", {"open", path}, QString(), &pid)) {
+        QThread::msleep(500);
+        if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
+            return;
+    }
+
+    // 2. Lightweight file managers (NO nautilus — it depends on broken GStreamer)
+    QString de = qEnvironmentVariable("XDG_CURRENT_DESKTOP", "").toLower();
+    QStringList fms;
+    if (de.contains("kde"))         fms << "dolphin";
+    if (de.contains("xfce"))        fms << "thunar";
+    if (de.contains("mate"))        fms << "caja";
+    if (de.contains("lxqt") || de.contains("lxde")) fms << "pcmanfm";
+    if (de.contains("cinnamon"))    fms << "nemo";
+    if (de.contains("deepin"))      fms << "dde-file-manager";
+    fms << "pcmanfm" << "thunar" << "dolphin" << "caja" << "nemo";
+
     for (const QString &fm : fms) {
-        qint64 pid = 0;
-        // Try 1: launch FM directly
+        pid = 0;
         if (QProcess::startDetached(fm, {path}, QString(), &pid)) {
-            QThread::msleep(800);
-            if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
-                return;
-            // PID died. For nautilus on GNOME this may be normal D-Bus
-            // single-instance handoff. Check if any nautilus is still alive.
-            if (fm == "nautilus") {
-                QProcess pgrep;
-                pgrep.start("pgrep", {"-x", "nautilus"});
-                pgrep.waitForFinished(2000);
-                if (pgrep.exitCode() == 0)
-                    return; // desktop nautilus still running — D-Bus OK
-            }
-            // Otherwise: crash or not installed, try next FM
-        }
-        // Try 2: launch with GStreamer suppressed (for broken systems)
-        QStringList envArgs = {"GST_PLUGIN_SYSTEM_PATH=/dev/null", fm, path};
-        if (QProcess::startDetached("/usr/bin/env", envArgs, QString(), &pid)
-            || QProcess::startDetached("/bin/env", envArgs, QString(), &pid)) {
             QThread::msleep(500);
             if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
                 return;
         }
     }
-    // All FMs failed — show path with install suggestion
+
+    // 3. xdg-open — last resort
+    if (QProcess::startDetached("xdg-open", {path}))
+        return;
+
+    // 4. All failed — show path with install suggestion
     QMessageBox::information(nullptr, QString::fromWCharArray(L"蕾米埃尔桌宠"),
         QString::fromWCharArray(L"资源目录:\n") + path
         + QString::fromWCharArray(L"\n\n当前系统文件管理器无法使用，建议安装:\n"
@@ -1451,10 +1441,10 @@ void DesktopPet::applyFontPreference() {
 void DesktopPet::preloadSounds() {
     QStringList files = {"start.mp3", "draw.mp3", "drawing.mp3", "result.mp3", "reset.mp3", "alarm.mp3", "clock.mp3"};
     for (const QString &f : files) {
-        auto *effect = new QSoundEffect(this);
-        effect->setSource(QUrl(resolveResourcePath("qrc:/audio/" + f)));
-        effect->setVolume(m_volume / 100.0f);
-        m_sounds[f] = effect;
+        auto *player = new AudioPlayer;
+        player->setSource(resolveResourcePath("qrc:/audio/" + f));
+        player->setVolume(m_volume / 100.0f);
+        m_sounds[f] = player;
     }
 }
 
