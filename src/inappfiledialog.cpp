@@ -269,8 +269,33 @@ void InAppFileDialog::renameSelected()
 {
     QModelIndex idx = m_tree->currentIndex();
     if (!idx.isValid()) return;
-    // Enter edit mode on the tree item
-    m_tree->edit(idx);
+    QString oldPath = m_model->filePath(idx);
+    QFileInfo fi(oldPath);
+    QString oldName = fi.fileName();
+
+    bool ok;
+    QString newName = QInputDialog::getText(this,
+        QString::fromUtf8("\u91cd\u547d\u540d"),          // 重命名
+        QString::fromUtf8("\u65b0\u6587\u4ef6\u540d:"),   // 新文件名:
+        QLineEdit::Normal, oldName, &ok);
+
+    if (!ok || newName.isEmpty() || newName == oldName) return;
+
+    QString newPath = fi.absoluteDir().absoluteFilePath(newName);
+    if (QFile::exists(newPath)) {
+        QMessageBox::warning(this,
+            QString::fromUtf8("\u91cd\u547d\u540d\u5931\u8d25"),
+            QString::fromUtf8("\u76ee\u6807\u6587\u4ef6\u5df2\u5b58\u5728: %1").arg(newName));
+        return;
+    }
+
+    if (QFile::rename(oldPath, newPath)) {
+        refreshView();
+    } else {
+        QMessageBox::warning(this,
+            QString::fromUtf8("\u91cd\u547d\u540d\u5931\u8d25"),
+            QString::fromUtf8("\u65e0\u6cd5\u91cd\u547d\u540d: %1").arg(oldName));
+    }
 }
 
 void InAppFileDialog::refreshView()
@@ -340,4 +365,6 @@ void openDirInFM(const QString &dirPath)
     s_dlg = new InAppFileDialog(path);
     s_dlg->show();
 }
+
+
 

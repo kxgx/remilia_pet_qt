@@ -18,6 +18,7 @@
 #include <QFileInfo>
 #include <QUrl>
 #include <QDesktopServices>
+#include <QInputDialog>
 #include <QMessageBox>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
