@@ -620,26 +620,21 @@ jobs:
             $releaseBody = "All platforms"
           }
 
-          # Get or create release (no delete — single job, no race)
+          # Delete old release + create new (single job, no race condition)
           try {
-            $release = Invoke-RestMethod -Uri "$repo/releases/tags/$TAG" -Headers $headers
-            Write-Host "Found existing release: $($release.id), updating body..."
-            $RELEASE_ID = $release.id
-            $body = @{tag_name=$TAG; name="v$VERSION"; body=$releaseBody; target_commitish="master"} | ConvertTo-Json -Compress
-            $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-            [System.IO.File]::WriteAllText("$env:TEMP\gitee_patch.json", $body, $utf8NoBom)
-            & curl.exe -s -X PATCH "$repo/releases/$RELEASE_ID" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/json; charset=utf-8" --data-binary "@$env:TEMP\gitee_patch.json"
-            Remove-Item "$env:TEMP\gitee_patch.json"
+            $old = Invoke-RestMethod -Uri "$repo/releases/tags/$TAG" -Headers $headers
+            Write-Host "Deleting old release $($old.id)..."
+            Invoke-RestMethod -Uri "$repo/releases/$($old.id)" -Method Delete -Headers $headers
           } catch {
-            Write-Host "Creating new release..."
-            $body = @{tag_name=$TAG; name="v$VERSION"; body=$releaseBody; target_commitish="master"} | ConvertTo-Json -Compress
-            $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-            [System.IO.File]::WriteAllText("$env:TEMP\gitee_body.json", $body, $utf8NoBom)
-            $RESP = & curl.exe -s -X POST "$repo/releases" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/json; charset=utf-8" --data-binary "@$env:TEMP\gitee_body.json"
-            Remove-Item "$env:TEMP\gitee_body.json"
-            $RELEASE_ID = ($RESP | ConvertFrom-Json).id
-            Write-Host "Created release: $RELEASE_ID"
+            Write-Host "No old release to delete"
           }
+          $body = @{tag_name=$TAG; name="v$VERSION"; body=$releaseBody; target_commitish="master"} | ConvertTo-Json -Compress
+          $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+          [System.IO.File]::WriteAllText("$env:TEMP\gitee_body.json", $body, $utf8NoBom)
+          $RESP = & curl.exe -s -X POST "$repo/releases" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/json; charset=utf-8" --data-binary "@$env:TEMP\gitee_body.json"
+          Remove-Item "$env:TEMP\gitee_body.json"
+          $RELEASE_ID = ($RESP | ConvertFrom-Json).id
+          Write-Host "Created release: $RELEASE_ID"
 
           # Upload dynamic files
           Get-ChildItem RemiliaPet_Qt6-* -Exclude *static* | ForEach-Object {
@@ -647,7 +642,7 @@ jobs:
             Write-Host "Uploading $name..."
             for ($r = 0; $r -lt 3; $r++) {
               try {
-                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/assets?name=$name" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" --data-binary "@$($_.FullName)"
+                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/assets?name=$name" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/octet-stream" --data-binary "@$($_.FullName)"
                 Write-Host "  OK"
                 break
               } catch {
@@ -663,7 +658,7 @@ jobs:
             Write-Host "Uploading $name..."
             for ($r = 0; $r -lt 3; $r++) {
               try {
-                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/assets?name=$name" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" --data-binary "@$($_.FullName)"
+                & curl.exe -s -X POST "$repo/releases/$RELEASE_ID/assets?name=$name" -H "Authorization: token ${{ secrets.GITEE_TOKEN }}" -H "Content-Type: application/octet-stream" --data-binary "@$($_.FullName)"
                 Write-Host "  OK"
                 break
               } catch {
