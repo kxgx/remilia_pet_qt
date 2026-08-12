@@ -36,11 +36,18 @@ jobs:
 
       - name: 编译安装器 (Inno Setup)
         run: |
-          $iscc = (Get-ChildItem -Path "C:\Program Files (x86)\Inno Setup 6" -Filter "iscc.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          $iscc = $null
+          foreach ($p in @("C:\Program Files (x86)\Inno Setup 6\iscc.exe", "$env:LOCALAPPDATA\Inno Setup 6\iscc.exe")) {
+            if (Test-Path $p) { $iscc = $p; break }
+          }
           if (-not $iscc) {
-            Write-Host "Installing Inno Setup..."
-            choco install innosetup -y --no-progress
-            $iscc = "C:\Program Files (x86)\Inno Setup 6\iscc.exe"
+            Write-Host "Downloading Inno Setup..."
+            $url = "https://files.jrsoftware.org/is/6/innosetup-6.4.1.exe"
+            $tmp = "$env:TEMP\innosetup-installer.exe"
+            Invoke-WebRequest -Uri $url -OutFile $tmp
+            Write-Host "Installing to user scope (no admin)..."
+            & $tmp /VERYSILENT /DIR="$env:LOCALAPPDATA\Inno Setup 6" /NOICONS /NORESTART | Out-Null
+            $iscc = "$env:LOCALAPPDATA\Inno Setup 6\iscc.exe"
           }
           & $iscc /DBuildDir="C:\remilia_build\static\Release" installer.iss
           $setupExe = Get-ChildItem -Path . -Filter "*Setup*.exe" | Select-Object -First 1
