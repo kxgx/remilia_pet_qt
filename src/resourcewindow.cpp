@@ -2,6 +2,7 @@
 #include "petwindow.h"
 #include "inappfiledialog.h"
 
+#include <QApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
