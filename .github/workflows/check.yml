@@ -95,7 +95,7 @@ jobs:
 
       - name: 13. 检查 openDirInFM 去除尾部斜杠
         run: |
-          awk /static.void.openDirInFM/,/^}/ src/petwindow.cpp > /tmp/oa.txt
+          awk /void openDirInFM/,/^}/ src/inappfiledialog.cpp > /tmp/oa.txt
           grep -q endsWith.*chop /tmp/oa.txt || { echo FAIL; exit 1; }
           echo OK
 
