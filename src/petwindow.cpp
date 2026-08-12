@@ -1517,7 +1517,7 @@ void DesktopPet::applyAutoStart()
             if (mainApp) {
                 long status = ((long (*)(id, SEL))objc_msgSend)(mainApp, sel_registerName("status"));
                 if (status != 1) { // 1 = SMAppServiceStatusEnabled
-                    ((id (*)(id, SEL, id*))objc_msgSend)(mainApp, sel_registerName("registerAndReturnError:"), nullptr);
+                    ((bool (*)(id, SEL, id*))objc_msgSend)(mainApp, sel_registerName("registerAndReturnError:"), nullptr);
                 }
                 return;
             }
@@ -1548,7 +1548,7 @@ void DesktopPet::applyAutoStart()
         if (cls) {
             id mainApp = ((id (*)(Class, SEL))objc_msgSend)(cls, sel_registerName("mainApp"));
             if (mainApp) {
-                ((id (*)(id, SEL, id*))objc_msgSend)(mainApp, sel_registerName("unregisterAndReturnError:"), nullptr);
+                ((bool (*)(id, SEL, id*))objc_msgSend)(mainApp, sel_registerName("unregisterAndReturnError:"), nullptr);
             }
         }
         // Also remove LaunchAgent plist
