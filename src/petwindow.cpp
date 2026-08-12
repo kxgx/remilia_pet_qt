@@ -57,6 +57,18 @@ static const QColor PINK(255, 141, 161);
 
 // ========== DesktopPet resource override ==========
 
+// Helper: start external process with clean environment (strip LD_LIBRARY_PATH
+// to avoid bundled libs overriding system libdbus/GLib).
+static bool startDetachedClean(const QString &program, const QStringList &args, qint64 *pid = nullptr) {
+    QProcess proc;
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.remove(QStringLiteral("LD_LIBRARY_PATH"));
+    proc.setProcessEnvironment(env);
+    proc.setProgram(program);
+    proc.setArguments(args);
+    return proc.startDetached(pid);
+}
+
 // Linux: open directory with multi-layer fallback.
 // Key constraint: avoid binaries that link against GLib (gio, nautilus, GTK-based FMs)
 // because some systems have GLib version mismatches (e.g. missing g_string_copy).
@@ -70,7 +82,7 @@ static void openDirInFM(const QString &dirPath) {
     // 1. dbus-send to FileManager1 -- pure D-Bus, no GLib dependency (unlike gio)
     //    Fire-and-forget: D-Bus activation returns immediately.
     QString uri = QString::fromUtf8("file://") + path;
-    QProcess::startDetached("dbus-send",
+    startDetachedClean("dbus-send",
             {"--session", "--dest=org.freedesktop.FileManager1",
              "--type=method_call", "/org/freedesktop/FileManager1",
              "org.freedesktop.FileManager1.ShowFolders",
@@ -86,7 +98,7 @@ static void openDirInFM(const QString &dirPath) {
 
     for (const QString &fm : qtFms) {
         pid = 0;
-        if (QProcess::startDetached(fm, {path}, QString(), &pid)) {
+        if (startDetachedClean(fm, {path}, &pid)) {
             QThread::msleep(500);
             if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
                 return;
@@ -104,7 +116,7 @@ static void openDirInFM(const QString &dirPath) {
 
     for (const QString &fm : gtkFms) {
         pid = 0;
-        if (QProcess::startDetached(fm, {path}, QString(), &pid)) {
+        if (startDetachedClean(fm, {path}, &pid)) {
             QThread::msleep(500);
             if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
                 return;
@@ -113,14 +125,14 @@ static void openDirInFM(const QString &dirPath) {
 
     // 4. gio open -- may crash on GLib-mismatched systems, kept as late fallback
     pid = 0;
-    if (QProcess::startDetached("gio", {"open", path}, QString(), &pid)) {
+    if (startDetachedClean("gio", {"open", path}, &pid)) {
         QThread::msleep(500);
         if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
             return;
     }
 
     // 5. xdg-open -- last resort
-    if (QProcess::startDetached("xdg-open", {path}))
+    if (startDetachedClean("xdg-open", {path}))
         return;
 
     // 6. All failed -- show path with install suggestion (Qt-based FMs recommended)
