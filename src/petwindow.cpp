@@ -69,31 +69,28 @@ static bool startDetachedClean(const QString &program, const QStringList &args, 
     return proc.startDetached(pid);
 }
 
-// Linux: open directory with multi-layer fallback.
-// Key constraint: avoid binaries that link against GLib (gio, nautilus, GTK-based FMs)
-// because some systems have GLib version mismatches (e.g. missing g_string_copy).
-// Strategy: dbus-send (pure D-Bus) -> Qt-based FMs -> GTK-based FMs -> gio -> xdg-open -> dialog.
+// Linux: open directory via dbus-send -> Qt-based FMs -> dialog.
+// GTK-based FMs / gio / xdg-open removed: they link GLib which may be broken.
 static void openDirInFM(const QString &dirPath) {
     QString path = dirPath;
     if (path.endsWith(QChar('/'))) path.chop(1);
 #ifdef Q_OS_LINUX
     qint64 pid = 0;
 
-    // 1. dbus-send to FileManager1 -- pure D-Bus, no GLib dependency (unlike gio)
-    //    Fire-and-forget: D-Bus activation returns immediately.
+    // 1. dbus-send to FileManager1 -- pure D-Bus, no GLib dependency
     QString uri = QString::fromUtf8("file://") + path;
     startDetachedClean("dbus-send",
             {"--session", "--dest=org.freedesktop.FileManager1",
              "--type=method_call", "/org/freedesktop/FileManager1",
              "org.freedesktop.FileManager1.ShowFolders",
-             "array:string:" + uri, "string:" + QString()});
+             "array:string:" + uri, "string:" + QString()}));
     QThread::msleep(300);
 
-    // 2. Qt-based file managers FIRST (no GLib dependency, safe on any system)
-    QString de = qEnvironmentVariable("XDG_CURRENT_DESKTOP", "").toLower();
+    // 2. Qt-based file managers (no GLib dependency)
     QStringList qtFms;
-    if (de.contains("kde"))         qtFms << "dolphin";
-    if (de.contains("lxqt"))        qtFms << "pcmanfm-qt";
+    QString de = qEnvironmentVariable("XDG_CURRENT_DESKTOP", "").toLower();
+    if (de.contains("kde"))    qtFms << "dolphin";
+    if (de.contains("lxqt"))   qtFms << "pcmanfm-qt";
     qtFms << "dolphin" << "pcmanfm-qt";
 
     for (const QString &fm : qtFms) {
@@ -105,37 +102,7 @@ static void openDirInFM(const QString &dirPath) {
         }
     }
 
-    // 3. GTK-based file managers (may fail on broken GLib systems)
-    QStringList gtkFms;
-    if (de.contains("xfce"))        gtkFms << "thunar";
-    if (de.contains("mate"))        gtkFms << "caja";
-    if (de.contains("cinnamon"))    gtkFms << "nemo";
-    if (de.contains("deepin"))      gtkFms << "dde-file-manager";
-    if (de.contains("gnome"))       gtkFms << "nautilus";
-    gtkFms << "thunar" << "caja" << "nemo" << "pcmanfm" << "nautilus";
-
-    for (const QString &fm : gtkFms) {
-        pid = 0;
-        if (startDetachedClean(fm, {path}, &pid)) {
-            QThread::msleep(500);
-            if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
-                return;
-        }
-    }
-
-    // 4. gio open -- may crash on GLib-mismatched systems, kept as late fallback
-    pid = 0;
-    if (startDetachedClean("gio", {"open", path}, &pid)) {
-        QThread::msleep(500);
-        if (pid > 0 && QFile::exists("/proc/" + QString::number(pid)))
-            return;
-    }
-
-    // 5. xdg-open -- last resort
-    if (startDetachedClean("xdg-open", {path}))
-        return;
-
-    // 6. All failed -- show path with install suggestion (Qt-based FMs recommended)
+    // 3. All failed -- suggest installing Qt-based FM
     QMessageBox::information(nullptr, QString::fromWCharArray(L"\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"),
         QString::fromWCharArray(L"\u8D44\u6E90\u76EE\u5F55:\n") + path
         + QString::fromWCharArray(L"\n\n\u5F53\u524D\u7CFB\u7EDF\u6587\u4EF6\u7BA1\u7406\u5668\u65E0\u6CD5\u4F7F\u7528\uFF0C\u5EFA\u8BAE\u5B89\u88C5:\n"
