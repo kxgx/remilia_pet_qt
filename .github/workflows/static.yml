@@ -121,7 +121,7 @@ jobs:
             $RELEASE_ID = $existing.id
             Write-Host "Using existing release: $RELEASE_ID"
           } catch {
-            $body = @{tag_name=$TAG; name="v$VERSION"; body="全平台版本"; target_commitish="master"} | ConvertTo-Json
+            $body = @{tag_name=$TAG; name="v$VERSION"; body="All platforms"; target_commitish="master"} | ConvertTo-Json
             $RESP = Invoke-RestMethod -Uri "$repo/releases" -Method Post -Headers $headers -ContentType "application/json" -Body $body
             $RELEASE_ID = $RESP.id
             Write-Host "Created release: $RELEASE_ID"
@@ -130,4 +130,4 @@ jobs:
             Write-Host "Uploading $($_.Name)..."
             Invoke-RestMethod -Uri "$repo/releases/$RELEASE_ID/assets?name=$($_.Name)" -Method Post -Headers $headers -InFile $_.FullName
           }
-          Write-Host "✅ 静态版 Gitee Release 发布完成"
+          Write-Host "Done: Gitee static release"
