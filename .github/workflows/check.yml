@@ -237,5 +237,67 @@ jobs:
           fi
           echo "OK: Unicode 字符码表与源码一致 (fromUtf8:$(wc -l < /tmp/code.txt) fromWCharArray:$(wc -l < /tmp/code_wc.txt))"
 
+      # ============================================================
+      # 六、音频 QRC alias 同步检查
+      # ============================================================
+      - name: 31. 检查 QRC 音频 alias 与 preloadSounds 一致（均为 .wav 无 .mp3）
+        run: |
+          FAIL=0
+          # 1. Extract audio filenames from preloadSounds
+          grep '"start\.wav"' src/petwindow.cpp || { echo "FAIL: start.wav not found in preloadSounds"; FAIL=1; }
+          # Extract all .wav files in preloadSounds list
+          awk '/^void DesktopPet::preloadSounds/,/^}/' src/petwindow.cpp > /tmp/ps.txt
+          wav_count=$(grep -oE '"[a-z]+\.wav"' /tmp/ps.txt | sort -u | wc -l)
+          echo "preloadSounds .wav files: $wav_count (expect 7)"
+          if [ "$wav_count" -ne 7 ]; then
+            echo "FAIL: expected 7 .wav files in preloadSounds, found $wav_count"
+            FAIL=1
+          fi
+          # 2. Verify QRC aliases: all audio aliases must be .wav, NOT .mp3
+          if grep -q 'alias="audio/[^"]*\.mp3"' resources.qrc; then
+            echo "FAIL: resources.qrc contains .mp3 audio aliases — must be .wav"
+            grep 'alias="audio/[^"]*\.mp3"' resources.qrc
+            FAIL=1
+          fi
+          # 3. Verify QRC has exactly 7 audio aliases with .wav
+          alias_count=$(grep -c 'alias="audio/[^"]*\.wav"' resources.qrc || true)
+          echo "QRC .wav aliases: $alias_count (expect 7)"
+          if [ "$alias_count" -ne 7 ]; then
+            echo "FAIL: expected 7 audio .wav aliases in resources.qrc, found $alias_count"
+            FAIL=1
+          fi
+          # 4. Cross-check: every .wav in preloadSounds has matching QRC alias
+          for f in $(grep -oE '"[a-z]+\.wav"' /tmp/ps.txt | tr -d '"' | sort -u); do
+            if ! grep -q "alias=\"audio/$f\"" resources.qrc; then
+              echo "FAIL: preloadSounds uses $f but no matching QRC alias found"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" = "1" ]; then
+            echo "请同步 resources.qrc alias 与 preloadSounds 中的音频扩展名（必须均为 .wav）"
+            exit 1
+          fi
+          echo "OK: QRC audio aliases match preloadSounds (all .wav)"
+
+      - name: 32. 检查 preloadSounds 有 QRC 提取失败的防御性日志
+        run: |
+          awk '/^void DesktopPet::preloadSounds/,/^}/' src/petwindow.cpp > /tmp/ps.txt
+          # Must have qWarning on QRC open failure
+          if ! grep -q 'qWarning.*preloadSounds.*QRC resource not found' /tmp/ps.txt; then
+            echo "FAIL: preloadSounds must log qWarning when QRC resource not found"
+            exit 1
+          fi
+          # Must have qWarning on temp file write failure
+          if ! grep -q 'qWarning.*preloadSounds.*cannot write temp' /tmp/ps.txt; then
+            echo "FAIL: preloadSounds must log qWarning when temp file write fails"
+            exit 1
+          fi
+          # Must have qWarning when temp file still missing
+          if ! grep -q 'qWarning.*preloadSounds.*temp file still missing' /tmp/ps.txt; then
+            echo "FAIL: preloadSounds must log qWarning when temp file still missing"
+            exit 1
+          fi
+          echo "OK: preloadSounds has defensive error logging"
+
       - name: 汇总
-        run: echo "✅ 全部 30 项约束检查通过"
+        run: echo "✅ 全部 32 项约束检查通过"
