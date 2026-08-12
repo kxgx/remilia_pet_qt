@@ -28,11 +28,27 @@ jobs:
       - name: 编译
         run: cmake --build C:/remilia_build/static --config Release --parallel
 
-      - name: 打包 zip
+      - name: 准备 dist-static 目录
+        run: New-Item -ItemType Directory -Force -Path dist-static
+
+      - name: 复制便携版 exe
+        run: Copy-Item C:/remilia_build/static/Release/*.exe dist-static/
+
+      - name: 编译安装器 (Inno Setup)
         run: |
-          New-Item -ItemType Directory -Force -Path dist-static
-          Copy-Item C:/remilia_build/static/Release/*.exe dist-static/
-          Compress-Archive -Path dist-static/* -DestinationPath dist-static/RemiliaPet_Qt6-win-x64-static.zip
+          $iscc = (Get-ChildItem -Path "C:\Program Files (x86)\Inno Setup 6" -Filter "iscc.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          if (-not $iscc) {
+            Write-Host "Installing Inno Setup..."
+            choco install innosetup -y --no-progress
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\iscc.exe"
+          }
+          & $iscc /DBuildDir="C:\remilia_build\static\Release" installer.iss
+          $setupExe = Get-ChildItem -Path . -Filter "*Setup*.exe" | Select-Object -First 1
+          Copy-Item $setupExe.FullName dist-static/RemiliaPet_Qt6-windows-x64-static-Setup.exe
+          Write-Host "Installer: $($setupExe.Name) -> dist-static/RemiliaPet_Qt6-windows-x64-static-Setup.exe"
+
+      - name: 打包 zip
+        run: Compress-Archive -Path dist-static/* -DestinationPath dist-static/RemiliaPet_Qt6-win-x64-static.zip
 
       - name: 上传构件
         uses: actions/upload-artifact@v6
@@ -51,16 +67,17 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: RemiliaPet_Qt6-win-x64-static
-      - name: 重命名为英文
+      - name: 解压并重命名
         run: |
-          unzip -q RemiliaPet_Qt6-win-x64-static.zip "*.exe" -d portable/
-          mv portable/*.exe RemiliaPet_Qt6-windows-x64-static.exe
+          unzip -q RemiliaPet_Qt6-win-x64-static.zip -d release/
+          mv release/蕾米埃尔桌宠_Qt6.exe RemiliaPet_Qt6-windows-x64-static.exe
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           files: |
             RemiliaPet_Qt6-win-x64-static.zip
             RemiliaPet_Qt6-windows-x64-static.exe
+            release/RemiliaPet_Qt6-windows-x64-static-Setup.exe
           draft: false
           prerelease: false
           make_latest: false

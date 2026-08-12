@@ -1,5 +1,10 @@
 ﻿; Inno Setup 安装脚本 — 蕾米埃尔桌宠
 ; 用法: iscc installer.iss
+; CI 用法: iscc /DBuildDir="C:\remilia_build\static\Release" installer.iss
+
+#ifndef BuildDir
+#define BuildDir "C:\remilia_build\static\Release"
+#endif
 
 #define MyAppName "蕾米埃尔桌宠"
 #define MyAppExeName "蕾米埃尔桌宠_Qt6.exe"
@@ -29,7 +34,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "autostart";   Description: "开机自动启动"
 
 [Files]
-Source: "E:\remilia_build\static\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#BuildDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}";          Filename: "{app}\{#MyAppExeName}"
