@@ -123,7 +123,15 @@ jobs:
           } catch {
             Write-Host "No old release to delete"
           }
-          $body = @{tag_name=$TAG; name="v$VERSION"; body="All platforms"; target_commitish="master"} | ConvertTo-Json
+          try {
+            $gh = Invoke-RestMethod -Uri "https://api.github.com/repos/kxgx/remilia_pet_qt/releases/tags/$TAG" -Headers @{Authorization="token ${{ secrets.GITHUB_TOKEN }}"}
+            $releaseBody = $gh.body
+            Write-Host "Got GitHub release body ($($releaseBody.Length) chars)"
+          } catch {
+            Write-Host "GitHub release not ready, using fallback"
+            $releaseBody = "All platforms"
+          }
+          $body = @{tag_name=$TAG; name="v$VERSION"; body=$releaseBody; target_commitish="master"} | ConvertTo-Json
           $RESP = Invoke-RestMethod -Uri "$repo/releases" -Method Post -Headers $headers -ContentType "application/json" -Body $body
           $RELEASE_ID = $RESP.id
           Write-Host "Created release: $RELEASE_ID"
