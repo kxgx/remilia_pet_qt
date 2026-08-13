@@ -605,6 +605,10 @@ jobs:
     needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64, static]
     if: always() && startsWith(github.ref, 'refs/tags/')
     runs-on: [self-hosted, Windows, X64, nas]
+    defaults:
+      run:
+        # 同 static job：NAS runner 的 ExecutionPolicy 为 Restricted，需 Bypass
+        shell: 'powershell -ExecutionPolicy Bypass -command ". ''{0}''"'
     steps:
       - uses: actions/download-artifact@v7
         with:
