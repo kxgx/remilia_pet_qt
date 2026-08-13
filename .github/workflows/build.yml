@@ -478,7 +478,10 @@ jobs:
         run: echo "C:\Program Files\Git\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: 清理源码（保留 dist-static）
-        run: git clean -xdf -e dist-static
+        run: |
+          # runner 服务账号（NETWORK SERVICE）与工作区属主（xg\xgxv）不一致时 git 报 dubious ownership
+          git config --global --add safe.directory "$env:GITHUB_WORKSPACE"
+          git clean -xdf -e dist-static
 
       - name: 配置 CMake
         run: |
