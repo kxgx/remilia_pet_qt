@@ -289,5 +289,122 @@ jobs:
           fi
           echo "OK: resolveSoundSource has defensive error logging"
 
+      # ============================================================
+      # 七、窗口缩放与跟随约束
+      # ============================================================
+      - name: 33. 检查 setState/applyScale 窗口与内容共用同一钳位尺寸
+        run: |
+          awk '/^void DesktopPet::setState/,/^}/' src/petwindow.cpp > /tmp/ss.txt
+          grep -q 'qMax(140, qMax(20, (int)(orig.width() \* m_scale)))' /tmp/ss.txt || { echo "FAIL: setState must clamp window as qMax(140, qMax(20, native*scale))"; exit 1; }
+          grep -q 'm_currentTargetSize = QSize(cw, ch)' /tmp/ss.txt || { echo "FAIL: setState content must share the clamped window size"; exit 1; }
+          awk '/^void DesktopPet::applyScale\(\)/,/^}/' src/petwindow.cpp > /tmp/as.txt
+          grep -q 'qMax(140, qMax(20, (int)(orig.width() \* m_scale)))' /tmp/as.txt || { echo "FAIL: applyScale must clamp window as qMax(140, qMax(20, native*scale))"; exit 1; }
+          grep -q 'm_currentTargetSize = QSize(cw, ch)' /tmp/as.txt || { echo "FAIL: applyScale content must share the clamped window size"; exit 1; }
+          echo "OK: setState/applyScale share one clamped window/content size"
+
+      - name: 34. 检查 applyScale 未用 m_maxNativeSize 定窗口
+        run: |
+          if grep -q 'm_maxNativeSize.width() \* m_scale' /tmp/as.txt; then
+            echo "FAIL: applyScale must not size the window by m_maxNativeSize"
+            exit 1
+          fi
+          echo "OK: applyScale uses current state native size"
+
+      - name: 35. 检查图片类侧窗等比缩放（无 200/150 独立钳位）
+        run: |
+          if grep -q 'qMax(200, (int)(native.width()' src/petwindow.cpp; then
+            echo "FAIL: side windows must not clamp width independently at 200"
+            exit 1
+          fi
+          if grep -q 'qMax(150, (int)(sw \* native.height()' src/petwindow.cpp; then
+            echo "FAIL: side windows must not clamp height independently at 150"
+            exit 1
+          fi
+          echo "OK: image side windows scale proportionally"
+
+      - name: 36. 检查 setState 尺寸变化时同步 updateSideWindowPositions
+        run: |
+          if ! grep -q 'updateSideWindowPositions();' /tmp/ss.txt; then
+            echo "FAIL: setState must call updateSideWindowPositions when the window is resized"
+            exit 1
+          fi
+          echo "OK: setState syncs side windows on resize"
+
+      - name: 37. 检查抽卡窗口与桌宠窗口等比联动
+        run: |
+          awk '/^class DrawEffectWindow/,/^};/' src/petwindow.cpp > /tmp/de.txt
+          grep -q 'm_sizeRatio' /tmp/de.txt || { echo "FAIL: DrawEffectWindow must record m_sizeRatio"; exit 1; }
+          grep -q 'm_pet->width() \* m_sizeRatio' /tmp/de.txt || { echo "FAIL: DrawEffectWindow must size by pet width * m_sizeRatio"; exit 1; }
+          echo "OK: DrawEffectWindow scales in proportion to the pet window"
+
+      # ============================================================
+      # 八、资源即时应用约束
+      # ============================================================
+      - name: 38. 检查 applyResourceChanges 为统一重载入口
+        run: |
+          grep -q '^void DesktopPet::applyResourceChanges()' src/petwindow.cpp || { echo "FAIL: applyResourceChanges() missing"; exit 1; }
+          awk '/^void DesktopPet::refreshOverrides/,/^}/' src/petwindow.cpp > /tmp/ro.txt
+          if grep -q 'setState\|m_movie' /tmp/ro.txt; then
+            echo "FAIL: refreshOverrides must be pure re-scan — GIF rebuild belongs to applyResourceChanges"
+            exit 1
+          fi
+          echo "OK: applyResourceChanges is the unified reload entry"
+
+      - name: 39. 检查 loadOverrides 在 preloadNativeSizes 之前调用
+        run: |
+          awk '/^DesktopPet::DesktopPet/,/^ }/' src/petwindow.cpp > /tmp/ctor.txt
+          LO=$(grep -n 'loadOverrides();' /tmp/ctor.txt | head -1 | cut -d: -f1 || true)
+          PN=$(grep -n 'preloadNativeSizes();' /tmp/ctor.txt | head -1 | cut -d: -f1 || true)
+          if [ -z "$LO" ] || [ -z "$PN" ] || [ "$LO" -ge "$PN" ]; then
+            echo "FAIL: loadOverrides() must run before preloadNativeSizes() in the constructor"
+            exit 1
+          fi
+          echo "OK: overrides loaded before native sizes/sounds/initial state"
+
+      - name: 40. 检查 QFileSystemWatcher 与 scheduleResourceReload 存在
+        run: |
+          grep -q 'QFileSystemWatcher' src/petwindow.cpp || { echo "FAIL: QFileSystemWatcher missing — external file changes must apply immediately"; exit 1; }
+          grep -q '^void DesktopPet::scheduleResourceReload()' src/petwindow.cpp || { echo "FAIL: scheduleResourceReload() missing"; exit 1; }
+          echo "OK: file watcher + debounced reload present"
+
+      # ============================================================
+      # 九、NAS runner 安全护栏
+      # ============================================================
+      - name: 41. 检查 NAS job 限定官方仓库（fork 拦截）
+        run: |
+          GUARD=$(grep -c "github.repository == 'kxgx/remilia_pet_qt'" .github/workflows/build.yml || true)
+          if [ "$GUARD" -lt 2 ]; then
+            echo "FAIL: static/gitee jobs must both be limited to the official repository"
+            exit 1
+          fi
+          echo "OK: NAS jobs limited to official repository"
+
+      - name: 42. 检查 NAS job 安全护栏步骤与 Bypass shell
+        run: |
+          grep -q 'SECURITY: pull_request events are not allowed' .github/workflows/build.yml || { echo "FAIL: NAS jobs must throw on pull_request events"; exit 1; }
+          grep -q 'SECURITY: only tag pushes or manual dispatch' .github/workflows/build.yml || { echo "FAIL: NAS jobs must throw on non-tag triggers"; exit 1; }
+          grep -q 'powershell -ExecutionPolicy Bypass' .github/workflows/build.yml || { echo "FAIL: NAS jobs must use -ExecutionPolicy Bypass shell"; exit 1; }
+          echo "OK: NAS jobs guarded against PR/abnormal triggers"
+
+      - name: 43. 检查工作流级最小权限（默认只读）
+        run: |
+          awk '/^permissions:/,/^jobs:/' .github/workflows/build.yml > /tmp/perm.txt
+          grep -q 'contents: read' /tmp/perm.txt || { echo "FAIL: workflow-level permissions must be contents: read"; exit 1; }
+          if grep -q 'contents: write' /tmp/perm.txt; then
+            echo "FAIL: workflow-level permissions must not grant write by default"
+            exit 1
+          fi
+          echo "OK: minimal workflow permissions (default read)"
+
+      - name: 44. 检查 NAS job run 脚本内容全 ASCII
+        run: |
+          awk '/^  static:/,/^  release:/' .github/workflows/build.yml > /tmp/nas1.txt
+          awk '/^  gitee:/,$' .github/workflows/build.yml > /tmp/nas2.txt
+          if cat /tmp/nas1.txt /tmp/nas2.txt | grep -v 'name:' | grep -v '^ *#' | grep -qP '[\x{4e00}-\x{9fff}]'; then
+            echo "FAIL: NAS job run scripts must stay ASCII (PS 5.1 ANSI decoding breaks UTF-8 Chinese)"
+            exit 1
+          fi
+          echo "OK: NAS job run scripts stay ASCII"
+
       - name: 汇总
-        run: echo "✅ 全部 32 项约束检查通过"
+        run: echo "✅ 全部 44 项约束检查通过"
