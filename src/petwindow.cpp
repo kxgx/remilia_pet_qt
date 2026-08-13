@@ -1,4 +1,7 @@
-﻿#include "petwindow.h"
+﻿// petwindow.cpp — 桌面宠物主窗口 DesktopPet 实现
+// 包含 GIF 状态机、托盘、设置、各功能侧窗类定义，以及资源覆盖目录的
+// 扫描（loadOverrides）、文件监听（QFileSystemWatcher）与即时重载（applyResourceChanges）。
+#include "petwindow.h"
 
 #include <QApplication>
 #include <QMenu>

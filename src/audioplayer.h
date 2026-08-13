@@ -1,3 +1,5 @@
+// audioplayer.h — 音效播放封装 AudioPlayer（miniaudio，零外部依赖）
+// API 兼容 QSoundEffect；多个实例共享一个全局 ma_engine，直接调用系统音频 API。
 #pragma once
 
 #include <QString>

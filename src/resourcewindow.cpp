@@ -1,3 +1,6 @@
+// resourcewindow.cpp — 资源替换窗口 ResourceWindow 实现
+// 替换文件复制到资源覆盖目录后调 DesktopPet::scheduleResourceReload() 即时生效；
+// refreshAllRows() 在外部文件变更后同步各行的替换状态。
 #include "resourcewindow.h"
 #include "petwindow.h"
 #include "inappfiledialog.h"

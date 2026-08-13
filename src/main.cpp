@@ -1,4 +1,6 @@
-﻿#include <QApplication>
+﻿// main.cpp — 程序入口
+// 初始化 QApplication（组织名/应用名/图标），创建并显示桌面宠物主窗口，进入事件循环。
+#include <QApplication>
 #include <QIcon>
 #include "petwindow.h"
 #ifdef Q_OS_MAC

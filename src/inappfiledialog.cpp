@@ -1,3 +1,6 @@
+// inappfiledialog.cpp — 内嵌文件浏览器 InAppFileDialog 实现
+// QFileSystemModel + QTreeView，支持导航历史/排序/状态栏/拖拽导入/新建/搜索/多选删除；
+// 拖放目标行高亮由内部 DropHighlightTree 子类绘制。
 #include "inappfiledialog.h"
 
 #include <QPointer>

@@ -1,4 +1,8 @@
-﻿#pragma once
+﻿// petwindow.h — 桌面宠物主窗口 DesktopPet
+// 核心：GIF 状态机（idle/click/drag/sleep/result）、托盘菜单、设置保存、
+// 抽卡/计时/画画/音量/作者声明/资源替换等功能入口，以及资源覆盖目录的加载、文件监听与即时重载。
+// 各功能侧窗类（DrawEffectWindow/DrawingEffectWindow/TimerWindow 等）定义在对应 cpp 中。
+#pragma once
 
 #include <QLabel>
 #include <QMovie>

@@ -1,3 +1,6 @@
+// inappfiledialog.h — 内嵌文件浏览器 InAppFileDialog（纯 Qt，零外部依赖）
+// 替代系统文件管理器：浏览/导入/删除/重命名/新建/搜索/多选批量操作；
+// 文件变更后发 filesChanged 信号，桌宠据此即时重载资源（openDirInFM 支持回调）。
 #ifndef INAPPFILEDIALOG_H
 #define INAPPFILEDIALOG_H
 

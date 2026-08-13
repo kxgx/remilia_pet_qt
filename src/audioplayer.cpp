@@ -1,3 +1,5 @@
+// audioplayer.cpp — AudioPlayer 实现（miniaudio 单头文件库）
+// 引擎引用计数式初始化/销毁；写入 %TEMP%/remilia_audio.log 文件日志，便于 GUI 应用排查无声问题。
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 #include "audioplayer.h"

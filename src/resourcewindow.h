@@ -1,3 +1,5 @@
+// resourcewindow.h — 资源替换窗口 ResourceWindow
+// 管理所有内置资源的覆盖替换：单个替换/全部替换/打开目录/删除，状态显示「已替换/默认」。
 #ifndef RESOURCEWINDOW_H
 #define RESOURCEWINDOW_H
 
