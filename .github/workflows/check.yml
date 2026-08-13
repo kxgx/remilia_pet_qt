@@ -399,7 +399,7 @@ jobs:
       - name: 44. 检查 NAS job run 脚本内容全 ASCII
         run: |
           awk '/^  static:/,/^  release:/' .github/workflows/build.yml > /tmp/nas1.txt
-          awk '/^  gitee:/,$' .github/workflows/build.yml > /tmp/nas2.txt
+          awk '/^  gitee:/{f=1} f' .github/workflows/build.yml > /tmp/nas2.txt
           if cat /tmp/nas1.txt /tmp/nas2.txt | grep -v 'name:' | grep -v '^ *#' | grep -qP '[\x{4e00}-\x{9fff}]'; then
             echo "FAIL: NAS job run scripts must stay ASCII (PS 5.1 ANSI decoding breaks UTF-8 Chinese)"
             exit 1
