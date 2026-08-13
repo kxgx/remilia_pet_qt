@@ -465,6 +465,12 @@ jobs:
   static:
     name: Windows x64 静态版
     runs-on: [self-hosted, Windows, X64, nas]
+    defaults:
+      run:
+        # NAS runner 的 PowerShell ExecutionPolicy 可能为 Restricted，导致步骤脚本无法加载；
+        # 统一用 Bypass 执行（根治：在 NAS 上以管理员运行
+        #   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine）
+        shell: 'powershell -ExecutionPolicy Bypass -command ". ''{0}''"'
     steps:
       - uses: actions/checkout@v5
 
