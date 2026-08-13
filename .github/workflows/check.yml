@@ -406,5 +406,19 @@ jobs:
           fi
           echo "OK: NAS job run scripts stay ASCII"
 
+      # ============================================================
+      # 十、滚轮缩放跨平台
+      # ============================================================
+      - name: 45. 检查 wheelEvent 处理 pixelDelta 且 saveSettings 防抖
+        run: |
+          awk '/^void DesktopPet::wheelEvent/,/^}/' src/petwindow.cpp > /tmp/wh.txt
+          grep -q 'pixelDelta' /tmp/wh.txt || { echo "FAIL: wheelEvent must fall back to pixelDelta (macOS/Linux trackpad momentum has zero angleDelta)"; exit 1; }
+          if grep -q 'saveSettings();' /tmp/wh.txt; then
+            echo "FAIL: wheelEvent must not call saveSettings per event — use debounced m_scaleSaveTimer"
+            exit 1
+          fi
+          grep -q 'm_scaleSaveTimer->start()' /tmp/wh.txt || { echo "FAIL: wheelEvent must debounce settings save via m_scaleSaveTimer"; exit 1; }
+          echo "OK: wheelEvent handles pixelDelta and debounces settings save"
+
       - name: 汇总
-        run: echo "✅ 全部 44 项约束检查通过"
+        run: echo "✅ 全部 45 项约束检查通过"

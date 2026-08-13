@@ -126,6 +126,7 @@ private:
     // Idle timer
     QTimer *m_idleTimer = nullptr;
     QTimer *m_scaleTimer = nullptr;
+    QTimer *m_scaleSaveTimer = nullptr; // 滚轮缩放防抖保存（500ms，避免每事件 sync QSettings）
     QTimer *m_autoSaveTimer = nullptr;
 
     // Tray

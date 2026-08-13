@@ -817,6 +817,12 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     connect(m_autoSaveTimer, &QTimer::timeout, this, &DesktopPet::saveSettings);
     m_autoSaveTimer->start();
 
+    // 滚轮缩放防抖保存：快速滚动时每个事件 sync QSettings 会在非 Windows 平台卡死 UI
+    m_scaleSaveTimer = new QTimer(this);
+    m_scaleSaveTimer->setSingleShot(true);
+    m_scaleSaveTimer->setInterval(500);
+    connect(m_scaleSaveTimer, &QTimer::timeout, this, &DesktopPet::saveSettings);
+
     setState(Idle);
 
     connect(qApp, &QApplication::aboutToQuit, this, &DesktopPet::saveSettings);
@@ -1060,7 +1066,14 @@ void DesktopPet::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void DesktopPet::wheelEvent(QWheelEvent *event) {
-    float delta = event->angleDelta().y() / 1200.0f;
+    // 高分辨率触控板/惯性滚动（macOS/Linux）快速滚动时 angleDelta 可能为 0、
+    // 只有 pixelDelta —— 必须兜底换算，否则快速滚轮缩放会突然失效。
+    float delta = 0.0f;
+    if (event->angleDelta().y() != 0)
+        delta = event->angleDelta().y() / 1200.0f;
+    else if (!event->pixelDelta().isNull())
+        delta = event->pixelDelta().y() / 1000.0f; // 100px ≈ 120°，与角度灵敏度一致
+    if (delta == 0.0f) { event->accept(); return; }
     m_scale = qBound(m_minScale, m_scale + delta, m_maxScale);
     event->accept();
     applyScaleGeometry();
@@ -1071,7 +1084,8 @@ void DesktopPet::wheelEvent(QWheelEvent *event) {
         connect(m_scaleTimer, &QTimer::timeout, this, &DesktopPet::applyScaleRender);
     }
     m_scaleTimer->start();
-    saveSettings();
+    // 防抖保存：缩放停止 500ms 后再落盘（退出时 aboutToQuit 也会保存）
+    m_scaleSaveTimer->start();
 }
 
 void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
