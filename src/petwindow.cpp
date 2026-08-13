@@ -1493,7 +1493,8 @@ void DesktopPet::loadSettings() {
 
 // 监听所有屏幕的可用区域变化：分辨率/任务栏/缩放切换时实时按比例重算位置。
 void DesktopPet::startScreenTracking() {
-    connect(QGuiApplication::instance(), &QGuiApplication::screenAdded, this, [this](QScreen *sc) {
+    // qApp 是 QApplication*（QGuiApplication 子类），可直接连接基类信号 screenAdded
+    connect(qApp, &QGuiApplication::screenAdded, this, [this](QScreen *sc) {
         connect(sc, &QScreen::availableGeometryChanged, this, &DesktopPet::onScreenGeometryChanged);
         onScreenGeometryChanged();
     });
