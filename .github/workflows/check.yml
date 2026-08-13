@@ -423,15 +423,16 @@ jobs:
       # ============================================================
       # 十一、位置保存锚点
       # ============================================================
-      - name: 46. 检查位置保存用右边缘锚点且托盘有重置位置
+      - name: 46. 检查位置按屏幕比例保存并实时跟随分辨率变化
         run: |
           awk '/^void DesktopPet::saveSettings/,/^}/' src/petwindow.cpp > /tmp/sav.txt
-          grep -q 'window/right' /tmp/sav.txt || { echo "FAIL: saveSettings must save window/right (right-edge anchor)"; exit 1; }
+          grep -q 'rightRatio' /tmp/sav.txt || { echo "FAIL: saveSettings must save rightRatio (screen-relative position)"; exit 1; }
           awk '/^void DesktopPet::loadSettings/,/^}/' src/petwindow.cpp > /tmp/lod.txt
-          grep -q 'window/right' /tmp/lod.txt || { echo "FAIL: loadSettings must restore by window/right"; exit 1; }
+          grep -q 'rightRatio' /tmp/lod.txt || { echo "FAIL: loadSettings must restore by rightRatio"; exit 1; }
+          grep -q 'availableGeometryChanged' src/petwindow.cpp || { echo "FAIL: must track screen geometry changes in real time"; exit 1; }
           awk '/^void DesktopPet::setupTrayIcon/,/^}/' src/petwindow.cpp > /tmp/tray.txt
           grep -q '重置位置' /tmp/tray.txt || { echo "FAIL: tray menu must offer reset position"; exit 1; }
-          echo "OK: right-edge position anchor + tray reset position"
+          echo "OK: screen-relative position + real-time resolution tracking + tray reset"
 
       - name: 汇总
         run: echo "✅ 全部 46 项约束检查通过"

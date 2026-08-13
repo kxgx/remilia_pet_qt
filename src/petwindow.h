@@ -64,6 +64,7 @@ protected:
 private slots:
     void checkIdle();
     void onResourceWatchChanged(const QString &path);
+    void onScreenGeometryChanged();
 
 private:
     void setState(State state);
@@ -163,6 +164,14 @@ private:
     // Resource overrides (directory-based): resourceKey -> absoluteFilePath
     QString m_resourceDir;
     QMap<QString, QString> m_resourceOverrides;
+
+    // 相对位置：按屏幕可用区域的比例保存/恢复，分辨率变化时实时重算保持相对位置不变
+    double m_rightRatio = -1.0;
+    double m_yRatio = -1.0;
+    QString m_screenName;
+    QTimer *m_screenMoveTimer = nullptr;
+    void startScreenTracking();
+    void applyRelativePosition();
 
     // Watches the resource directories so external changes apply immediately too
     QFileSystemWatcher *m_resourceWatcher = nullptr;

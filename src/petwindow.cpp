@@ -832,6 +832,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     playSound("start.wav");
     show();
 
+    startScreenTracking();
     loadSettings();
  }
 
@@ -1430,10 +1431,21 @@ void DesktopPet::closeEvent(QCloseEvent *event) {
 
 void DesktopPet::saveSettings() {
     QSettings s;
-    // 位置保存右边缘锚点：缩放/换状态都保持右边缘不动，若存左上角，
-    // 重启后（初始 Idle 宽度与保存时状态宽度不同）宠物位置会偏移。
-    s.setValue("window/right", x() + width());
-    s.setValue("window/y", y());
+    // 位置按屏幕可用区域比例保存（右边缘比例 + 顶部比例 + 屏幕名），
+    // 分辨率/屏幕大小变化后按比例重算，相对位置保持不变。
+    QScreen *sc = screen();
+    if (!sc) sc = QApplication::primaryScreen();
+    if (sc) {
+        QRect avail = sc->availableGeometry();
+        if (avail.width() > 0 && avail.height() > 0) {
+            m_rightRatio = (double)(x() + width() - avail.left()) / avail.width();
+            m_yRatio = (double)(y() - avail.top()) / avail.height();
+            m_screenName = sc->name();
+            s.setValue("window/rightRatio", m_rightRatio);
+            s.setValue("window/yRatio", m_yRatio);
+            s.setValue("window/screenName", m_screenName);
+        }
+    }
     s.setValue("window/scale", m_scale);
     s.setValue("globalVolume", m_volume);
     s.setValue("stayOnTop", m_stayOnTop);
@@ -1450,26 +1462,24 @@ void DesktopPet::loadSettings() {
         applyScale();
     }
     // 2. Position after scale (avoids applyScale overwriting saved position).
-    // Restore by RIGHT edge: every resize path anchors the right edge, so a
-    // size-independent anchor avoids offsets after restart.
-    int sRight = s.value("window/right", -1).toInt();
-    int sy = s.value("window/y", -1).toInt();
-    if (sRight < 0) {
-        // migrate old top-left based settings: right = x + width
-        int ox = s.value("window/x", -1).toInt();
-        if (ox >= 0) sRight = ox + width();
-    }
-    if (sRight >= 0 || sy >= 0) {
-        QScreen *sc = QApplication::primaryScreen();
-        if (sc) {
-            QRect avail = sc->availableGeometry();
-            // Clamp to keep at least 50px of the pet visible, don't reject edge positions
-            if (sRight < 0) sRight = width();
-            sRight = qBound(50, sRight, avail.right());
-            sy = qBound(0, sy, qMax(0, avail.bottom() - 50));
-            move(sRight - width(), sy);
+    // Screen-relative: ratios against the screen's available area, so changing
+    // resolution/screen size keeps the pet at the same relative spot.
+    m_rightRatio = s.value("window/rightRatio", -1.0).toDouble();
+    m_yRatio = s.value("window/yRatio", -1.0).toDouble();
+    m_screenName = s.value("window/screenName").toString();
+    if (m_rightRatio < 0.0) {
+        // migrate old absolute settings (window/right = x + width)
+        int sRight = s.value("window/right", -1).toInt();
+        int sy = s.value("window/y", -1).toInt();
+        QScreen *sc0 = QApplication::primaryScreen();
+        if (sc0 && sRight >= 0) {
+            QRect a0 = sc0->availableGeometry();
+            if (a0.width() > 0) m_rightRatio = (double)(sRight - a0.left()) / a0.width();
+            if (sy >= 0 && a0.height() > 0) m_yRatio = (double)(sy - a0.top()) / a0.height();
         }
     }
+    if (m_rightRatio >= 0.0 || m_yRatio >= 0.0)
+        applyRelativePosition();
     // 3. Volume
     m_volume = s.value("globalVolume", 80).toInt();
     for (auto *s : m_sounds) s->setVolume(m_volume / 100.0f);
@@ -1479,6 +1489,49 @@ void DesktopPet::loadSettings() {
     // 5. Mouse transparent — apply without toggling (toggle would flip the value back!)
     m_mouseTransparent = s.value("mouseTransparent", false).toBool();
     applyMouseTransparent();
+}
+
+// 监听所有屏幕的可用区域变化：分辨率/任务栏/缩放切换时实时按比例重算位置。
+void DesktopPet::startScreenTracking() {
+    connect(QGuiApplication::instance(), &QGuiApplication::screenAdded, this, [this](QScreen *sc) {
+        connect(sc, &QScreen::availableGeometryChanged, this, &DesktopPet::onScreenGeometryChanged);
+        onScreenGeometryChanged();
+    });
+    for (QScreen *sc : QGuiApplication::screens())
+        connect(sc, &QScreen::availableGeometryChanged, this, &DesktopPet::onScreenGeometryChanged);
+    m_screenMoveTimer = new QTimer(this);
+    m_screenMoveTimer->setSingleShot(true);
+    m_screenMoveTimer->setInterval(300); // 分辨率切换过程中的事件风暴防抖
+    connect(m_screenMoveTimer, &QTimer::timeout, this, &DesktopPet::applyRelativePosition);
+}
+
+void DesktopPet::onScreenGeometryChanged() {
+    m_screenMoveTimer->start();
+}
+
+// 按保存的比例与目标屏幕（优先保存的屏幕名，缺失回退主屏）重算绝对位置。
+void DesktopPet::applyRelativePosition() {
+    if (m_rightRatio < 0.0 && m_yRatio < 0.0) return;
+    QScreen *sc = nullptr;
+    if (!m_screenName.isEmpty()) {
+        for (QScreen *s : QGuiApplication::screens()) {
+            if (s->name() == m_screenName) { sc = s; break; }
+        }
+    }
+    if (!sc) sc = QApplication::primaryScreen();
+    if (!sc) return;
+    QRect avail = sc->availableGeometry();
+    if (avail.width() <= 0 || avail.height() <= 0) return;
+    double rr = m_rightRatio >= 0.0 ? qBound(0.0, m_rightRatio, 1.0) : 1.0;
+    double yr = m_yRatio >= 0.0 ? qBound(0.0, m_yRatio, 1.0) : 0.0;
+    // 至少 50px 可见
+    double minR = qMin(1.0, 50.0 / avail.width());
+    double maxYr = qMax(0.0, 1.0 - 50.0 / avail.height());
+    rr = qBound(minR, rr, 1.0);
+    yr = qBound(0.0, yr, maxYr);
+    move(avail.left() + (int)(rr * avail.width()) - width(),
+         avail.top() + (int)(yr * avail.height()));
+    updateSideWindowPositions();
 }
 
 void DesktopPet::setupTrayIcon() {
