@@ -1430,7 +1430,9 @@ void DesktopPet::closeEvent(QCloseEvent *event) {
 
 void DesktopPet::saveSettings() {
     QSettings s;
-    s.setValue("window/x", x());
+    // 位置保存右边缘锚点：缩放/换状态都保持右边缘不动，若存左上角，
+    // 重启后（初始 Idle 宽度与保存时状态宽度不同）宠物位置会偏移。
+    s.setValue("window/right", x() + width());
     s.setValue("window/y", y());
     s.setValue("window/scale", m_scale);
     s.setValue("globalVolume", m_volume);
@@ -1447,19 +1449,25 @@ void DesktopPet::loadSettings() {
         m_scale = qBound(m_minScale, savedScale, m_maxScale);
         applyScale();
     }
-    // 2. Position after scale (avoids applyScale overwriting saved position)
-    int sx = s.value("window/x", -1).toInt();
+    // 2. Position after scale (avoids applyScale overwriting saved position).
+    // Restore by RIGHT edge: every resize path anchors the right edge, so a
+    // size-independent anchor avoids offsets after restart.
+    int sRight = s.value("window/right", -1).toInt();
     int sy = s.value("window/y", -1).toInt();
-    if (sx >= 0 || sy >= 0) {
+    if (sRight < 0) {
+        // migrate old top-left based settings: right = x + width
+        int ox = s.value("window/x", -1).toInt();
+        if (ox >= 0) sRight = ox + width();
+    }
+    if (sRight >= 0 || sy >= 0) {
         QScreen *sc = QApplication::primaryScreen();
         if (sc) {
             QRect avail = sc->availableGeometry();
-            // Clamp to keep at least 50px visible, don't reject edge positions
-            int maxX = qMax(0, avail.right() - 50);
-            int maxY = qMax(0, avail.bottom() - 50);
-            sx = qBound(0, sx, maxX);
-            sy = qBound(0, sy, maxY);
-            move(sx, sy);
+            // Clamp to keep at least 50px of the pet visible, don't reject edge positions
+            if (sRight < 0) sRight = width();
+            sRight = qBound(50, sRight, avail.right());
+            sy = qBound(0, sy, qMax(0, avail.bottom() - 50));
+            move(sRight - width(), sy);
         }
     }
     // 3. Volume
@@ -1492,6 +1500,15 @@ void DesktopPet::setupTrayIcon() {
     m_trayMouseAction = m_trayMenu->addAction(QString::fromUtf8("鼠标穿透"));
     m_trayMouseAction->setCheckable(true);
     connect(m_trayMouseAction, &QAction::triggered, this, &DesktopPet::toggleMouseTransparent);
+    m_trayMenu->addSeparator();
+    QAction *resetPosAction = m_trayMenu->addAction(QString::fromUtf8("重置位置"));
+    connect(resetPosAction, &QAction::triggered, this, [this]() {
+        QScreen *sc = QApplication::primaryScreen();
+        if (!sc) return;
+        QRect avail = sc->availableGeometry();
+        move(qMax(0, avail.right() - width() - 30), qMax(0, avail.bottom() - height() - 30));
+        saveSettings();
+    });
     m_trayMenu->addSeparator();
     QAction *quitAction = m_trayMenu->addAction(QString::fromUtf8("退出程序"));
     connect(quitAction, &QAction::triggered, qApp, []() { qApp->exit(0); });
