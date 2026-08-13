@@ -5,6 +5,10 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+# 最小权限原则：默认只读，发布 job 单独开 write；NAS 自托管 runner 的 job 另有护栏
+permissions:
+  contents: read
+
 jobs:
   # ===================================================================
   # Windows x64
@@ -12,6 +16,9 @@ jobs:
   win-x64:
     name: Windows x64
     runs-on: windows-2022
+    permissions:
+      actions: write
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - name: 通过 aqtinstall 安装 Qt6
@@ -43,6 +50,9 @@ jobs:
   mac-x64:
     name: macOS x64 (Intel)
     runs-on: macos-26-intel
+    permissions:
+      actions: write
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - name: 通过 Homebrew 安装 Qt6
@@ -82,6 +92,9 @@ jobs:
   mac-arm64:
     name: macOS ARM64
     runs-on: macos-latest
+    permissions:
+      actions: write
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - name: 通过 Homebrew 安装 Qt6
@@ -121,6 +134,9 @@ jobs:
   linux-x64:
     name: Linux x64
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - name: 安装依赖 + Qt6
@@ -293,6 +309,9 @@ jobs:
   linux-arm64:
     name: Linux ARM64
     runs-on: ubuntu-24.04-arm
+    permissions:
+      actions: write
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - name: 安装依赖 + Qt6
@@ -464,7 +483,11 @@ jobs:
   # ===================================================================
   static:
     name: Windows x64 静态版
+    if: github.repository == 'kxgx/remilia_pet_qt'
     runs-on: [self-hosted, Windows, X64, nas]
+    permissions:
+      actions: write
+      contents: read
     defaults:
       run:
         # NAS runner 的 PowerShell ExecutionPolicy 可能为 Restricted，导致步骤脚本无法加载；
@@ -472,6 +495,10 @@ jobs:
         #   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine）
         shell: 'powershell -ExecutionPolicy Bypass -command ". ''{0}''"'
     steps:
+      - name: 安全护栏（禁止 PR / 非 tag 触发在本 runner 执行）
+        run: |
+          if ("$env:GITHUB_EVENT_NAME" -eq 'pull_request') { throw "禁止：PR 事件不允许在 NAS runner 上执行" }
+          if ("$env:GITHUB_REF" -notlike 'refs/tags/v*' -and "$env:GITHUB_EVENT_NAME" -ne 'workflow_dispatch') { throw "禁止：仅 tag 推送或手动 dispatch 允许在 NAS runner 上执行" }
       - uses: actions/checkout@v5
 
       - name: 添加 Git usr/bin 到 PATH
@@ -547,6 +574,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/download-artifact@v7
         with:
@@ -573,6 +601,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/download-artifact@v7
         with:
@@ -603,13 +632,20 @@ jobs:
   gitee:
     name: 发布到 Gitee
     needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64, static]
-    if: always() && startsWith(github.ref, 'refs/tags/')
+    if: always() && startsWith(github.ref, 'refs/tags/') && github.repository == 'kxgx/remilia_pet_qt'
     runs-on: [self-hosted, Windows, X64, nas]
+    permissions:
+      actions: read
+      contents: read
     defaults:
       run:
         # 同 static job：NAS runner 的 ExecutionPolicy 为 Restricted，需 Bypass
         shell: 'powershell -ExecutionPolicy Bypass -command ". ''{0}''"'
     steps:
+      - name: 安全护栏（禁止 PR / 非 tag 触发在本 runner 执行）
+        run: |
+          if ("$env:GITHUB_EVENT_NAME" -eq 'pull_request') { throw "禁止：PR 事件不允许在 NAS runner 上执行" }
+          if ("$env:GITHUB_REF" -notlike 'refs/tags/v*' -and "$env:GITHUB_EVENT_NAME" -ne 'workflow_dispatch') { throw "禁止：仅 tag 推送或手动 dispatch 允许在 NAS runner 上执行" }
       - uses: actions/download-artifact@v7
         with:
           pattern: RemiliaPet_Qt6-**
