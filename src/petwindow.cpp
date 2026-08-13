@@ -171,10 +171,10 @@ public:
         m_movie->jumpToFrame(0);
         QSize native = m_movie->frameRect().size();
         if (native.isValid() && native.width() > 0) {
-            int sw = qMax(200, (int)(native.width() * scale));
+            int sw = qMax(20, (int)(native.width() * scale));
             int maxW = m_pet->width() - 12;
             if (sw > maxW) sw = maxW;
-            int sh = qMax(150, (int)(sw * native.height() / native.width()));
+            int sh = qMax(20, (int)(sw * native.height() / native.width()));
             int pad = 6;
             setFixedSize(sw + pad * 2, sh + pad * 2);
             m_label->setGeometry(pad, pad, sw, sh);
@@ -195,10 +195,10 @@ public:
         m_scale = scale;
         QSize native = m_movie->frameRect().size();
         if (native.isValid() && native.width() > 0) {
-            int sw = qMax(200, (int)(native.width() * scale));
+            int sw = qMax(20, (int)(native.width() * scale));
             int maxW = m_pet->width() - 12;
             if (sw > maxW) sw = maxW;
-            int sh = qMax(150, (int)(sw * native.height() / native.width()));
+            int sh = qMax(20, (int)(sw * native.height() / native.width()));
             int pad = 6;
             setFixedSize(sw + pad * 2, sh + pad * 2);
             m_label->setGeometry(pad, pad, sw, sh);
@@ -326,10 +326,10 @@ public:
         if (pix.isNull()) { close(); return; }
         QSize native = pix.size();
         if (native.width() > 0) {
-            int sw = qMax(200, (int)(native.width() * 1.4 * m_scale));
+            int sw = qMax(20, (int)(native.width() * 1.4 * m_scale));
             int maxW = m_pet->width() - 12;
             if (sw > maxW) sw = maxW;
-            int sh = qMax(150, (int)(sw * native.height() / native.width()));
+            int sh = qMax(20, (int)(sw * native.height() / native.width()));
             int pad = 6;
             setFixedSize(sw + pad * 2, sh + pad * 2);
             m_label->setGeometry(pad, pad, sw, sh);
@@ -350,10 +350,10 @@ public:
             if (!pix.isNull()) {
                 QSize native = pix.size();
                 if (native.width() > 0) {
-                    int sw = qMax(200, (int)(native.width() * 1.4 * m_scale));
+                    int sw = qMax(20, (int)(native.width() * 1.4 * m_scale));
                     int maxW = m_pet->width() - 12;
                     if (sw > maxW) sw = maxW;
-                    int sh = qMax(150, (int)(sw * native.height() / native.width()));
+                    int sh = qMax(20, (int)(sw * native.height() / native.width()));
                     int pad = 6;
                     setFixedSize(sw + pad * 2, sh + pad * 2);
                     m_label->setGeometry(pad, pad, sw, sh);
