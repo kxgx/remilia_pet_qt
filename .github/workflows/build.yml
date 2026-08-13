@@ -497,8 +497,9 @@ jobs:
     steps:
       - name: 安全护栏（禁止 PR / 非 tag 触发在本 runner 执行）
         run: |
-          if ("$env:GITHUB_EVENT_NAME" -eq 'pull_request') { throw "禁止：PR 事件不允许在 NAS runner 上执行" }
-          if ("$env:GITHUB_REF" -notlike 'refs/tags/v*' -and "$env:GITHUB_EVENT_NAME" -ne 'workflow_dispatch') { throw "禁止：仅 tag 推送或手动 dispatch 允许在 NAS runner 上执行" }
+          # NOTE: script content must stay ASCII — Windows PowerShell 5.1 reads .ps1 as ANSI
+          if ("$env:GITHUB_EVENT_NAME" -eq 'pull_request') { throw "SECURITY: pull_request events are not allowed on the NAS runner" }
+          if ("$env:GITHUB_REF" -notlike 'refs/tags/v*' -and "$env:GITHUB_EVENT_NAME" -ne 'workflow_dispatch') { throw "SECURITY: only tag pushes or manual dispatch are allowed on the NAS runner" }
       - uses: actions/checkout@v5
 
       - name: 添加 Git usr/bin 到 PATH
@@ -644,8 +645,9 @@ jobs:
     steps:
       - name: 安全护栏（禁止 PR / 非 tag 触发在本 runner 执行）
         run: |
-          if ("$env:GITHUB_EVENT_NAME" -eq 'pull_request') { throw "禁止：PR 事件不允许在 NAS runner 上执行" }
-          if ("$env:GITHUB_REF" -notlike 'refs/tags/v*' -and "$env:GITHUB_EVENT_NAME" -ne 'workflow_dispatch') { throw "禁止：仅 tag 推送或手动 dispatch 允许在 NAS runner 上执行" }
+          # NOTE: script content must stay ASCII — Windows PowerShell 5.1 reads .ps1 as ANSI
+          if ("$env:GITHUB_EVENT_NAME" -eq 'pull_request') { throw "SECURITY: pull_request events are not allowed on the NAS runner" }
+          if ("$env:GITHUB_REF" -notlike 'refs/tags/v*' -and "$env:GITHUB_EVENT_NAME" -ne 'workflow_dispatch') { throw "SECURITY: only tag pushes or manual dispatch are allowed on the NAS runner" }
       - uses: actions/download-artifact@v7
         with:
           pattern: RemiliaPet_Qt6-**
@@ -653,7 +655,7 @@ jobs:
       - name: 解压静态版并重命名
         run: |
           Expand-Archive -Path RemiliaPet_Qt6-win-x64-static.zip -DestinationPath release/
-          $cn = Get-ChildItem release/*.exe | Where-Object { $_.Name -like '*桌宠*' }
+          $cn = Get-ChildItem release/*.exe | Where-Object { $_.Name -notlike '*Setup*' }
           if ($cn) {
             Rename-Item $cn.FullName "RemiliaPet_Qt6-windows-x64-static.exe"
             Write-Host "Renamed $($cn.Name) -> RemiliaPet_Qt6-windows-x64-static.exe"
