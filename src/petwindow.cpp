@@ -880,6 +880,8 @@ void DesktopPet::setState(State state) {
         int oldRight = x() + width();
         setFixedSize(cw, ch);
         move(oldRight - cw, y());
+        // Pet window size changed: open side windows must follow (re-scale + stick)
+        updateSideWindowPositions();
     }
     if (orig.isValid() && orig.width() > 0)
         m_currentTargetSize = QSize(cw, ch);
