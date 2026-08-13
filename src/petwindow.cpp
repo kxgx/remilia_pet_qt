@@ -179,6 +179,9 @@ public:
             setFixedSize(sw + pad * 2, sh + pad * 2);
             m_label->setGeometry(pad, pad, sw, sh);
             m_movie->setScaledSize(QSize(sw, sh));
+            // Record width ratio to the pet window; later updates follow the pet,
+            // not the wheel's m_scale directly.
+            if (m_pet->width() > 12) m_sizeRatio = (float)sw / (float)m_pet->width();
         }
         m_label->setMovie(m_movie);
         m_totalFrames = m_movie->frameCount();
@@ -195,7 +198,8 @@ public:
         m_scale = scale;
         QSize native = m_movie->frameRect().size();
         if (native.isValid() && native.width() > 0) {
-            int sw = qMax(20, (int)(native.width() * scale));
+            // 与桌宠窗口等比联动：宽度 = 宠物窗口宽 × 创建时比值，而非 draw.gif × scale
+            int sw = qMax(20, (int)(m_pet->width() * m_sizeRatio));
             int maxW = m_pet->width() - 12;
             if (sw > maxW) sw = maxW;
             int sh = qMax(20, (int)(sw * native.height() / native.width()));
@@ -302,6 +306,8 @@ private:
     QGraphicsOpacityEffect *m_opacity = nullptr;
     int m_totalFrames = 0;
     bool m_closed = false;
+    // 与桌宠窗口的宽度比值（创建时记录，之后随桌宠等比联动而非直接跟 m_scale）
+    float m_sizeRatio = 1.0f;
 };
 
 // ========== DrawingEffectWindow ==========
