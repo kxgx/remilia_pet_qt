@@ -940,7 +940,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent)
     startResourceWatcher();
 
     preloadNativeSizes();
-    setMinimumSize(140, 100);
+    setMinimumSize(100, 72);
 
     preloadSounds();
 
@@ -1051,8 +1051,8 @@ void DesktopPet::setState(State state)
     QSize orig = m_nativeSizes.value(state, m_maxNativeSize);
     // Window and painted content always share the SAME clamped size, so the
     // content fills the window at any scale (never drifts apart from it).
-    int cw = qMax(140, qMax(20, (int)(orig.width() * m_scale)));
-    int ch = qMax(100, qMax(20, (int)(orig.height() * m_scale)));
+    int cw = qMax(100, qMax(20, (int)(orig.width() * m_scale)));
+    int ch = qMax(72, qMax(20, (int)(orig.height() * m_scale)));
     if (width() != cw || height() != ch)
     {
         int oldRight = x() + width();
@@ -1100,8 +1100,8 @@ void DesktopPet::applyScale()
     // (old behavior) makes reset/startup size the window by the biggest GIF
     // while the content stays state-sized — the next wheel zoom then jumps the
     // window in the opposite direction of the zoom.
-    int cw = qMax(140, qMax(20, (int)(orig.width() * m_scale)));
-    int ch = qMax(100, qMax(20, (int)(orig.height() * m_scale)));
+    int cw = qMax(100, qMax(20, (int)(orig.width() * m_scale)));
+    int ch = qMax(72, qMax(20, (int)(orig.height() * m_scale)));
     setFixedSize(cw, ch);
     move(oldRight - cw, y());
     m_currentTargetSize = QSize(cw, ch);
@@ -1118,8 +1118,8 @@ void DesktopPet::applyScaleGeometry()
     QSize orig = m_nativeSizes.value(m_state, m_maxNativeSize);
     int cw = qMax(60, (int)(orig.width() * m_scale));
     int ch = qMax(60, (int)(cw * orig.height() / orig.width()));
-    cw = qMax(140, cw);
-    ch = qMax(100, ch);
+    cw = qMax(100, cw);
+    ch = qMax(72, ch);
     setFixedSize(cw, ch);
     move(cx - cw / 2, cy - ch / 2);
     if (orig.isValid() && orig.width() > 0)

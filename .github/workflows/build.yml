@@ -310,10 +310,10 @@ jobs:
       - name: 33. 检查 setState/applyScale 窗口与内容共用同一钳位尺寸
         run: |
           awk '/^void DesktopPet::setState/,/^}/' src/petwindow.cpp > /tmp/ss.txt
-          grep -q 'qMax(140, qMax(20, (int)(orig.width() \* m_scale)))' /tmp/ss.txt || { echo "FAIL: setState must clamp window as qMax(140, qMax(20, native*scale))"; exit 1; }
+          grep -q 'qMax(100, qMax(20, (int)(orig.width() \* m_scale)))' /tmp/ss.txt || { echo "FAIL: setState must clamp window as qMax(100, qMax(20, native*scale))"; exit 1; }
           grep -q 'm_currentTargetSize = QSize(cw, ch)' /tmp/ss.txt || { echo "FAIL: setState content must share the clamped window size"; exit 1; }
           awk '/^void DesktopPet::applyScale\(\)/,/^}/' src/petwindow.cpp > /tmp/as.txt
-          grep -q 'qMax(140, qMax(20, (int)(orig.width() \* m_scale)))' /tmp/as.txt || { echo "FAIL: applyScale must clamp window as qMax(140, qMax(20, native*scale))"; exit 1; }
+          grep -q 'qMax(100, qMax(20, (int)(orig.width() \* m_scale)))' /tmp/as.txt || { echo "FAIL: applyScale must clamp window as qMax(100, qMax(20, native*scale))"; exit 1; }
           grep -q 'm_currentTargetSize = QSize(cw, ch)' /tmp/as.txt || { echo "FAIL: applyScale content must share the clamped window size"; exit 1; }
           echo "OK: setState/applyScale share one clamped window/content size"
 
@@ -1173,11 +1173,14 @@ jobs:
           merge-multiple: true
       - name: 列出构件
         run: ls -la
+      - name: 生成校验和摘要
+        run: sha256sum RemiliaPet_Qt6-* > sums.txt
       - name: 创建 GitHub Release (动态版)
         uses: softprops/action-gh-release@v3
         with:
           files: |
             RemiliaPet_Qt6-*
+            sums.txt
           draft: false
           prerelease: false
           make_latest: true
@@ -1445,12 +1448,26 @@ jobs:
     if: always() && github.repository == 'kxgx/remilia_pet_qt'
     runs-on: ubuntu-latest
     steps:
-      - name: 校验所有平台结果
+      - name: 校验所有平台结果并生成编译摘要
         run: |
+          FAIL=0
           for r in ${{ needs.win-x64.result }} ${{ needs.mac-x64.result }} ${{ needs.mac-arm64.result }} ${{ needs.linux-x64.result }} ${{ needs.linux-arm64.result }} ${{ needs.windows-arm64.result }} ${{ needs.linux-distros.result }} ${{ needs.freebsd.result }}; do
-            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
-              echo "FAIL: one or more platform builds failed"
-              exit 1
-            fi
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then FAIL=1; fi
           done
-          echo "OK: all platform builds passed"
+          {
+            echo "## 全平台编译摘要"
+            echo ""
+            echo "| 平台 | 结果 |"
+            echo "|------|------|"
+            echo "| Windows x64 | ${{ needs.win-x64.result }} |"
+            echo "| Windows ARM64 | ${{ needs.windows-arm64.result }} |"
+            echo "| macOS x64 (Intel) | ${{ needs.mac-x64.result }} |"
+            echo "| macOS ARM64 | ${{ needs.mac-arm64.result }} |"
+            echo "| Linux x64 | ${{ needs.linux-x64.result }} |"
+            echo "| Linux ARM64 | ${{ needs.linux-arm64.result }} |"
+            echo "| Linux 15 发行版矩阵 | ${{ needs.linux-distros.result }} |"
+            echo "| FreeBSD | ${{ needs.freebsd.result }} |"
+            echo ""
+            if [ "$FAIL" = "1" ]; then echo "❌ 存在失败平台"; exit 1; fi
+            echo "✅ 全部平台编译通过"
+          } >> "$GITHUB_STEP_SUMMARY"
