@@ -6,6 +6,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
+# keyhook_mac.mm 需要 ObjC++ 语言与 C++17（Qt 6 头文件要求），仅 macOS 启用
+if(APPLE)
+    enable_language(OBJCXX)
+    set(CMAKE_OBJCXX_STANDARD 17)
+    set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
+endif()
+
 # ── Cross-platform build type detection ──────────────────────────────
 # Supported configurations:
 #   cmake -B build -DVCPKG_TARGET_TRIPLET=x64-windows-static     (Windows x64, standalone)
