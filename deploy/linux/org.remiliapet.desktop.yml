@@ -17,9 +17,9 @@ modules:
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
     post-install:
-      - install -Dm755 蕾米埃尔桌宠_Qt6 /app/bin/remilia-pet
-      - install -Dm644 deploy/linux/remilia-pet.desktop /app/share/applications/remilia-pet.desktop
-      - install -Dm644 icon.png /app/share/icons/hicolor/256x256/apps/remilia-pet.png
+      - install -Dm755 "$FLATPAK_BUILDER_BUILDDIR/蕾米埃尔桌宠_Qt6" /app/bin/remilia-pet
+      - install -Dm644 "$FLATPAK_BUILDER_BUILDDIR/deploy/linux/remilia-pet.desktop" /app/share/applications/remilia-pet.desktop
+      - install -Dm644 "$FLATPAK_BUILDER_BUILDDIR/icon.png" /app/share/icons/hicolor/256x256/apps/remilia-pet.png
     sources:
       - type: dir
         path: ../.. # dir 源相对 manifest 所在目录（deploy/linux）解析，../.. 即仓库根
