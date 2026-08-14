@@ -1,0 +1,25 @@
+# Flatpak manifest — 蕾米埃尔桌宠（CI 构建自当前检出目录）
+app-id: io.github.kxgx.remiliapet
+runtime: org.kde.Platform
+runtime-version: '6.10'
+sdk: org.kde.Sdk
+command: remilia-pet
+rename-desktop-file: remilia-pet.desktop
+rename-icon: remilia-pet
+finish-args:
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --socket=pulseaudio
+modules:
+  - name: remilia-pet
+    buildsystem: cmake
+    builddir: true
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+    post-install:
+      - install -Dm644 deploy/linux/remilia-pet.desktop /app/share/applications/remilia-pet.desktop
+      - install -Dm644 icon.png /app/share/icons/hicolor/256x256/apps/remilia-pet.png
+    sources:
+      - type: dir
+        path: .

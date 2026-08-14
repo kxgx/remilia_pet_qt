@@ -507,5 +507,21 @@ jobs:
           grep -q '检查构建是否污染仓库' .github/workflows/build.yml || { echo "FAIL: repo-clean check after build missing"; exit 1; }
           echo "OK: Werror builds + ci-passed gate + repo-clean check"
 
+      # ============================================================
+      # 十六、deskflow 级平台矩阵
+      # ============================================================
+      - name: 51. 检查 deskflow 级平台矩阵
+        run: |
+          grep -q 'windows-11-arm' .github/workflows/build.yml || { echo "FAIL: windows ARM64 job missing"; exit 1; }
+          grep -q 'vmactions/freebsd-vm' .github/workflows/build.yml || { echo "FAIL: freebsd job missing"; exit 1; }
+          grep -q 'flatpak/flatpak-github-actions' .github/workflows/build.yml || { echo "FAIL: flatpak job missing"; exit 1; }
+          [ -f deploy/linux/org.remiliapet.desktop.yml ] || { echo "FAIL: flatpak manifest missing"; exit 1; }
+          LDM=$(awk '/^  linux-distros:/,/^    steps:/' .github/workflows/build.yml | grep -c 'container:' || true)
+          if [ "$LDM" -lt 15 ]; then
+            echo "FAIL: linux distro matrix must have at least 15 container entries"
+            exit 1
+          fi
+          echo "OK: deskflow-level platform matrix present"
+
       - name: 汇总
-        run: echo "✅ 全部 50 项约束检查通过"
+        run: echo "✅ 全部 51 项约束检查通过"

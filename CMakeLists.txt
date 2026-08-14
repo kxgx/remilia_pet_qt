@@ -135,6 +135,9 @@ if(STATIC_BUILD)
     endif()
 endif()
 
+# ── Install rule (Flatpak 需要；本地安装可选) ────────────────────────
+install(TARGETS RemiliaPet RUNTIME DESTINATION bin RENAME remilia-pet)
+
 # ── Build info output ───────────────────────────────────────────────
 message(STATUS "Target:       ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "Static build: ${STATIC_BUILD}")

@@ -597,7 +597,7 @@ jobs:
   # ===================================================================
   release:
     name: 发布动态版
-    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64]
+    needs: [win-x64, win-x64-arm64, mac-x64, mac-arm64, linux-x64, linux-arm64]
     # 发布门禁：仅官方仓库的 tag 触发，PR/master push 一律不发布（防误发布）
     if: github.repository == 'kxgx/remilia_pet_qt' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
@@ -756,21 +756,168 @@ jobs:
           Write-Host "Done: Gitee release complete"
 
   # ===================================================================
-  # 质量门（同 deskflow ci-passed）：所有动态平台编译成功才算通过，
+  # Windows ARM64（同 deskflow）
+  # ===================================================================
+  windows-arm64:
+    name: Windows ARM64
+    runs-on: windows-11-arm
+    timeout-minutes: 40
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - name: 通过 aqtinstall 安装 Qt6
+        run: |
+          pip install aqtinstall
+          aqt install-qt windows desktop 6.8.2 win64_msvc2022_arm64 -m qtmultimedia -O C:/Qt
+      - name: 配置 CMake
+        run: |
+          cmake -B build -S . -G "Visual Studio 17 2022" `
+            -DCMAKE_PREFIX_PATH="C:/Qt/6.8.2/msvc2022_arm64" `
+            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+      - name: 编译
+        run: cmake --build build --config Release --parallel
+      - name: 部署 Qt 动态库
+        run: |
+          C:/Qt/6.8.2/msvc2022_arm64/bin/windeployqt build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
+      - name: 打包 zip
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Compress-Archive -Path build/Release/* -DestinationPath dist/RemiliaPet_Qt6-win-arm64.zip
+      - name: 上传构件
+        uses: actions/upload-artifact@v6
+        with:
+          name: RemiliaPet_Qt6-win-arm64
+          path: dist/
+
+  # ===================================================================
+  # Linux 发行版编译检查矩阵（同 deskflow：容器内编译，仅检查不打包）
+  # ===================================================================
+  linux-distros:
+    name: linux-${{ matrix.distro }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runs-on }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 25
+    if: github.repository == 'kxgx/remilia_pet_qt'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { distro: debian, container: 'debian:stable-slim', like: debian, arch: x86_64, runs-on: ubuntu-latest }
+          - { distro: debian, container: 'debian:stable-slim', like: debian, arch: arm64, runs-on: ubuntu-24.04-arm }
+          - { distro: debian-testing, container: 'debian:testing-slim', like: debian, arch: x86_64, runs-on: ubuntu-latest }
+          - { distro: debian-testing, container: 'debian:testing-slim', like: debian, arch: arm64, runs-on: ubuntu-24.04-arm }
+          - { distro: fedora, container: 'fedora:latest', like: fedora, arch: x86_64, runs-on: ubuntu-latest }
+          - { distro: fedora, container: 'fedora:latest', like: fedora, arch: arm64, runs-on: ubuntu-24.04-arm }
+          - { distro: fedora-rawhide, container: 'fedora:rawhide', like: fedora, arch: x86_64, runs-on: ubuntu-latest }
+          - { distro: fedora-rawhide, container: 'fedora:rawhide', like: fedora, arch: arm64, runs-on: ubuntu-24.04-arm }
+          - { distro: opensuse, container: 'opensuse/tumbleweed:latest', like: suse, arch: x86_64, runs-on: ubuntu-latest }
+          - { distro: opensuse, container: 'opensuse/tumbleweed:latest', like: suse, arch: arm64, runs-on: ubuntu-24.04-arm }
+          - { distro: archlinux, container: 'archlinux:latest', like: arch, arch: x86_64, runs-on: ubuntu-latest }
+          - { distro: ubuntu, container: 'ubuntu:latest', like: debian, arch: x86_64, runs-on: ubuntu-latest }
+          - { distro: ubuntu, container: 'ubuntu:latest', like: debian, arch: arm64, runs-on: ubuntu-24.04-arm }
+          - { distro: ubuntu-devel, container: 'ubuntu:devel', like: debian, arch: x86_64, runs-on: ubuntu-latest }
+          - { distro: ubuntu-devel, container: 'ubuntu:devel', like: debian, arch: arm64, runs-on: ubuntu-24.04-arm }
+    steps:
+      - name: 安装 git（容器无 git，先装才能 checkout）
+        run: |
+          if [ "${{ matrix.like }}" = "debian" ]; then
+            apt-get update -qq && apt-get install -y -qq git
+          elif [ "${{ matrix.like }}" = "fedora" ]; then
+            dnf install -y git
+          elif [ "${{ matrix.like }}" = "suse" ]; then
+            zypper refresh && zypper install -y --force-resolution git
+          elif [ "${{ matrix.like }}" = "arch" ]; then
+            pacman -Syu --noconfirm git
+          fi
+      - uses: actions/checkout@v5
+      - name: 安装编译依赖
+        run: |
+          if [ "${{ matrix.like }}" = "debian" ]; then
+            apt-get install -y -qq cmake build-essential ninja-build qt6-base-dev libx11-dev
+          elif [ "${{ matrix.like }}" = "fedora" ]; then
+            dnf install -y cmake make ninja-build gcc-c++ qt6-qtbase-devel libX11-devel
+          elif [ "${{ matrix.like }}" = "suse" ]; then
+            zypper install -y --force-resolution cmake make ninja gcc-c++ qt6-base-devel libX11-devel
+          elif [ "${{ matrix.like }}" = "arch" ]; then
+            pacman -Syu --noconfirm base-devel cmake ninja qt6-base libx11
+          fi
+      - name: 配置 CMake
+        run: cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+      - name: 编译
+        run: cmake --build build --parallel
+
+  # ===================================================================
+  # FreeBSD（同 deskflow：VM 内编译检查）
+  # ===================================================================
+  freebsd:
+    name: freebsd
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: github.repository == 'kxgx/remilia_pet_qt'
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build on FreeBSD
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          release: "14.4"
+          run: |
+            pkg install -y cmake ninja qt6-base libX11
+            cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+            cmake --build build --parallel
+
+  # ===================================================================
+  # Flatpak（同 deskflow）
+  # ===================================================================
+  flatpak:
+    name: flatpak-${{ matrix.arch }}
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 60
+    if: github.repository == 'kxgx/remilia_pet_qt'
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
+      options: --privileged
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runs-on: ubuntu-latest, arch: x86_64 }
+          - { runs-on: ubuntu-24.04-arm, arch: aarch64 }
+    steps:
+      - uses: actions/checkout@v5
+      - run: git config --global protocol.file.allow always
+      - name: Build
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: remilia-pet-linux-${{ matrix.arch }}.flatpak
+          manifest-path: deploy/linux/org.remiliapet.desktop.yml
+          cache-key: flatpak-builder-${{ matrix.arch }}-1
+          arch: ${{ matrix.arch }}
+          upload-artifact: false
+      - name: 上传构件
+        uses: actions/upload-artifact@v6
+        with:
+          name: remilia-pet-flatpak-${{ matrix.arch }}
+          path: remilia-pet-linux-*.flatpak
+
+  # ===================================================================
+  # 质量门（同 deskflow ci-passed）：所有平台编译成功才算通过，
   # 供分支保护规则挂载，避免逐 job 罗列。
   # ===================================================================
   ci-passed:
     name: 全平台编译通过
-    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64]
+    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64, windows-arm64, linux-distros, freebsd, flatpak]
     if: always() && github.repository == 'kxgx/remilia_pet_qt'
     runs-on: ubuntu-latest
     steps:
       - name: 校验所有平台结果
         run: |
-          for r in ${{ needs.win-x64.result }} ${{ needs.mac-x64.result }} ${{ needs.mac-arm64.result }} ${{ needs.linux-x64.result }} ${{ needs.linux-arm64.result }}; do
-            if [ "$r" != "success" ]; then
+          for r in ${{ needs.win-x64.result }} ${{ needs.mac-x64.result }} ${{ needs.mac-arm64.result }} ${{ needs.linux-x64.result }} ${{ needs.linux-arm64.result }} ${{ needs.windows-arm64.result }} ${{ needs.linux-distros.result }} ${{ needs.freebsd.result }} ${{ needs.flatpak.result }}; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
               echo "FAIL: one or more platform builds failed"
               exit 1
             fi
           done
-          echo "OK: all dynamic platform builds passed"
+          echo "OK: all platform builds passed"

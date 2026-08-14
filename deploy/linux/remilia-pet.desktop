@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Remilia Pet
+Comment=Desktop pet
+Exec=remilia-pet
+Icon=remilia-pet
+Categories=Utility;
+Terminal=false

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.kxgx.remiliapet</id>
+  <name>Remilia Pet</name>
+  <summary>Desktop pet for Remilia</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <launchable type="desktop-id">remilia-pet.desktop</launchable>
+</component>
