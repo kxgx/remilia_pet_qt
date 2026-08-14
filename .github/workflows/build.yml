@@ -529,14 +529,12 @@ jobs:
         run: |
           grep -q 'windows-11-arm' /tmp/bld.yml || { echo "FAIL: windows ARM64 job missing"; exit 1; }
           grep -q 'vmactions/freebsd-vm' /tmp/bld.yml || { echo "FAIL: freebsd job missing"; exit 1; }
-          grep -q 'flatpak/flatpak-github-actions' /tmp/bld.yml || { echo "FAIL: flatpak job missing"; exit 1; }
-          [ -f deploy/linux/org.remiliapet.desktop.yml ] || { echo "FAIL: flatpak manifest missing"; exit 1; }
           LDM=$(awk '/^  linux-distros:/,/^    steps:/' /tmp/bld.yml | grep -c 'container:' || true)
           if [ "$LDM" -lt 15 ]; then
             echo "FAIL: linux distro matrix must have at least 15 container entries"
             exit 1
           fi
-          echo "OK: deskflow-level platform matrix present"
+          echo "OK: deskflow-level platform matrix present (flatpak 暂未启用，清单保留在 deploy/linux/)
 
       # ============================================================
       # 十七、代码风格（clang-format）
@@ -1438,53 +1436,18 @@ jobs:
             cmake --build build --parallel
 
   # ===================================================================
-  # Flatpak（同 deskflow）
-  # ===================================================================
-  flatpak:
-    name: flatpak-${{ matrix.arch }}
-    needs: [checks, deepsec]
-    runs-on: ${{ matrix.runs-on }}
-    timeout-minutes: 60
-    if: github.repository == 'kxgx/remilia_pet_qt'
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.10
-      options: --privileged
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { runs-on: ubuntu-latest, arch: x86_64 }
-          - { runs-on: ubuntu-24.04-arm, arch: aarch64 }
-    steps:
-      - uses: actions/checkout@v5
-      - run: git config --global protocol.file.allow always
-      - name: Build
-        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
-        with:
-          bundle: remilia-pet-linux-${{ matrix.arch }}.flatpak
-          manifest-path: deploy/linux/org.remiliapet.desktop.yml
-          cache-key: flatpak-builder-${{ matrix.arch }}-1
-          arch: ${{ matrix.arch }}
-          upload-artifact: false
-      - name: 上传构件
-        uses: actions/upload-artifact@v6
-        with:
-          name: remilia-pet-flatpak-${{ matrix.arch }}
-          path: remilia-pet-linux-*.flatpak
-
-  # ===================================================================
   # 质量门（同 deskflow ci-passed）：所有平台编译成功才算通过，
   # 供分支保护规则挂载，避免逐 job 罗列。
   # ===================================================================
   ci-passed:
     name: 全平台编译通过
-    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64, windows-arm64, linux-distros, freebsd, flatpak]
+    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64, windows-arm64, linux-distros, freebsd]
     if: always() && github.repository == 'kxgx/remilia_pet_qt'
     runs-on: ubuntu-latest
     steps:
       - name: 校验所有平台结果
         run: |
-          for r in ${{ needs.win-x64.result }} ${{ needs.mac-x64.result }} ${{ needs.mac-arm64.result }} ${{ needs.linux-x64.result }} ${{ needs.linux-arm64.result }} ${{ needs.windows-arm64.result }} ${{ needs.linux-distros.result }} ${{ needs.freebsd.result }} ${{ needs.flatpak.result }}; do
+          for r in ${{ needs.win-x64.result }} ${{ needs.mac-x64.result }} ${{ needs.mac-arm64.result }} ${{ needs.linux-x64.result }} ${{ needs.linux-arm64.result }} ${{ needs.windows-arm64.result }} ${{ needs.linux-distros.result }} ${{ needs.freebsd.result }}; do
             if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
               echo "FAIL: one or more platform builds failed"
               exit 1
