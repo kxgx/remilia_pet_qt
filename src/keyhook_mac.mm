@@ -27,7 +27,7 @@ bool startGlobalKeyListener(GlobalKeyCallback cb)
     if (s_tap) return true;
     CGEventMask mask = CGEventMaskBit(kCGEventKeyDown);
     s_tap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap,
-                             kCGDefaultTapListenOnly, mask, s_keyEventCallback, nullptr);
+                             kCGEventTapOptionListenOnly, mask, s_keyEventCallback, nullptr);
     if (!s_tap) return false; // 未授予辅助功能权限
     s_source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, s_tap, 0);
     CFRunLoopAddSource(CFRunLoopGetMain(), s_source, kCFRunLoopCommonModes);
