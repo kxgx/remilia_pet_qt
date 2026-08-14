@@ -597,7 +597,7 @@ jobs:
   # ===================================================================
   release:
     name: 发布动态版
-    needs: [win-x64, win-x64-arm64, mac-x64, mac-arm64, linux-x64, linux-arm64]
+    needs: [win-x64, windows-arm64, mac-x64, mac-arm64, linux-x64, linux-arm64]
     # 发布门禁：仅官方仓库的 tag 触发，PR/master push 一律不发布（防误发布）
     if: github.repository == 'kxgx/remilia_pet_qt' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
