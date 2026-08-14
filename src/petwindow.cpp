@@ -1163,12 +1163,12 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
                 "QScrollBar::handle:vertical{background:#fff;border-radius:3px;min-height:20px;}"
                 "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}")
             .arg(fs).arg(pv).arg(ph).arg(mv).arg(mh).arg(ibr));
-    QFontDatabase fontDb;
     QStringList commonCN = {"微软雅黑","宋体","黑体","楷体","仿宋","等线","新宋体","幼圆","隶书","华文楷体","华文宋体","华文仿宋","华文细黑","华文新魏","华文行楷","华文中宋","方正黑体","方正书宋","方正仿宋","方正楷体","方正隶书","方正姚体","方正舒体","思源黑体","思源宋体","Microsoft YaHei","SimSun","SimHei","KaiTi","FangSong","DengXian","NSimSun","YouYuan","LiSu","Noto Sans CJK SC","Noto Serif CJK SC"};
     QStringList cjkCommon, cjkRest, other;
-    for (const QString &f : fontDb.families()) {
+    // Qt 6：用静态函数替代已弃用的 QFontDatabase 实例构造
+    for (const QString &f : QFontDatabase::families()) {
         if (commonCN.contains(f)) { cjkCommon << f; continue; }
-        QList<QFontDatabase::WritingSystem> ws = fontDb.writingSystems(f);
+        QList<QFontDatabase::WritingSystem> ws = QFontDatabase::writingSystems(f);
         bool isCJK = false;
         for (auto w : ws) {
             if (w == QFontDatabase::SimplifiedChinese || w == QFontDatabase::TraditionalChinese ||

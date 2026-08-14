@@ -2,8 +2,15 @@
 
 on:
   push:
+    branches: [master]
     tags: ['v*']
+  pull_request:
   workflow_dispatch:
+
+# 同一分支/PR 的新提交取消旧运行（deskflow 同款）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # 最小权限原则：默认只读，发布 job 单独开 write；NAS 自托管 runner 的 job 另有护栏
 permissions:
@@ -16,6 +23,7 @@ jobs:
   win-x64:
     name: Windows x64
     runs-on: windows-2022
+    timeout-minutes: 40
     permissions:
       actions: write
       contents: read
@@ -50,6 +58,7 @@ jobs:
   mac-x64:
     name: macOS x64 (Intel)
     runs-on: macos-26-intel
+    timeout-minutes: 40
     permissions:
       actions: write
       contents: read
@@ -92,6 +101,7 @@ jobs:
   mac-arm64:
     name: macOS ARM64
     runs-on: macos-latest
+    timeout-minutes: 40
     permissions:
       actions: write
       contents: read
@@ -134,6 +144,7 @@ jobs:
   linux-x64:
     name: Linux x64
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
       actions: write
       contents: read
@@ -309,6 +320,7 @@ jobs:
   linux-arm64:
     name: Linux ARM64
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 40
     permissions:
       actions: write
       contents: read
@@ -483,7 +495,8 @@ jobs:
   # ===================================================================
   static:
     name: Windows x64 静态版
-    if: github.repository == 'kxgx/remilia_pet_qt'
+    # 静态版仅 tag 触发：PR/master push 不在 NAS 自托管 runner 上执行（构建逻辑不变）
+    if: github.repository == 'kxgx/remilia_pet_qt' && startsWith(github.ref, 'refs/tags/')
     runs-on: [self-hosted, Windows, X64, nas]
     permissions:
       actions: write

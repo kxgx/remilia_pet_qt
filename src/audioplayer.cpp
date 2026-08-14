@@ -17,7 +17,7 @@ static void audioLog(const QString &msg) {
     if (!s_inited) {
         QString logPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/remilia_audio.log";
         s_logFile.setFileName(logPath);
-        s_logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
+        (void)s_logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text); // nodiscard
         s_inited = true;
     }
     if (s_logFile.isOpen()) {

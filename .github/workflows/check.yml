@@ -460,5 +460,21 @@ jobs:
           grep -q 'm_isFinishedReminding ? qMax(14, (int)(26\*scale)) : qMax(12, (int)(22\*scale))' src/petwindow.cpp || { echo "FAIL: TimerWindow scaling must refresh m_statusLabel with readable floor"; exit 1; }
           echo "OK: dynamic resource counts + key display toggles + status label scaling"
 
+      # ============================================================
+      # 十三、动态编译流程（PR 全平台编译保障）
+      # ============================================================
+      - name: 48. 检查动态全平台 PR 编译保障
+        run: |
+          grep -q 'pull_request:' .github/workflows/build.yml || { echo "FAIL: build.yml must trigger on pull_request (compile before merge)"; exit 1; }
+          grep -q 'cancel-in-progress' .github/workflows/build.yml || { echo "FAIL: build.yml must cancel superseded runs"; exit 1; }
+          awk '/^  static:/,/^    steps:/' .github/workflows/build.yml > /tmp/st.txt
+          grep -q 'refs/tags/' /tmp/st.txt || { echo "FAIL: static job must stay tag-only (protect NAS runner from PRs)"; exit 1; }
+          awk '/^  win-x64:/,/^    steps:/' .github/workflows/build.yml > /tmp/dy.txt
+          if grep -q 'refs/tags/' /tmp/dy.txt; then
+            echo "FAIL: dynamic jobs must compile on PR (no tag gating)"
+            exit 1
+          fi
+          echo "OK: PR-triggered dynamic builds + tag-only static + cancel-in-progress"
+
       - name: 汇总
-        run: echo "✅ 全部 47 项约束检查通过"
+        run: echo "✅ 全部 48 项约束检查通过"
