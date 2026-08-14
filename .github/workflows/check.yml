@@ -476,5 +476,18 @@ jobs:
           fi
           echo "OK: PR-triggered dynamic builds + tag-only static + cancel-in-progress"
 
+      # ============================================================
+      # 十四、发布门禁（防误发布）
+      # ============================================================
+      - name: 49. 检查发布 job 仅官方仓库 tag 触发（防误发布）
+        run: |
+          awk '/^  release:/,/^    runs-on:/' .github/workflows/build.yml > /tmp/rl1.txt
+          awk '/^  release-static:/,/^    runs-on:/' .github/workflows/build.yml > /tmp/rl2.txt
+          for f in /tmp/rl1.txt /tmp/rl2.txt; do
+            grep -q "github.repository == 'kxgx/remilia_pet_qt'" $f || { echo "FAIL: release jobs must require the official repository"; exit 1; }
+            grep -q 'refs/tags/' $f || { echo "FAIL: release jobs must be tag-only (prevent accidental publish on PR/master push)"; exit 1; }
+          done
+          echo "OK: release jobs gated by official repository + tag"
+
       - name: 汇总
-        run: echo "✅ 全部 48 项约束检查通过"
+        run: echo "✅ 全部 49 项约束检查通过"
