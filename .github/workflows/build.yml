@@ -1347,7 +1347,7 @@ jobs:
         run: cmake --build build --config Release --parallel
       - name: 部署 Qt 动态库
         run: |
-          "$env:QT_ROOT_DIR/bin/windeployqt" build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
+          & "$env:QT_ROOT_DIR/bin/windeployqt" build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
       - name: 打包 zip
         run: |
           New-Item -ItemType Directory -Force -Path dist
