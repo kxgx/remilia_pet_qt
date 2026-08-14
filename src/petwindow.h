@@ -24,7 +24,8 @@ class ResourceWindow;
 class KeyDisplayWindow;
 class QFileSystemWatcher;
 
-class DesktopPet : public QLabel {
+class DesktopPet : public QLabel
+{
     Q_OBJECT
 
     friend class DrawEffectWindow;
@@ -34,8 +35,15 @@ class DesktopPet : public QLabel {
     friend class AuthorWindow;
     friend class ResourceWindow;
 
-public:
-    enum State { Idle, Click, Drag, Sleep, Result };
+    public:
+    enum State
+    {
+        Idle,
+        Click,
+        Drag,
+        Sleep,
+        Result
+    };
 
     explicit DesktopPet(QWidget *parent = nullptr);
     ~DesktopPet() override;
@@ -44,8 +52,14 @@ public:
     void onDrawEffectFinished();
     void setGlobalVolume(int vol);
 
-    float scaleFactor() const { return m_scale; }
-    int globalVolume() const { return m_volume; }
+    float scaleFactor() const
+    {
+        return m_scale;
+    }
+    int globalVolume() const
+    {
+        return m_volume;
+    }
     void updateSideWindowPositions();
 
     // Re-apply resource overrides after files changed in the in-app file manager
@@ -58,7 +72,7 @@ public:
     // 键位显示：全局键盘钩子回调入口（由 petwindow.cpp 的自由函数 desktopPetHandleGlobalKey 调用）
     void onGlobalKey(const QString &text);
 
-protected:
+    protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
@@ -66,12 +80,12 @@ protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 
-private slots:
+    private slots:
     void checkIdle();
     void onResourceWatchChanged(const QString &path);
     void onScreenGeometryChanged();
 
-private:
+    private:
     void setState(State state);
     void manualPaintFrame(int frame);
     void applyScale();
@@ -124,7 +138,7 @@ private:
 
     // Audio — miniaudio directly uses WASAPI/PulseAudio/ALSA/CoreAudio
     int m_volume = 80;
-    QMap<QString, AudioPlayer*> m_sounds;
+    QMap<QString, AudioPlayer *> m_sounds;
     void preloadSounds();
     void reloadSounds();
     QString resolveSoundSource(const QString &fileName) const;
@@ -196,6 +210,4 @@ private:
     QTimer *m_resourceWatchTimer = nullptr;
     void startResourceWatcher();
     void syncResourceWatcher();
-
-
 };

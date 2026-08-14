@@ -9,18 +9,19 @@
 
 class DesktopPet;
 
-class KeyDisplayWindow : public QWidget {
+class KeyDisplayWindow : public QWidget
+{
     Q_OBJECT
-public:
+    public:
     KeyDisplayWindow(DesktopPet *pet, float scale, bool stayOnTop);
 
     void showKey(const QString &text);
     void updateScaleAndPosition(float scale);
 
-protected:
+    protected:
     void paintEvent(QPaintEvent *) override;
 
-private:
+    private:
     void positionNearPet();
 
     DesktopPet *m_pet;

@@ -13,20 +13,28 @@
 
 class DesktopPet;
 
-class ResourceWindow : public QWidget {
+class ResourceWindow : public QWidget
+{
     Q_OBJECT
-public:
+    public:
     ResourceWindow(DesktopPet *pet, float scale);
 
     void updateScaleAndPosition(float scale);
     // Refresh all row status labels/enabled states from current override state
     void refreshAllRows();
 
-protected:
+    protected:
     void paintEvent(QPaintEvent *) override;
 
-private:
-    struct ResourceDef { QString key; QString name; QString category; QString subDir; QString ext; };
+    private:
+    struct ResourceDef
+    {
+        QString key;
+        QString name;
+        QString category;
+        QString subDir;
+        QString ext;
+    };
 
     void initUi();
     void copyFileToOverride(const QString &src, const QString &subDir, const QString &baseName, const QString &ext);
@@ -45,7 +53,7 @@ private:
     QPushButton *m_replaceAllBtn = nullptr;
     QPushButton *m_openAllBtn = nullptr;
     QListWidget *m_resList = nullptr;
-    QList<QPushButton*> m_allBtns;
+    QList<QPushButton *> m_allBtns;
 };
 
 #endif // RESOURCEWINDOW_H

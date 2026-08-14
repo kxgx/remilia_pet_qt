@@ -8,8 +8,7 @@
 #include <QBrush>
 
 KeyDisplayWindow::KeyDisplayWindow(DesktopPet *pet, float scale, bool stayOnTop)
-    : QWidget(nullptr, Qt::FramelessWindowHint | (stayOnTop ? Qt::WindowStaysOnTopHint : Qt::WindowType(0)) | Qt::Tool)
-    , m_pet(pet), m_scale(scale)
+    : QWidget(nullptr, Qt::FramelessWindowHint | (stayOnTop ? Qt::WindowStaysOnTopHint : Qt::WindowType(0)) | Qt::Tool), m_pet(pet), m_scale(scale)
 {
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_DeleteOnClose);
@@ -44,7 +43,8 @@ void KeyDisplayWindow::updateScaleAndPosition(float scale)
 
 void KeyDisplayWindow::positionNearPet()
 {
-    if (!m_pet) return;
+    if (!m_pet)
+        return;
     QRect pr = m_pet->geometry();
     move(pr.x() + (pr.width() - width()) / 2, pr.y() - height() - 10);
 }

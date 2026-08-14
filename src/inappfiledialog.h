@@ -37,16 +37,17 @@ extern const QColor PINK;
 
 class DropHighlightTree;
 
-class InAppFileDialog : public QDialog {
+class InAppFileDialog : public QDialog
+{
     Q_OBJECT
-public:
+    public:
     explicit InAppFileDialog(const QString &dirPath, QWidget *parent = nullptr);
 
-signals:
+    signals:
     // Emitted after files were imported/deleted/renamed/created in this dialog
     void filesChanged();
 
-protected:
+    protected:
     void paintEvent(QPaintEvent *) override;
     void keyPressEvent(QKeyEvent *) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -55,7 +56,7 @@ protected:
     void dragLeaveEvent(QDragLeaveEvent *) override;
     void dropEvent(QDropEvent *) override;
 
-private slots:
+    private slots:
     void onDoubleClicked(const QModelIndex &idx);
     void onCustomContextMenu(const QPoint &pos);
     void navigateUp();
@@ -72,7 +73,7 @@ private slots:
     void onFilterChanged(const QString &text);
     void onSelectionChanged();
 
-private:
+    private:
     void setupUi(const QString &dirPath);
     QString currentPath() const;
     QStringList selectedPaths() const;

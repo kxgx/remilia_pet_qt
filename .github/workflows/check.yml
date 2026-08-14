@@ -457,7 +457,7 @@ jobs:
             echo "FAIL: context menu must offer key display toggle + top mode toggle"
             exit 1
           fi
-          grep -q 'm_isFinishedReminding ? qMax(14, (int)(26\*scale)) : qMax(12, (int)(22\*scale))' src/petwindow.cpp || { echo "FAIL: TimerWindow scaling must refresh m_statusLabel with readable floor"; exit 1; }
+          grep -q 'm_isFinishedReminding ? qMax(14, (int)(26 \* scale)) : qMax(12, (int)(22 \* scale))' src/petwindow.cpp || { echo "FAIL: TimerWindow scaling must refresh m_statusLabel with readable floor"; exit 1; }
           echo "OK: dynamic resource counts + key display toggles + status label scaling"
 
       # ============================================================
@@ -523,5 +523,15 @@ jobs:
           fi
           echo "OK: deskflow-level platform matrix present"
 
+      # ============================================================
+      # 十七、代码风格（clang-format）
+      # ============================================================
+      - name: 52. 检查 clang-format 代码风格
+        run: |
+          pip install clang-format==20.1.0
+          FILES=$(find src \( -name '*.cpp' -o -name '*.h' \) | grep -v miniaudio)
+          clang-format --dry-run --Werror $FILES || { echo "FAIL: code not formatted — run clang-format -i src/*.cpp src/*.h (except miniaudio.h)"; exit 1; }
+          echo "OK: clang-format style clean"
+
       - name: 汇总
-        run: echo "✅ 全部 51 项约束检查通过"
+        run: echo "✅ 全部 52 项约束检查通过"

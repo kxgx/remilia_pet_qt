@@ -1,0 +1,21 @@
+# 蕾米埃尔桌宠 — clang-format 配置（与项目现状一致：Allman 花括号 + 4 空格缩进 + Type *ptr）
+# CI 在 check.yml #52 全量校验（clang-format 20.1.0 --dry-run --Werror）
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++17
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Allman
+ColumnLimit: 0 # QSS 长字符串行无法折行，关闭自动换行
+PointerAlignment: Right
+SortIncludes: false # include 顺序保持不变（含平台 #ifdef 块）
+AccessModifierOffset: 0
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+BinPackArguments: false
+BinPackParameters: false
+SpacesBeforeTrailingComments: 1
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4

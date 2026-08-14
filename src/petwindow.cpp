@@ -89,7 +89,8 @@ QString DesktopPet::resolveResourcePath(const QString &qrcPath) const
 // 用户放入 card_56.png / drawing_16.png 这类新增编号文件即可被抽到（编号需连续）。
 int DesktopPet::numberedResourceCount(const QString &dir, const QString &base, const QString &ext) const
 {
-    for (int i = 1; i <= 999; i++) {
+    for (int i = 1; i <= 999; i++)
+    {
         QString path = resolveResourcePath(QString(":/%1/%2%3%4").arg(dir, base).arg(i).arg(ext));
         if (!QFile::exists(path))
             return i - 1;
@@ -104,17 +105,38 @@ void DesktopPet::loadOverrides()
          << QApplication::applicationDirPath() + "/resources/"
          << QApplication::applicationDirPath() + QString::fromUtf8("/\u8D44\u6E90/");
     m_resourceDir.clear();
-    for (const QString &d : cand) { if (QDir(d).exists()) { m_resourceDir = d; break; } }
-    if (m_resourceDir.isEmpty()) { m_resourceDir = cand.first(); return; }
-    struct { QByteArray sd; QByteArray ex; } m[] = {
-        {"gif",".gif"},{"audio",".wav"},{"cards",".png"},{"drawing",".png"}
-    };
-    for (auto &x : m) {
+    for (const QString &d : cand)
+    {
+        if (QDir(d).exists())
+        {
+            m_resourceDir = d;
+            break;
+        }
+    }
+    if (m_resourceDir.isEmpty())
+    {
+        m_resourceDir = cand.first();
+        return;
+    }
+    struct
+    {
+        QByteArray sd;
+        QByteArray ex;
+    } m[] = {
+        {"gif", ".gif"}, {"audio", ".wav"}, {"cards", ".png"}, {"drawing", ".png"}};
+    for (auto &x : m)
+    {
         QDir dir(m_resourceDir + x.sd);
-        if (!dir.exists()) { dir.mkpath("."); continue; }
-        for (const QString &f : dir.entryList(QDir::Files)) {
+        if (!dir.exists())
+        {
+            dir.mkpath(".");
+            continue;
+        }
+        for (const QString &f : dir.entryList(QDir::Files))
+        {
             QFileInfo fi(dir.absoluteFilePath(f));
-            if (fi.suffix().toLower() != x.ex.mid(1)) continue;
+            if (fi.suffix().toLower() != x.ex.mid(1))
+                continue;
             m_resourceOverrides[x.sd + "/" + fi.completeBaseName()] = fi.absoluteFilePath();
         }
     }
@@ -152,17 +174,23 @@ void DesktopPet::startResourceWatcher()
 // File-level watches also cover in-place overwrites on Linux (dir watches don't).
 void DesktopPet::syncResourceWatcher()
 {
-    if (!m_resourceWatcher) return;
+    if (!m_resourceWatcher)
+        return;
     QStringList paths;
     paths << m_resourceDir;
     const QStringList subDirs = {"gif", "audio", "cards", "drawing"};
-    for (const QString &s : subDirs) {
+    for (const QString &s : subDirs)
+    {
         QString d = m_resourceDir + s;
-        if (QDir(d).exists()) paths << d;
+        if (QDir(d).exists())
+            paths << d;
     }
-    for (const QString &f : m_resourceOverrides) paths << f;
-    for (const QString &p : m_resourceWatcher->directories()) m_resourceWatcher->removePath(p);
-    for (const QString &p : m_resourceWatcher->files()) m_resourceWatcher->removePath(p);
+    for (const QString &f : m_resourceOverrides)
+        paths << f;
+    for (const QString &p : m_resourceWatcher->directories())
+        m_resourceWatcher->removePath(p);
+    for (const QString &p : m_resourceWatcher->files())
+        m_resourceWatcher->removePath(p);
     m_resourceWatcher->addPaths(paths);
 }
 
@@ -173,11 +201,11 @@ void DesktopPet::onResourceWatchChanged(const QString &)
 }
 
 // ========== DrawEffectWindow ==========
-class DrawEffectWindow : public QWidget {
-public:
+class DrawEffectWindow : public QWidget
+{
+    public:
     DrawEffectWindow(DesktopPet *pet, const QString &cardsDir, float scale)
-        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool)
-        , m_pet(pet), m_cardsDir(cardsDir), m_scale(scale)
+        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool), m_pet(pet), m_cardsDir(cardsDir), m_scale(scale)
     {
         setAttribute(Qt::WA_TranslucentBackground);
         setAttribute(Qt::WA_DeleteOnClose);
@@ -190,10 +218,12 @@ public:
         m_movie = new QMovie(m_pet->resolveResourcePath(":/gif/draw.gif"), QByteArray(), this);
         m_movie->jumpToFrame(0);
         QSize native = m_movie->frameRect().size();
-        if (native.isValid() && native.width() > 0) {
+        if (native.isValid() && native.width() > 0)
+        {
             int sw = qMax(20, (int)(native.width() * scale));
             int maxW = m_pet->width() - 12;
-            if (sw > maxW) sw = maxW;
+            if (sw > maxW)
+                sw = maxW;
             int sh = qMax(20, (int)(sw * native.height() / native.width()));
             int pad = 6;
             setFixedSize(sw + pad * 2, sh + pad * 2);
@@ -201,27 +231,32 @@ public:
             m_movie->setScaledSize(QSize(sw, sh));
             // Record width ratio to the pet window; later updates follow the pet,
             // not the wheel's m_scale directly.
-            if (m_pet->width() > 12) m_sizeRatio = (float)sw / (float)m_pet->width();
+            if (m_pet->width() > 12)
+                m_sizeRatio = (float)sw / (float)m_pet->width();
         }
         m_label->setMovie(m_movie);
         m_totalFrames = m_movie->frameCount();
         connect(m_movie, &QMovie::frameChanged, this, &DrawEffectWindow::onFrameChanged);
     }
 
-    void startShow() {
+    void startShow()
+    {
         positionNearPet();
         show();
         m_movie->start();
     }
 
-    void updateScaleAndPosition(float scale) {
+    void updateScaleAndPosition(float scale)
+    {
         m_scale = scale;
         QSize native = m_movie->frameRect().size();
-        if (native.isValid() && native.width() > 0) {
+        if (native.isValid() && native.width() > 0)
+        {
             // 与桌宠窗口等比联动：宽度 = 宠物窗口宽 × 创建时比值，而非 draw.gif × scale
             int sw = qMax(20, (int)(m_pet->width() * m_sizeRatio));
             int maxW = m_pet->width() - 12;
-            if (sw > maxW) sw = maxW;
+            if (sw > maxW)
+                sw = maxW;
             int sh = qMax(20, (int)(sw * native.height() / native.width()));
             int pad = 6;
             setFixedSize(sw + pad * 2, sh + pad * 2);
@@ -234,18 +269,23 @@ public:
         positionNearPet();
     }
 
-private slots:
-    void onFrameChanged(int frame) {
-        if (m_closed) return;
-        if (m_totalFrames > 0 && frame == m_totalFrames - 1) {
+    private slots:
+    void onFrameChanged(int frame)
+    {
+        if (m_closed)
+            return;
+        if (m_totalFrames > 0 && frame == m_totalFrames - 1)
+        {
             m_movie->stop();
             revealCard();
         }
     }
 
-private:
-    void revealCard() {
-        if (m_closed) return;
+    private:
+    void revealCard()
+    {
+        if (m_closed)
+            return;
         m_pet->setState(DesktopPet::Result);
         m_pet->playSound("result.wav", false);
         m_label->setMovie(nullptr);
@@ -255,25 +295,33 @@ private:
         m_cardRevealed = true;
         renderCardContent();
         QPropertyAnimation *anim = new QPropertyAnimation(m_opacity, "opacity", this);
-        anim->setDuration(500); anim->setStartValue(0.0); anim->setEndValue(1.0);
+        anim->setDuration(500);
+        anim->setStartValue(0.0);
+        anim->setEndValue(1.0);
         anim->start(QAbstractAnimation::DeleteWhenStopped);
         QTimer::singleShot(5000, this, &DrawEffectWindow::finishDraw);
     }
 
-    void renderCardContent() {
-        if (!m_cardRevealed || m_revealedCardPath.isEmpty()) return;
+    void renderCardContent()
+    {
+        if (!m_cardRevealed || m_revealedCardPath.isEmpty())
+            return;
         QPixmap cardPix(m_revealedCardPath);
-        if (cardPix.isNull()) return;
+        if (cardPix.isNull())
+            return;
         int lw = m_label->width(), lh = m_label->height();
         int iw = (int)(lw * 0.5), ih = (int)(lh * 0.5);
-        QPixmap scaled = cardPix.scaled(QSize(qMax(5,iw), qMax(5,ih)), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        QPixmap scaled = cardPix.scaled(QSize(qMax(5, iw), qMax(5, ih)), Qt::KeepAspectRatio, Qt::SmoothTransformation);
         QPixmap canvas(lw, lh);
         canvas.fill(Qt::transparent);
         QPainter p(&canvas);
         p.setRenderHint(QPainter::Antialiasing);
-        QFont font; font.setPixelSize(qMax(6, (int)(lh*0.08))); font.setBold(true); font.setStyleStrategy(QFont::PreferAntialias);
+        QFont font;
+        font.setPixelSize(qMax(6, (int)(lh * 0.08)));
+        font.setBold(true);
+        font.setStyleStrategy(QFont::PreferAntialias);
         p.setFont(font);
-        p.setPen(QColor(255,255,255));
+        p.setPen(QColor(255, 255, 255));
         int textH = p.fontMetrics().height();
         int spacing = (int)(lh * 0.03);
         int totalH = textH + spacing + scaled.height();
@@ -281,14 +329,17 @@ private:
         QRect textR(0, startY, lw, textH);
         p.drawText(textR, Qt::AlignCenter, QString::fromUtf8("调频结果"));
         int cardY = startY + textH + spacing;
-        p.drawPixmap((lw - scaled.width())/2, cardY, scaled);
+        p.drawPixmap((lw - scaled.width()) / 2, cardY, scaled);
         p.end();
         m_label->setPixmap(canvas);
     }
 
-    void finishDraw() {
-        if (m_pet->m_effectWindow != this) return;
-        if (m_closed) return;
+    void finishDraw()
+    {
+        if (m_pet->m_effectWindow != this)
+            return;
+        if (m_closed)
+            return;
         m_pet->m_isDrawingCard = false;
         m_pet->m_idleCounter = 0;
         m_pet->m_effectWindow = nullptr;
@@ -296,23 +347,28 @@ private:
         close();
     }
 
-    void closeEvent(QCloseEvent *) override {
+    void closeEvent(QCloseEvent *) override
+    {
         m_closed = true;
-        if (m_pet) m_pet->m_effectWindow = nullptr;
+        if (m_pet)
+            m_pet->m_effectWindow = nullptr;
     }
 
-    void positionNearPet() {
-        if (m_pet) {
+    void positionNearPet()
+    {
+        if (m_pet)
+        {
             QRect pr = m_pet->geometry();
-            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height())/2);
+            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height()) / 2);
         }
     }
 
-    void paintEvent(QPaintEvent *) override {
+    void paintEvent(QPaintEvent *) override
+    {
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
-        QRectF r(2.0, 2.0, width()-4.0, height()-4.0);
-        p.setBrush(QBrush(QColor(0,0,0,255)));
+        QRectF r(2.0, 2.0, width() - 4.0, height() - 4.0);
+        p.setBrush(QBrush(QColor(0, 0, 0, 255)));
         p.setPen(QPen(PINK, 4));
         p.drawRoundedRect(r, 10, 10);
     }
@@ -332,11 +388,11 @@ private:
 };
 
 // ========== DrawingEffectWindow ==========
-class DrawingEffectWindow : public QWidget {
-public:
+class DrawingEffectWindow : public QWidget
+{
+    public:
     DrawingEffectWindow(DesktopPet *pet, const QString &drawingDir, float scale)
-        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool)
-        , m_pet(pet), m_drawingDir(drawingDir), m_scale(scale)
+        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool), m_pet(pet), m_drawingDir(drawingDir), m_scale(scale)
     {
         setAttribute(Qt::WA_TranslucentBackground);
         setAttribute(Qt::WA_DeleteOnClose);
@@ -346,17 +402,24 @@ public:
         m_label->setGraphicsEffect(m_opacity);
     }
 
-    void startShow() {
+    void startShow()
+    {
         int count = m_pet->numberedResourceCount("drawing", "drawing_", ".png");
         int num = QRandomGenerator::global()->bounded(1, qMax(1, count) + 1);
         m_drawPath = m_pet->resolveResourcePath(m_drawingDir + QString("drawing_%1.png").arg(num));
         QPixmap pix(m_drawPath);
-        if (pix.isNull()) { close(); return; }
+        if (pix.isNull())
+        {
+            close();
+            return;
+        }
         QSize native = pix.size();
-        if (native.width() > 0) {
+        if (native.width() > 0)
+        {
             int sw = qMax(20, (int)(native.width() * 1.4 * m_scale));
             int maxW = m_pet->width() - 12;
-            if (sw > maxW) sw = maxW;
+            if (sw > maxW)
+                sw = maxW;
             int sh = qMax(20, (int)(sw * native.height() / native.width()));
             int pad = 6;
             setFixedSize(sw + pad * 2, sh + pad * 2);
@@ -366,21 +429,28 @@ public:
         positionNearPet();
         show();
         QPropertyAnimation *anim = new QPropertyAnimation(m_opacity, "opacity", this);
-        anim->setDuration(500); anim->setStartValue(0.0); anim->setEndValue(1.0);
+        anim->setDuration(500);
+        anim->setStartValue(0.0);
+        anim->setEndValue(1.0);
         anim->start(QAbstractAnimation::DeleteWhenStopped);
         QTimer::singleShot(3500, this, &DrawingEffectWindow::startFadeOut);
     }
 
-    void updateScaleAndPosition(float scale) {
+    void updateScaleAndPosition(float scale)
+    {
         m_scale = scale;
-        if (!m_drawPath.isEmpty()) {
+        if (!m_drawPath.isEmpty())
+        {
             QPixmap pix(m_drawPath);
-            if (!pix.isNull()) {
+            if (!pix.isNull())
+            {
                 QSize native = pix.size();
-                if (native.width() > 0) {
+                if (native.width() > 0)
+                {
                     int sw = qMax(20, (int)(native.width() * 1.4 * m_scale));
                     int maxW = m_pet->width() - 12;
-                    if (sw > maxW) sw = maxW;
+                    if (sw > maxW)
+                        sw = maxW;
                     int sh = qMax(20, (int)(sw * native.height() / native.width()));
                     int pad = 6;
                     setFixedSize(sw + pad * 2, sh + pad * 2);
@@ -392,40 +462,49 @@ public:
         positionNearPet();
     }
 
-private slots:
-    void startFadeOut() {
-        if (m_closed) return;
+    private slots:
+    void startFadeOut()
+    {
+        if (m_closed)
+            return;
         QPropertyAnimation *anim = new QPropertyAnimation(m_opacity, "opacity", this);
-        anim->setDuration(500); anim->setStartValue(1.0); anim->setEndValue(0.0);
-        connect(anim, &QPropertyAnimation::finished, this, [this]() {
+        anim->setDuration(500);
+        anim->setStartValue(1.0);
+        anim->setEndValue(0.0);
+        connect(anim, &QPropertyAnimation::finished, this, [this]()
+                {
             if (m_closed) return;
             m_pet->m_isDrawingCard = false;
             m_pet->m_idleCounter = 0;
             m_pet->m_drawingWindow = nullptr;
             m_pet->setState(DesktopPet::Idle);
-            close();
-        });
+            close(); });
         anim->start(QAbstractAnimation::DeleteWhenStopped);
     }
 
-    void closeEvent(QCloseEvent *) override {
+    void closeEvent(QCloseEvent *) override
+    {
         m_closed = true;
-        if (m_pet) m_pet->m_drawingWindow = nullptr;
+        if (m_pet)
+            m_pet->m_drawingWindow = nullptr;
     }
 
-private:
-    void positionNearPet() {
-        if (m_pet) {
+    private:
+    void positionNearPet()
+    {
+        if (m_pet)
+        {
             QRect pr = m_pet->geometry();
-            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height())/2);
+            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height()) / 2);
         }
     }
 
-    void paintEvent(QPaintEvent *) override {
+    void paintEvent(QPaintEvent *) override
+    {
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
-        QRectF r(2.0, 2.0, width()-4.0, height()-4.0);
-        p.setBrush(QBrush(QColor(255,255,255,255)));
+        QRectF r(2.0, 2.0, width() - 4.0, height() - 4.0);
+        p.setBrush(QBrush(QColor(255, 255, 255, 255)));
         p.setPen(QPen(PINK, 4));
         p.drawRoundedRect(r, 10, 10);
     }
@@ -440,11 +519,11 @@ private:
 };
 
 // ========== TimerWindow ==========
-class TimerWindow : public QWidget {
-public:
+class TimerWindow : public QWidget
+{
+    public:
     TimerWindow(DesktopPet *pet, float scale)
-        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool)
-        , m_pet(pet), m_scale(scale)
+        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool), m_pet(pet), m_scale(scale)
     {
         setAttribute(Qt::WA_TranslucentBackground);
         m_countdownTimer = new QTimer(this);
@@ -453,35 +532,38 @@ public:
         updateScaleAndPosition(scale);
     }
 
-    void updateScaleAndPosition(float scale) {
+    void updateScaleAndPosition(float scale)
+    {
         m_scale = scale;
         int sw = qMax(250, (int)(350 * scale));
         int sh = qMax(140, (int)(190 * scale));
         setFixedSize(sw, sh);
         int pad = 12;
-        int mlr = qMax(8, (int)(12*scale)), mtb = qMax(6, (int)(9*scale));
-        m_mainLayout->setContentsMargins(pad+mlr, pad+mtb, pad+mlr, pad+mtb);
-        m_mainLayout->setSpacing(qMax(4, (int)(6*scale)));
-        int fs = qMax(12, (int)(18*scale));
+        int mlr = qMax(8, (int)(12 * scale)), mtb = qMax(6, (int)(9 * scale));
+        m_mainLayout->setContentsMargins(pad + mlr, pad + mtb, pad + mlr, pad + mtb);
+        m_mainLayout->setSpacing(qMax(4, (int)(6 * scale)));
+        int fs = qMax(12, (int)(18 * scale));
         m_titleLabel->setStyleSheet(QString("color: #FF8DA1; font-weight: bold; font-size: %1px;").arg(fs));
         m_minUnit->setStyleSheet(QString("color: #FF8DA1; font-weight: bold; font-size: %1px;").arg(fs));
         m_secUnit->setStyleSheet(QString("color: #FF8DA1; font-weight: bold; font-size: %1px;").arg(fs));
-        QString inputStyle = QString("QLineEdit{background:#222;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:2px;padding:%1px;font-size:%2px;font-weight:bold;}").arg(qMax(2,(int)(3*scale))).arg(fs);
+        QString inputStyle = QString("QLineEdit{background:#222;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:2px;padding:%1px;font-size:%2px;font-weight:bold;}").arg(qMax(2, (int)(3 * scale))).arg(fs);
         m_minInput->setStyleSheet(inputStyle);
         m_secInput->setStyleSheet(inputStyle);
-        m_confirmBtn->setStyleSheet(QString("QPushButton{background:#FF8DA1;color:#111;border-radius:2px;font-weight:bold;font-size:%1px;padding:%2px;}QPushButton:hover{background:#FFA5B5;}").arg(fs).arg(qMax(4,(int)(6*scale))));
-        int bs = qMax(18, (int)(24*scale));
+        m_confirmBtn->setStyleSheet(QString("QPushButton{background:#FF8DA1;color:#111;border-radius:2px;font-weight:bold;font-size:%1px;padding:%2px;}QPushButton:hover{background:#FFA5B5;}").arg(fs).arg(qMax(4, (int)(6 * scale))));
+        int bs = qMax(18, (int)(24 * scale));
         m_closeBtn->setFixedSize(bs, bs);
-        m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#111;}").arg(bs/2).arg(qMax(10,(int)(13*scale))));
+        m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#111;}").arg(bs / 2).arg(qMax(10, (int)(13 * scale))));
         // 状态文字也要随缩放自适应（倒计时 22*scale / 提醒文案 26*scale，下限保证最小缩放可读）
-        if (m_statusLabel && !m_statusLabel->isHidden()) {
-            int sfs = m_isFinishedReminding ? qMax(14, (int)(26*scale)) : qMax(12, (int)(22*scale));
+        if (m_statusLabel && !m_statusLabel->isHidden())
+        {
+            int sfs = m_isFinishedReminding ? qMax(14, (int)(26 * scale)) : qMax(12, (int)(22 * scale));
             m_statusLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(sfs));
         }
         positionNearPet();
     }
 
-    void stopAndCleanup() {
+    void stopAndCleanup()
+    {
         m_isRunning = false;
         m_isFinishedReminding = false;
         m_countdownTimer->stop();
@@ -490,11 +572,12 @@ public:
         m_pet->setState(DesktopPet::Idle);
     }
 
-private:
-    void initUi() {
+    private:
+    void initUi()
+    {
         m_mainLayout = new QVBoxLayout(this);
         QHBoxLayout *topBar = new QHBoxLayout();
-        topBar->setContentsMargins(0,0,0,0);
+        topBar->setContentsMargins(0, 0, 0, 0);
         m_titleLabel = new QLabel(QString::fromUtf8("\u8BBE\u5B9A\u5012\u8BA1\u65F6"), this);
         m_titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         m_closeBtn = new QPushButton(QString::fromUtf8("\u2715"), this);
@@ -506,7 +589,7 @@ private:
 
         m_inputWidget = new QWidget(this);
         QHBoxLayout *inputLay = new QHBoxLayout(m_inputWidget);
-        inputLay->setContentsMargins(0,0,0,0);
+        inputLay->setContentsMargins(0, 0, 0, 0);
         m_minInput = new QLineEdit(this);
         m_minInput->setPlaceholderText("0");
         m_minInput->setValidator(new QIntValidator(0, 999, this));
@@ -536,11 +619,13 @@ private:
         m_mainLayout->addWidget(m_statusLabel);
     }
 
-    void startCountdown() {
+    void startCountdown()
+    {
         int mins = m_minInput->text().trimmed().toInt();
         int secs = m_secInput->text().trimmed().toInt();
         int total = mins * 60 + secs;
-        if (total <= 0) return;
+        if (total <= 0)
+            return;
         m_remainingSeconds = total;
         m_isRunning = true;
         m_pet->setState(DesktopPet::Idle);
@@ -551,9 +636,11 @@ private:
         m_countdownTimer->start(1000);
     }
 
-    void updateCountdown() {
+    void updateCountdown()
+    {
         m_remainingSeconds--;
-        if (m_remainingSeconds <= 0) {
+        if (m_remainingSeconds <= 0)
+        {
             m_countdownTimer->stop();
             m_isRunning = false;
             m_isFinishedReminding = true;
@@ -563,12 +650,15 @@ private:
             int fs = qMax(14, (int)(26 * m_scale));
             m_statusLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(fs));
             m_statusLabel->setText(QString::fromUtf8("\u65F6\u95F4\u5230\u4E86\u54E6\uFF0C\u7EF3\u5320")); // 时间到了哦，绳匠
-        } else {
+        }
+        else
+        {
             updateCountdownDisplay();
         }
     }
 
-    void updateCountdownDisplay() {
+    void updateCountdownDisplay()
+    {
         int mins = m_remainingSeconds / 60;
         int secs = m_remainingSeconds % 60;
         int fs = qMax(12, (int)(22 * m_scale));
@@ -576,7 +666,8 @@ private:
         m_statusLabel->setText(QString("%1:%2").arg(mins, 2, 10, QChar('0')).arg(secs, 2, 10, QChar('0')));
     }
 
-    void closeTimer() {
+    void closeTimer()
+    {
         m_isRunning = false;
         m_isFinishedReminding = false;
         m_countdownTimer->stop();
@@ -586,18 +677,21 @@ private:
         m_pet->setState(DesktopPet::Idle);
     }
 
-    void positionNearPet() {
-        if (m_pet) {
+    void positionNearPet()
+    {
+        if (m_pet)
+        {
             QRect pr = m_pet->geometry();
-            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height())/2);
+            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height()) / 2);
         }
     }
 
-    void paintEvent(QPaintEvent *) override {
+    void paintEvent(QPaintEvent *) override
+    {
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
-        QRectF r(2.0, 2.0, width()-4.0, height()-4.0);
-        p.setBrush(QBrush(QColor(0,0,0,255)));
+        QRectF r(2.0, 2.0, width() - 4.0, height() - 4.0);
+        p.setBrush(QBrush(QColor(0, 0, 0, 255)));
         p.setPen(QPen(PINK, 4));
         p.drawRoundedRect(r, 10, 10);
     }
@@ -621,11 +715,11 @@ private:
 };
 
 // ========== VolumeSliderWindow ==========
-class VolumeSliderWindow : public QWidget {
-public:
+class VolumeSliderWindow : public QWidget
+{
+    public:
     VolumeSliderWindow(DesktopPet *pet, float scale)
-        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool)
-        , m_pet(pet), m_scale(scale)
+        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool), m_pet(pet), m_scale(scale)
     {
         setAttribute(Qt::WA_TranslucentBackground);
         setAttribute(Qt::WA_DeleteOnClose);
@@ -633,30 +727,32 @@ public:
         updateScaleAndPosition(scale);
     }
 
-    void updateScaleAndPosition(float scale) {
+    void updateScaleAndPosition(float scale)
+    {
         m_scale = scale;
         int sw = qMax(50, (int)(70 * scale));
         int sh = qMax(120, (int)(180 * scale));
         setFixedSize(sw, sh);
         int pad = 6;
-        int mlr = qMax(4, (int)(6*scale)), mtb = qMax(4, (int)(6*scale));
-        m_mainLayout->setContentsMargins(pad+mlr, pad+mtb, pad+mlr, pad+mtb);
-        m_mainLayout->setSpacing(qMax(4, (int)(6*scale)));
-        int fs = qMax(8, (int)(11*scale));
+        int mlr = qMax(4, (int)(6 * scale)), mtb = qMax(4, (int)(6 * scale));
+        m_mainLayout->setContentsMargins(pad + mlr, pad + mtb, pad + mlr, pad + mtb);
+        m_mainLayout->setSpacing(qMax(4, (int)(6 * scale)));
+        int fs = qMax(8, (int)(11 * scale));
         m_volLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(fs));
-        int bs = qMax(12, (int)(16*scale));
+        int bs = qMax(12, (int)(16 * scale));
         m_closeBtn->setFixedSize(bs, bs);
-        m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#111;}").arg(bs/2).arg(qMax(7,(int)(9*scale))));
-        int swd = qMax(8, (int)(12*scale)), hd = qMax(16, (int)(24*scale));
-        m_slider->setStyleSheet(QString("QSlider::groove:vertical{background:#222;border:1px solid #FF8DA1;width:%1px;border-radius:%2px;}QSlider::add-page:vertical{background:#FF8DA1;border-radius:%2px;}QSlider::handle:vertical{background:#FF8DA1;border:1px solid #fff;height:%3px;margin-left:-%4px;margin-right:-%4px;border-radius:%5px;}QSlider::handle:vertical:hover{background:#FFA5B5;}").arg(swd).arg(swd/2).arg(hd).arg(hd/4).arg(hd/2));
+        m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#111;}").arg(bs / 2).arg(qMax(7, (int)(9 * scale))));
+        int swd = qMax(8, (int)(12 * scale)), hd = qMax(16, (int)(24 * scale));
+        m_slider->setStyleSheet(QString("QSlider::groove:vertical{background:#222;border:1px solid #FF8DA1;width:%1px;border-radius:%2px;}QSlider::add-page:vertical{background:#FF8DA1;border-radius:%2px;}QSlider::handle:vertical{background:#FF8DA1;border:1px solid #fff;height:%3px;margin-left:-%4px;margin-right:-%4px;border-radius:%5px;}QSlider::handle:vertical:hover{background:#FFA5B5;}").arg(swd).arg(swd / 2).arg(hd).arg(hd / 4).arg(hd / 2));
         positionNearPet();
     }
 
-private:
-    void initUi() {
+    private:
+    void initUi()
+    {
         m_mainLayout = new QVBoxLayout(this);
         QHBoxLayout *topBar = new QHBoxLayout();
-        topBar->setContentsMargins(0,0,0,0);
+        topBar->setContentsMargins(0, 0, 0, 0);
         topBar->addStretch();
         m_closeBtn = new QPushButton(QString::fromUtf8("\u2715"), this);
         m_closeBtn->setCursor(Qt::PointingHandCursor);
@@ -674,28 +770,33 @@ private:
         m_mainLayout->addWidget(m_volLabel);
     }
 
-    void onVolumeChanged(int value) {
+    void onVolumeChanged(int value)
+    {
         m_volLabel->setText(QString("%1%").arg(value));
         m_pet->setGlobalVolume(value);
     }
 
-    void closeVolumeWindow() {
+    void closeVolumeWindow()
+    {
         m_pet->m_volumeWindow = nullptr;
         close();
     }
 
-    void positionNearPet() {
-        if (m_pet) {
+    void positionNearPet()
+    {
+        if (m_pet)
+        {
             QRect pr = m_pet->geometry();
-            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height())/2);
+            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height()) / 2);
         }
     }
 
-    void paintEvent(QPaintEvent *) override {
+    void paintEvent(QPaintEvent *) override
+    {
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
-        QRectF r(2.0, 2.0, width()-4.0, height()-4.0);
-        p.setBrush(QBrush(QColor(0,0,0,255)));
+        QRectF r(2.0, 2.0, width() - 4.0, height() - 4.0);
+        p.setBrush(QBrush(QColor(0, 0, 0, 255)));
         p.setPen(QPen(PINK, 4));
         p.drawRoundedRect(r, 10, 10);
     }
@@ -709,17 +810,17 @@ private:
 };
 
 // ========== AuthorWindow ==========
-class AuthorWindow : public QWidget {
-public:
+class AuthorWindow : public QWidget
+{
+    public:
     AuthorWindow(DesktopPet *pet, float scale)
-        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool)
-        , m_pet(pet), m_scale(scale)
+        : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool), m_pet(pet), m_scale(scale)
     {
         setAttribute(Qt::WA_TranslucentBackground);
         setAttribute(Qt::WA_DeleteOnClose);
         m_mainLayout = new QVBoxLayout(this);
         QHBoxLayout *topBar = new QHBoxLayout();
-        topBar->setContentsMargins(0,0,0,0);
+        topBar->setContentsMargins(0, 0, 0, 0);
         topBar->addStretch();
         m_closeBtn = new QPushButton(QString::fromUtf8("\u2715"), this);
         m_closeBtn->setCursor(Qt::PointingHandCursor);
@@ -739,56 +840,64 @@ public:
         updateScaleAndPosition(scale);
     }
 
-    void updateScaleAndPosition(float scale) {
+    void updateScaleAndPosition(float scale)
+    {
         m_scale = scale;
         int sw = qMax(200, (int)(280 * scale));
         int sh = qMax(150, (int)(200 * scale));
         setFixedSize(sw, sh);
         int pad = 6;
-        int mlr = qMax(8, (int)(12*scale)), mtb = qMax(6, (int)(9*scale));
-        m_mainLayout->setContentsMargins(pad+mlr, pad+mtb, pad+mlr, pad+mtb);
-        m_mainLayout->setSpacing(qMax(4, (int)(6*scale)));
-        int bs = qMax(12, (int)(16*scale));
+        int mlr = qMax(8, (int)(12 * scale)), mtb = qMax(6, (int)(9 * scale));
+        m_mainLayout->setContentsMargins(pad + mlr, pad + mtb, pad + mlr, pad + mtb);
+        m_mainLayout->setSpacing(qMax(4, (int)(6 * scale)));
+        int bs = qMax(12, (int)(16 * scale));
         m_closeBtn->setFixedSize(bs, bs);
-        m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#fff;}").arg(bs/2).arg(qMax(7,(int)(9*scale))));
-        if (!m_authorPix.isNull()) {
+        m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#fff;}").arg(bs / 2).arg(qMax(7, (int)(9 * scale))));
+        if (!m_authorPix.isNull())
+        {
             int iw = qMax(50, (int)(sw * 0.75));
             int ih = qMax(50, (int)(sh * 0.45));
             m_imgLabel->setPixmap(m_authorPix.scaled(iw, ih, Qt::KeepAspectRatio, Qt::SmoothTransformation));
         }
-        int fs = qMax(8, (int)(11*scale));
+        int fs = qMax(8, (int)(11 * scale));
         m_textLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(fs));
         positionNearPet();
     }
 
     // Reload author.png — the override may have changed via the file manager
-    void reloadAuthorPix() {
+    void reloadAuthorPix()
+    {
         m_authorPix = QPixmap(m_pet->resolveResourcePath(":/drawing/author.png"));
-        if (m_authorPix.isNull()) {
+        if (m_authorPix.isNull())
+        {
             m_imgLabel->clear();
             return;
         }
         updateScaleAndPosition(m_scale);
     }
 
-private:
-    void closeAuthorWindow() {
+    private:
+    void closeAuthorWindow()
+    {
         m_pet->m_authorWindow = nullptr;
         close();
     }
 
-    void positionNearPet() {
-        if (m_pet) {
+    void positionNearPet()
+    {
+        if (m_pet)
+        {
             QRect pr = m_pet->geometry();
-            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height())/2);
+            move(pr.x() + pr.width() + 10, pr.y() + (pr.height() - height()) / 2);
         }
     }
 
-    void paintEvent(QPaintEvent *) override {
+    void paintEvent(QPaintEvent *) override
+    {
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
-        QRectF r(2.0, 2.0, width()-4.0, height()-4.0);
-        p.setBrush(QBrush(QColor(255,255,255,255)));
+        QRectF r(2.0, 2.0, width() - 4.0, height() - 4.0);
+        p.setBrush(QBrush(QColor(255, 255, 255, 255)));
         p.setPen(QPen(PINK, 4));
         p.drawRoundedRect(r, 10, 10);
     }
@@ -804,7 +913,8 @@ private:
 
 // ========== DesktopPet ==========
 
-DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
+DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent)
+{
 #ifdef Q_OS_MAC
     // Qt::Tool on macOS causes transparent frameless windows to disappear when
     // mouse transparency is enabled. Qt::Dialog avoids this issue.
@@ -819,7 +929,9 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     m_drawingDir = ":/drawing/";
     m_resourceDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/RemiliaPet/resources/";
 
-    m_fontFamily = QSettings().value("fontFamily").toString(); m_fontSize = QSettings().value("fontSize", -1).toInt(); m_fontBold = QSettings().value("fontBold", true).toBool();
+    m_fontFamily = QSettings().value("fontFamily").toString();
+    m_fontSize = QSettings().value("fontSize", -1).toInt();
+    m_fontBold = QSettings().value("fontBold", true).toBool();
     m_systemDefaultFont = QApplication::font();
     applyFontPreference();
 
@@ -859,53 +971,77 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
 
     startScreenTracking();
     loadSettings();
- }
+}
 
-DesktopPet::~DesktopPet() {
-    if (m_movie) {
+DesktopPet::~DesktopPet()
+{
+    if (m_movie)
+    {
         disconnect(m_movie, &QMovie::frameChanged, this, &DesktopPet::manualPaintFrame);
         m_movie->stop();
     }
 }
 
-void DesktopPet::preloadNativeSizes() {
+void DesktopPet::preloadNativeSizes()
+{
     QStringList files = {
         resolveResourcePath(":/gif/idle.gif"),
         resolveResourcePath(":/gif/click.gif"),
         resolveResourcePath(":/gif/drag.gif"),
         resolveResourcePath(":/gif/sleep.gif"),
         resolveResourcePath(":/gif/draw.gif"),
-        resolveResourcePath(":/gif/result.gif")
-    };
+        resolveResourcePath(":/gif/result.gif")};
     State stateEnums[] = {Idle, Click, Drag, Sleep, Result, Result};
     int maxW = 0, maxH = 0, maxArea = 0;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         QMovie temp(files[i]);
         temp.jumpToFrame(0);
         QSize sz = temp.frameRect().size();
-        if (sz.isValid() && sz.width() > 0) {
+        if (sz.isValid() && sz.width() > 0)
+        {
             m_nativeSizes[stateEnums[i]] = sz;
             int area = sz.width() * sz.height();
-            if (area > maxArea) { maxArea = area; maxW = sz.width(); maxH = sz.height(); }
+            if (area > maxArea)
+            {
+                maxArea = area;
+                maxW = sz.width();
+                maxH = sz.height();
+            }
         }
     }
     m_maxNativeSize = QSize(maxW, maxH);
-    if (maxW <= 0) m_maxNativeSize = QSize(300, 300);
+    if (maxW <= 0)
+        m_maxNativeSize = QSize(300, 300);
 }
 
-void DesktopPet::setState(State state) {
-    if (m_state == state && m_movie && m_movie->state() == QMovie::Running) return;
+void DesktopPet::setState(State state)
+{
+    if (m_state == state && m_movie && m_movie->state() == QMovie::Running)
+        return;
 
     QString gifPath;
-    switch (state) {
-    case Idle:   gifPath = resolveResourcePath(":/gif/idle.gif"); break;
-    case Click:  gifPath = resolveResourcePath(":/gif/click.gif"); break;
-    case Drag:   gifPath = resolveResourcePath(":/gif/drag.gif"); break;
-    case Sleep:  gifPath = resolveResourcePath(":/gif/sleep.gif"); break;
-    case Result: gifPath = resolveResourcePath(":/gif/result.gif"); break;
+    switch (state)
+    {
+    case Idle:
+        gifPath = resolveResourcePath(":/gif/idle.gif");
+        break;
+    case Click:
+        gifPath = resolveResourcePath(":/gif/click.gif");
+        break;
+    case Drag:
+        gifPath = resolveResourcePath(":/gif/drag.gif");
+        break;
+    case Sleep:
+        gifPath = resolveResourcePath(":/gif/sleep.gif");
+        break;
+    case Result:
+        gifPath = resolveResourcePath(":/gif/result.gif");
+        break;
     }
 
-    if (m_movie) {
+    if (m_movie)
+    {
         disconnect(m_movie, &QMovie::frameChanged, this, &DesktopPet::manualPaintFrame);
         m_movie->stop();
         delete m_movie;
@@ -917,7 +1053,8 @@ void DesktopPet::setState(State state) {
     // content fills the window at any scale (never drifts apart from it).
     int cw = qMax(140, qMax(20, (int)(orig.width() * m_scale)));
     int ch = qMax(100, qMax(20, (int)(orig.height() * m_scale)));
-    if (width() != cw || height() != ch) {
+    if (width() != cw || height() != ch)
+    {
         int oldRight = x() + width();
         setFixedSize(cw, ch);
         move(oldRight - cw, y());
@@ -933,12 +1070,16 @@ void DesktopPet::setState(State state) {
     m_movie->start();
 }
 
-void DesktopPet::manualPaintFrame(int) {
-    if (!m_movie || m_currentTargetSize.isEmpty()) return;
+void DesktopPet::manualPaintFrame(int)
+{
+    if (!m_movie || m_currentTargetSize.isEmpty())
+        return;
     int cw = width(), ch = height();
-    if (cw <= 0 || ch <= 0) return;
+    if (cw <= 0 || ch <= 0)
+        return;
     QPixmap curr = m_movie->currentPixmap();
-    if (curr.isNull()) return;
+    if (curr.isNull())
+        return;
     QPixmap scaled = curr.scaled(m_currentTargetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     QPixmap canvas(cw, ch);
     canvas.fill(Qt::transparent);
@@ -949,9 +1090,11 @@ void DesktopPet::manualPaintFrame(int) {
     setPixmap(canvas);
 }
 
-void DesktopPet::applyScale() {
+void DesktopPet::applyScale()
+{
     QSize orig = m_nativeSizes.value(m_state, m_maxNativeSize);
-    if (!orig.isValid() || orig.width() <= 0) return;
+    if (!orig.isValid() || orig.width() <= 0)
+        return;
     int oldRight = x() + width();
     // Window and content share ONE clamped size. Using m_maxNativeSize here
     // (old behavior) makes reset/startup size the window by the biggest GIF
@@ -962,51 +1105,67 @@ void DesktopPet::applyScale() {
     setFixedSize(cw, ch);
     move(oldRight - cw, y());
     m_currentTargetSize = QSize(cw, ch);
-    if (m_movie) manualPaintFrame(m_movie->currentFrameNumber());
+    if (m_movie)
+        manualPaintFrame(m_movie->currentFrameNumber());
     updateSideWindowPositions();
 }
-void DesktopPet::applyScaleGeometry() {
-    if (!m_maxNativeSize.isValid()) return;
+void DesktopPet::applyScaleGeometry()
+{
+    if (!m_maxNativeSize.isValid())
+        return;
     int cx = x() + width() / 2;
     int cy = y() + height() / 2;
     QSize orig = m_nativeSizes.value(m_state, m_maxNativeSize);
     int cw = qMax(60, (int)(orig.width() * m_scale));
     int ch = qMax(60, (int)(cw * orig.height() / orig.width()));
-    cw = qMax(140, cw); ch = qMax(100, ch);
+    cw = qMax(140, cw);
+    ch = qMax(100, ch);
     setFixedSize(cw, ch);
     move(cx - cw / 2, cy - ch / 2);
-    if (orig.isValid() && orig.width() > 0) {
+    if (orig.isValid() && orig.width() > 0)
+    {
         m_currentTargetSize = QSize(cw, ch);
     }
 }
 
-void DesktopPet::applyScaleRender() {
-    if (m_movie) manualPaintFrame(m_movie->currentFrameNumber());
+void DesktopPet::applyScaleRender()
+{
+    if (m_movie)
+        manualPaintFrame(m_movie->currentFrameNumber());
     updateSideWindowPositions();
 }
 
-void DesktopPet::resetScale() {
+void DesktopPet::resetScale()
+{
     playSound("reset.wav");
     m_scale = 1.0f;
     applyScale();
     saveSettings();
 }
 
-void DesktopPet::updateSideWindowPositions() {
-    if (auto *w = dynamic_cast<DrawEffectWindow*>(m_effectWindow.data()))
-        if (w->isVisible()) w->updateScaleAndPosition(m_scale);
-    if (auto *w = dynamic_cast<TimerWindow*>(m_timerWindow.data()))
-        if (w->isVisible()) w->updateScaleAndPosition(m_scale);
-    if (auto *w = dynamic_cast<DrawingEffectWindow*>(m_drawingWindow.data()))
-        if (w->isVisible()) w->updateScaleAndPosition(m_scale);
-    if (auto *w = dynamic_cast<VolumeSliderWindow*>(m_volumeWindow.data()))
-        if (w->isVisible()) w->updateScaleAndPosition(m_scale);
-    if (auto *w = dynamic_cast<AuthorWindow*>(m_authorWindow.data()))
-        if (w->isVisible()) w->updateScaleAndPosition(m_scale);
-    if (auto *w = dynamic_cast<ResourceWindow*>(m_resourceWindow.data()))
-        if (w->isVisible()) w->updateScaleAndPosition(m_scale);
-    if (auto *w = dynamic_cast<KeyDisplayWindow*>(m_keyWindow.data()))
-        if (w->isVisible()) w->updateScaleAndPosition(m_scale);
+void DesktopPet::updateSideWindowPositions()
+{
+    if (auto *w = dynamic_cast<DrawEffectWindow *>(m_effectWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<TimerWindow *>(m_timerWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<DrawingEffectWindow *>(m_drawingWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<VolumeSliderWindow *>(m_volumeWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<AuthorWindow *>(m_authorWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<ResourceWindow *>(m_resourceWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<KeyDisplayWindow *>(m_keyWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
 }
 
 // Unified entry to re-apply overrides after files changed in the in-app file manager:
@@ -1019,53 +1178,57 @@ void DesktopPet::applyResourceChanges()
     preloadNativeSizes();
     reloadSounds();
     // Force recreate: destroy current movie so setState always reloads
-    if (m_movie) {
+    if (m_movie)
+    {
         disconnect(m_movie, &QMovie::frameChanged, this, &DesktopPet::manualPaintFrame);
         m_movie->stop();
         delete m_movie;
         m_movie = nullptr;
     }
-    setState(m_state); // pet window adapts to the new GIF native size
+    setState(m_state);           // pet window adapts to the new GIF native size
     updateSideWindowPositions(); // open side windows re-scale and stick to the pet
-    if (auto *rw = dynamic_cast<ResourceWindow*>(m_resourceWindow.data()))
+    if (auto *rw = dynamic_cast<ResourceWindow *>(m_resourceWindow.data()))
         rw->refreshAllRows();
-    if (auto *aw = dynamic_cast<AuthorWindow*>(m_authorWindow.data()))
+    if (auto *aw = dynamic_cast<AuthorWindow *>(m_authorWindow.data()))
         aw->reloadAuthorPix();
     syncResourceWatcher(); // watched override files may have changed
 }
 
 // ---------- Idle ----------
 
-void DesktopPet::checkIdle() {
-    bool anyWindowOpen = m_isDrawingCard
-        || (m_timerWindow && m_timerWindow->isVisible())
-        || (m_volumeWindow && m_volumeWindow->isVisible())
-        || (m_authorWindow && m_authorWindow->isVisible())
-        || (m_resourceWindow && m_resourceWindow->isVisible())
-        || (m_effectWindow && m_effectWindow->isVisible())
-        || (m_drawingWindow && m_drawingWindow->isVisible());
-    if (!m_dragging && !anyWindowOpen) {
+void DesktopPet::checkIdle()
+{
+    bool anyWindowOpen = m_isDrawingCard || (m_timerWindow && m_timerWindow->isVisible()) || (m_volumeWindow && m_volumeWindow->isVisible()) || (m_authorWindow && m_authorWindow->isVisible()) || (m_resourceWindow && m_resourceWindow->isVisible()) || (m_effectWindow && m_effectWindow->isVisible()) || (m_drawingWindow && m_drawingWindow->isVisible());
+    if (!m_dragging && !anyWindowOpen)
+    {
         m_idleCounter++;
-        if (m_idleCounter >= 4) setState(Sleep);
+        if (m_idleCounter >= 4)
+            setState(Sleep);
     }
 }
 
 // ---------- Mouse Events ----------
 
-void DesktopPet::mousePressEvent(QMouseEvent *event) {
-    if (event->button() == Qt::LeftButton) {
+void DesktopPet::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton)
+    {
         m_dragging = true;
         m_idleCounter = 0;
         m_dragStart = event->globalPosition().toPoint();
-        if (!m_isDrawingCard) {
+        if (!m_isDrawingCard)
+        {
             bool timerActive = m_timerWindow && m_timerWindow->isVisible();
-            if (!timerActive) setState(Drag);
+            if (!timerActive)
+                setState(Drag);
         }
     }
 }
 
-void DesktopPet::mouseMoveEvent(QMouseEvent *event) {
-    if (m_dragging && (event->buttons() & Qt::LeftButton)) {
+void DesktopPet::mouseMoveEvent(QMouseEvent *event)
+{
+    if (m_dragging && (event->buttons() & Qt::LeftButton))
+    {
         QPoint delta = event->globalPosition().toPoint() - m_dragStart;
         m_dragStart = event->globalPosition().toPoint();
         move(x() + delta.x(), y() + delta.y());
@@ -1073,27 +1236,32 @@ void DesktopPet::mouseMoveEvent(QMouseEvent *event) {
     }
 }
 
-void DesktopPet::mouseReleaseEvent(QMouseEvent *event) {
-    if (event->button() == Qt::LeftButton && m_dragging) {
+void DesktopPet::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton && m_dragging)
+    {
         m_dragging = false;
         m_idleCounter = 0;
         saveSettings();
-        if (!m_isDrawingCard) {
+        if (!m_isDrawingCard)
+        {
             bool timerActive = m_timerWindow && m_timerWindow->isVisible();
-            if (!timerActive && m_state == Drag) {
+            if (!timerActive && m_state == Drag)
+            {
                 setState(Click);
-                QTimer::singleShot(2000, this, [this]() {
+                QTimer::singleShot(2000, this, [this]()
+                                   {
                     if (!m_isDrawingCard) {
                         bool ta = m_timerWindow && m_timerWindow->isVisible();
                         if (!ta) setState(Idle);
-                    }
-                });
+                    } });
             }
         }
     }
 }
 
-void DesktopPet::wheelEvent(QWheelEvent *event) {
+void DesktopPet::wheelEvent(QWheelEvent *event)
+{
     // 高分辨率触控板/惯性滚动（macOS/Linux）快速滚动时 angleDelta 可能为 0、
     // 只有 pixelDelta —— 必须兜底换算，否则快速滚轮缩放会突然失效。
     float delta = 0.0f;
@@ -1101,11 +1269,16 @@ void DesktopPet::wheelEvent(QWheelEvent *event) {
         delta = event->angleDelta().y() / 1200.0f;
     else if (!event->pixelDelta().isNull())
         delta = event->pixelDelta().y() / 1000.0f; // 100px ≈ 120°，与角度灵敏度一致
-    if (delta == 0.0f) { event->accept(); return; }
+    if (delta == 0.0f)
+    {
+        event->accept();
+        return;
+    }
     m_scale = qBound(m_minScale, m_scale + delta, m_maxScale);
     event->accept();
     applyScaleGeometry();
-    if (!m_scaleTimer) {
+    if (!m_scaleTimer)
+    {
         m_scaleTimer = new QTimer(this);
         m_scaleTimer->setSingleShot(true);
         m_scaleTimer->setInterval(0);
@@ -1116,7 +1289,8 @@ void DesktopPet::wheelEvent(QWheelEvent *event) {
     m_scaleSaveTimer->start();
 }
 
-void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
+void DesktopPet::contextMenuEvent(QContextMenuEvent *)
+{
     QMenu menu(this);
     int fs = qMax(9, (int)(15 * m_scale));
     int pv = qMax(4, (int)(8 * m_scale));
@@ -1129,7 +1303,7 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     int bw = qMax(1, (int)(2 * m_scale));
     int smv = qMax(2, (int)(5 * m_scale));
     int smh = qMax(5, (int)(10 * m_scale));
-    menu.setStyleSheet(menuStylesheet(fs,pv,ph,mv,mh,br,ibr,mp,bw,smv,smh));
+    menu.setStyleSheet(menuStylesheet(fs, pv, ph, mv, mh, br, ibr, mp, bw, smv, smh));
 
     QAction *drawAction = menu.addAction(QString::fromUtf8("\u2728 \u5E78\u8FD0\u62BD\u5361"));
     QAction *timerAction = menu.addAction(QString::fromUtf8("\u23F0 \u95F9\u949F\u8BA1\u65F6"));
@@ -1138,7 +1312,8 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     QAction *authorAction = menu.addAction(QString::fromUtf8("\u2117 \u5236\u4F5C\u58F0\u660E"));
     QAction *resourceAction = menu.addAction(QString::fromUtf8("\U0001F4C1 \u8D44\u6E90\u66FF\u6362"));
 
-    if (m_isDrawingCard) {
+    if (m_isDrawingCard)
+    {
         drawAction->setEnabled(false);
         drawingAction->setEnabled(false);
     }
@@ -1147,7 +1322,8 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     QMenu *fontMenu = menu.addMenu("字体");
     QAction *fontDefault = fontMenu->addAction("系统默认");
     fontDefault->setCheckable(true);
-    if (m_fontFamily.isEmpty()) fontDefault->setChecked(true);
+    if (m_fontFamily.isEmpty())
+        fontDefault->setChecked(true);
     fontMenu->addSeparator();
     QWidgetAction *fontListAction = new QWidgetAction(fontMenu);
     QListWidget *fontList = new QListWidget();
@@ -1162,71 +1338,121 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
                 "QScrollBar:vertical{width:6px;background:transparent;}"
                 "QScrollBar::handle:vertical{background:#fff;border-radius:3px;min-height:20px;}"
                 "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}")
-            .arg(fs).arg(pv).arg(ph).arg(mv).arg(mh).arg(ibr));
-    QStringList commonCN = {"微软雅黑","宋体","黑体","楷体","仿宋","等线","新宋体","幼圆","隶书","华文楷体","华文宋体","华文仿宋","华文细黑","华文新魏","华文行楷","华文中宋","方正黑体","方正书宋","方正仿宋","方正楷体","方正隶书","方正姚体","方正舒体","思源黑体","思源宋体","Microsoft YaHei","SimSun","SimHei","KaiTi","FangSong","DengXian","NSimSun","YouYuan","LiSu","Noto Sans CJK SC","Noto Serif CJK SC"};
+            .arg(fs)
+            .arg(pv)
+            .arg(ph)
+            .arg(mv)
+            .arg(mh)
+            .arg(ibr));
+    QStringList commonCN = {"微软雅黑", "宋体", "黑体", "楷体", "仿宋", "等线", "新宋体", "幼圆", "隶书", "华文楷体", "华文宋体", "华文仿宋", "华文细黑", "华文新魏", "华文行楷", "华文中宋", "方正黑体", "方正书宋", "方正仿宋", "方正楷体", "方正隶书", "方正姚体", "方正舒体", "思源黑体", "思源宋体", "Microsoft YaHei", "SimSun", "SimHei", "KaiTi", "FangSong", "DengXian", "NSimSun", "YouYuan", "LiSu", "Noto Sans CJK SC", "Noto Serif CJK SC"};
     QStringList cjkCommon, cjkRest, other;
     // Qt 6：用静态函数替代已弃用的 QFontDatabase 实例构造
-    for (const QString &f : QFontDatabase::families()) {
-        if (commonCN.contains(f)) { cjkCommon << f; continue; }
+    for (const QString &f : QFontDatabase::families())
+    {
+        if (commonCN.contains(f))
+        {
+            cjkCommon << f;
+            continue;
+        }
         QList<QFontDatabase::WritingSystem> ws = QFontDatabase::writingSystems(f);
         bool isCJK = false;
-        for (auto w : ws) {
+        for (auto w : ws)
+        {
             if (w == QFontDatabase::SimplifiedChinese || w == QFontDatabase::TraditionalChinese ||
                 w == QFontDatabase::Japanese || w == QFontDatabase::Korean)
-            { isCJK = true; break; }
+            {
+                isCJK = true;
+                break;
+            }
         }
-        if (isCJK) cjkRest << f; else other << f;
+        if (isCJK)
+            cjkRest << f;
+        else
+            other << f;
     }
-    auto addHeader = [&](const QString &title) {
+    auto addHeader = [&](const QString &title)
+    {
         QListWidgetItem *h = new QListWidgetItem(title);
         h->setFlags(Qt::NoItemFlags);
         h->setForeground(QColor("#FFD0D8"));
         h->setTextAlignment(Qt::AlignCenter);
         fontList->addItem(h);
     };
-    if (!cjkCommon.isEmpty()) { addHeader(QString::fromUtf8("\u2501\u2501 \u5E38\u7528\u4E2D\u6587\u5B57\u4F53 \u2501\u2501")); fontList->addItems(cjkCommon); }
-    if (!cjkRest.isEmpty())   { addHeader(QString::fromUtf8("\u2501\u2501 \u5176\u4ED6CJK\u5B57\u4F53 \u2501\u2501")); fontList->addItems(cjkRest); }
-    if (!other.isEmpty())     { addHeader(QString::fromUtf8("\u2501\u2501 \u5176\u4ED6\u5B57\u4F53 \u2501\u2501")); fontList->addItems(other); }
-    if (!m_fontFamily.isEmpty()) {
-        for (int i = 0; i < fontList->count(); i++) { QListWidgetItem *it = fontList->item(i); if ((it->flags() & Qt::ItemIsSelectable) && it->text() == m_fontFamily) { it->setSelected(true); break; } } //
-        
+    if (!cjkCommon.isEmpty())
+    {
+        addHeader(QString::fromUtf8("\u2501\u2501 \u5E38\u7528\u4E2D\u6587\u5B57\u4F53 \u2501\u2501"));
+        fontList->addItems(cjkCommon);
     }
-    connect(fontList, &QListWidget::itemClicked, fontMenu, [fontMenu, this](QListWidgetItem *item) {
+    if (!cjkRest.isEmpty())
+    {
+        addHeader(QString::fromUtf8("\u2501\u2501 \u5176\u4ED6CJK\u5B57\u4F53 \u2501\u2501"));
+        fontList->addItems(cjkRest);
+    }
+    if (!other.isEmpty())
+    {
+        addHeader(QString::fromUtf8("\u2501\u2501 \u5176\u4ED6\u5B57\u4F53 \u2501\u2501"));
+        fontList->addItems(other);
+    }
+    if (!m_fontFamily.isEmpty())
+    {
+        for (int i = 0; i < fontList->count(); i++)
+        {
+            QListWidgetItem *it = fontList->item(i);
+            if ((it->flags() & Qt::ItemIsSelectable) && it->text() == m_fontFamily)
+            {
+                it->setSelected(true);
+                break;
+            }
+        } //
+    }
+    connect(fontList, &QListWidget::itemClicked, fontMenu, [fontMenu, this](QListWidgetItem *item)
+            {
         if (!(item->flags() & Qt::ItemIsSelectable)) return; m_fontFamily = item->text();
         QSettings().setValue("fontFamily", m_fontFamily);
         applyFontPreference();
-        fontMenu->close();
-    });
+        fontMenu->close(); });
     fontListAction->setDefaultWidget(fontList);
     fontMenu->addAction(fontListAction);
     QMenu *sizeSubMenu = menu.addMenu(QString::fromUtf8("\u5B57\u4F53\u5927\u5C0F"));
     QWidgetAction *sizeSliderAction = new QWidgetAction(sizeSubMenu);
     QWidget *sizeWidget = new QWidget();
     QHBoxLayout *sizeLayout = new QHBoxLayout(sizeWidget);
-    int sm = qMax(2,(int)(6*m_scale));
-    sizeLayout->setContentsMargins(qMax(4,(int)(8*m_scale)),2,qMax(4,(int)(8*m_scale)),2);
+    int sm = qMax(2, (int)(6 * m_scale));
+    sizeLayout->setContentsMargins(qMax(4, (int)(8 * m_scale)), 2, qMax(4, (int)(8 * m_scale)), 2);
     sizeLayout->setSpacing(sm);
-    QSlider *sizeSlider = new QSlider(Qt::Horizontal); sizeSlider->setRange(8,36);
-    int initSize = (m_fontSize>0) ? m_fontSize : fs; sizeSlider->setValue(initSize);
+    QSlider *sizeSlider = new QSlider(Qt::Horizontal);
+    sizeSlider->setRange(8, 36);
+    int initSize = (m_fontSize > 0) ? m_fontSize : fs;
+    sizeSlider->setValue(initSize);
     sizeSlider->setStyleSheet(QString("QSlider::groove:horizontal{height:4px;background:#222;border:1px solid #FF8DA1;border-radius:2px;}QSlider::handle:horizontal{background:#FF8DA1;border:1px solid #fff;width:12px;margin:-4px 0;border-radius:6px;}"));
-    QLabel *sizeValue = new QLabel(QString("%1px").arg(initSize)); sizeValue->setStyleSheet(QString("color:#fff;font-weight:bold;font-size:%1px;min-width:32px;").arg(fs));
-    sizeLayout->addWidget(sizeSlider,1); sizeLayout->addWidget(sizeValue);
-    connect(sizeSlider, &QSlider::valueChanged, sizeSubMenu, [&menu, sizeSubMenu, fs, pv, ph, mv, mh, br, ibr, mp, bw, smv, smh, sizeValue, sizeWidget, this](int val) {
+    QLabel *sizeValue = new QLabel(QString("%1px").arg(initSize));
+    sizeValue->setStyleSheet(QString("color:#fff;font-weight:bold;font-size:%1px;min-width:32px;").arg(fs));
+    sizeLayout->addWidget(sizeSlider, 1);
+    sizeLayout->addWidget(sizeValue);
+    connect(sizeSlider, &QSlider::valueChanged, sizeSubMenu, [&menu, sizeSubMenu, fs, pv, ph, mv, mh, br, ibr, mp, bw, smv, smh, sizeValue, sizeWidget, this](int val)
+            {
         sizeValue->setText(QString("%1px").arg(val));
         sizeValue->setStyleSheet(QString("color:#fff;font-weight:bold;font-size:%1px;min-width:32px;").arg(val));
         m_fontSize = val;
         QString ss = menuStylesheet(val,pv,ph,mv,mh,br,ibr,mp,bw,smv,smh);
         menu.setStyleSheet(ss);
         sizeSubMenu->setStyleSheet(ss);
-        applyFontPreference();
-    });
+        applyFontPreference(); });
     sizeSliderAction->setDefaultWidget(sizeWidget);
     sizeSubMenu->addAction(sizeSliderAction);
     QMenu *weightMenu = menu.addMenu(QString::fromUtf8("\u5B57\u4F53\u7C97\u7EC6"));
-    QActionGroup *weightGroup = new QActionGroup(weightMenu); weightGroup->setExclusive(true);
-    QAction *boldAct = weightMenu->addAction(QString::fromUtf8("\u7C97\u4F53")); boldAct->setCheckable(true); boldAct->setActionGroup(weightGroup);
-    QAction *normalAct = weightMenu->addAction(QString::fromUtf8("\u6B63\u5E38")); normalAct->setCheckable(true); normalAct->setActionGroup(weightGroup);
-    if (m_fontBold) boldAct->setChecked(true); else normalAct->setChecked(true);
+    QActionGroup *weightGroup = new QActionGroup(weightMenu);
+    weightGroup->setExclusive(true);
+    QAction *boldAct = weightMenu->addAction(QString::fromUtf8("\u7C97\u4F53"));
+    boldAct->setCheckable(true);
+    boldAct->setActionGroup(weightGroup);
+    QAction *normalAct = weightMenu->addAction(QString::fromUtf8("\u6B63\u5E38"));
+    normalAct->setCheckable(true);
+    normalAct->setActionGroup(weightGroup);
+    if (m_fontBold)
+        boldAct->setChecked(true);
+    else
+        normalAct->setChecked(true);
     menu.addSeparator();
     QAction *topAction = menu.addAction(QString::fromUtf8("\u7F6E\u9876\u663E\u793A"));
     topAction->setCheckable(true);
@@ -1252,46 +1478,77 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     int my = pr.y() + (pr.height() - ms.height()) / 2;
     QAction *chosen = menu.exec(QPoint(mx, my));
 
-    if (!chosen) return;
-    if (chosen == drawAction) startDrawCard();
-    else if (chosen == timerAction) startTimerFeature();
-    else if (chosen == drawingAction) startDrawingFeature();
-    else if (chosen == volumeAction) startVolumeFeature();
-    else if (chosen == authorAction) startAuthorFeature();
-    else if (chosen == resourceAction) startResourceFeature();
-    else if (chosen == topAction) toggleStayOnTop();
-    else if (chosen == mouseAction) toggleMouseTransparent();
-    else if (chosen == keyAction) toggleKeyDisplay();
-    else if (chosen == keyTopAction) toggleKeyDisplayOnTop();
-    else if (chosen == resetAction) resetScale();
-    else if (chosen == fontDefault) {
+    if (!chosen)
+        return;
+    if (chosen == drawAction)
+        startDrawCard();
+    else if (chosen == timerAction)
+        startTimerFeature();
+    else if (chosen == drawingAction)
+        startDrawingFeature();
+    else if (chosen == volumeAction)
+        startVolumeFeature();
+    else if (chosen == authorAction)
+        startAuthorFeature();
+    else if (chosen == resourceAction)
+        startResourceFeature();
+    else if (chosen == topAction)
+        toggleStayOnTop();
+    else if (chosen == mouseAction)
+        toggleMouseTransparent();
+    else if (chosen == keyAction)
+        toggleKeyDisplay();
+    else if (chosen == keyTopAction)
+        toggleKeyDisplayOnTop();
+    else if (chosen == resetAction)
+        resetScale();
+    else if (chosen == fontDefault)
+    {
         m_fontFamily.clear();
         QSettings().setValue("fontFamily", "");
         applyFontPreference();
     }
-    else if (weightGroup->actions().contains(chosen)) {
+    else if (weightGroup->actions().contains(chosen))
+    {
         m_fontBold = (chosen == boldAct);
         QSettings().setValue("fontBold", m_fontBold);
         applyFontPreference();
     }
-    else if (chosen == hideAction) hide();
-    else if (chosen == quitAction) qApp->exit(0);
+    else if (chosen == hideAction)
+        hide();
+    else if (chosen == quitAction)
+        qApp->exit(0);
     QSettings().setValue("fontSize", m_fontSize);
 }
 
-QString DesktopPet::menuStylesheet(int fs, int pv, int ph, int mv, int mh, int br, int ibr, int mp, int bw, int smv, int smh) {
+QString DesktopPet::menuStylesheet(int fs, int pv, int ph, int mv, int mh, int br, int ibr, int mp, int bw, int smv, int smh)
+{
     QString ff = m_fontFamily.isEmpty() ? QString() : QString("font-family:'%1';").arg(m_fontFamily);
     return QString("QMenu{background:#FF8DA1;border:%1px solid #fff;border-radius:%2px;padding:%3px 0;}"
-        "QMenu::item{background:transparent;color:#fff;%4font-size:%5px;font-weight:%13;padding:%6px %7px;margin:%8px %9px;border-radius:%10px;}"
-        "QMenu::item:selected{background:#FF6B8B;}"
-        "QMenu::item:disabled{color:#FFC0CB;}"
-        "QMenu::separator{height:1px;background:#fff;margin:%11px %12px;}")
-        .arg(bw).arg(br).arg(mp).arg(ff).arg(m_fontSize > 0 ? m_fontSize : fs).arg(pv).arg(ph).arg(mv).arg(mh).arg(ibr).arg(smv).arg(smh).arg(m_fontBold ? "bold" : "normal");
+                   "QMenu::item{background:transparent;color:#fff;%4font-size:%5px;font-weight:%13;padding:%6px %7px;margin:%8px %9px;border-radius:%10px;}"
+                   "QMenu::item:selected{background:#FF6B8B;}"
+                   "QMenu::item:disabled{color:#FFC0CB;}"
+                   "QMenu::separator{height:1px;background:#fff;margin:%11px %12px;}")
+        .arg(bw)
+        .arg(br)
+        .arg(mp)
+        .arg(ff)
+        .arg(m_fontSize > 0 ? m_fontSize : fs)
+        .arg(pv)
+        .arg(ph)
+        .arg(mv)
+        .arg(mh)
+        .arg(ibr)
+        .arg(smv)
+        .arg(smh)
+        .arg(m_fontBold ? "bold" : "normal");
 }
 
-void DesktopPet::applyFontPreference() {
+void DesktopPet::applyFontPreference()
+{
     QFont f = m_fontFamily.isEmpty() ? m_systemDefaultFont : QFont(m_fontFamily);
-    if (m_fontSize > 0) f.setPixelSize(m_fontSize);
+    if (m_fontSize > 0)
+        f.setPixelSize(m_fontSize);
     f.setBold(m_fontBold);
     f.setStyleStrategy(QFont::PreferAntialias);
     qApp->setFont(f);
@@ -1305,20 +1562,27 @@ QString DesktopPet::resolveSoundSource(const QString &fileName) const
     if (!srcPath.startsWith("qrc:") && !srcPath.startsWith(":"))
         return srcPath; // override file — usable directly
     QString tmpFile = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/remilia_" + fileName;
-    if (!QFile::exists(tmpFile)) {
+    if (!QFile::exists(tmpFile))
+    {
         QString qrcPath = srcPath;
         if (qrcPath.startsWith("qrc:"))
             qrcPath = qrcPath.mid(3);
         QFile qrcFile(qrcPath);
-        if (qrcFile.open(QIODevice::ReadOnly)) {
+        if (qrcFile.open(QIODevice::ReadOnly))
+        {
             QFile out(tmpFile);
-            if (out.open(QIODevice::WriteOnly)) {
+            if (out.open(QIODevice::WriteOnly))
+            {
                 out.write(qrcFile.readAll());
                 qDebug() << "resolveSoundSource: extracted" << fileName << "from QRC to" << tmpFile;
-            } else {
+            }
+            else
+            {
                 qWarning() << "resolveSoundSource: cannot write temp file" << tmpFile;
             }
-        } else {
+        }
+        else
+        {
             qWarning() << "resolveSoundSource: QRC resource not found:" << qrcPath
                        << "\u2014 check resources.qrc, alias should match this path";
         }
@@ -1329,9 +1593,11 @@ QString DesktopPet::resolveSoundSource(const QString &fileName) const
     return srcPath;
 }
 
-void DesktopPet::preloadSounds() {
+void DesktopPet::preloadSounds()
+{
     QStringList files = {"start.wav", "draw.wav", "drawing.wav", "result.wav", "reset.wav", "alarm.wav", "clock.wav"};
-    for (const QString &f : files) {
+    for (const QString &f : files)
+    {
         auto *player = new AudioPlayer;
         player->setSource(resolveSoundSource(f));
         player->setVolume(m_volume / 100.0f);
@@ -1340,31 +1606,41 @@ void DesktopPet::preloadSounds() {
 }
 
 // Re-source existing players after override audio files changed on disk.
-void DesktopPet::reloadSounds() {
-    for (auto it = m_sounds.begin(); it != m_sounds.end(); ++it) {
+void DesktopPet::reloadSounds()
+{
+    for (auto it = m_sounds.begin(); it != m_sounds.end(); ++it)
+    {
         it.value()->setSource(resolveSoundSource(it.key()));
         it.value()->setVolume(m_volume / 100.0f);
     }
 }
 
-void DesktopPet::playSound(const QString &file, bool override) {
-    if (!m_sounds.contains(file)) return;
-    if (override) {
-        for (auto *s : m_sounds) s->stop();
+void DesktopPet::playSound(const QString &file, bool override)
+{
+    if (!m_sounds.contains(file))
+        return;
+    if (override)
+    {
+        for (auto *s : m_sounds)
+            s->stop();
     }
     m_sounds[file]->play();
 }
 
-void DesktopPet::setGlobalVolume(int vol) {
+void DesktopPet::setGlobalVolume(int vol)
+{
     m_volume = vol;
-    for (auto *s : m_sounds) s->setVolume(vol / 100.0f);
+    for (auto *s : m_sounds)
+        s->setVolume(vol / 100.0f);
     saveSettings();
 }
 
 // ---------- Features ----------
 
-void DesktopPet::startDrawCard() {
-    if (m_isDrawingCard) return;
+void DesktopPet::startDrawCard()
+{
+    if (m_isDrawingCard)
+        return;
     closeOtherSideWindows();
     m_isDrawingCard = true;
     m_idleCounter = 0;
@@ -1372,11 +1648,13 @@ void DesktopPet::startDrawCard() {
     QApplication::processEvents();
     playSound("draw.wav");
     m_effectWindow = new DrawEffectWindow(this, m_cardsDir, m_scale);
-    static_cast<DrawEffectWindow*>(m_effectWindow.data())->startShow();
+    static_cast<DrawEffectWindow *>(m_effectWindow.data())->startShow();
 }
 
-void DesktopPet::startTimerFeature() {
-    if (m_isDrawingCard) return;
+void DesktopPet::startTimerFeature()
+{
+    if (m_isDrawingCard)
+        return;
     closeOtherSideWindows();
     setState(Click);
     playSound("clock.wav", false);
@@ -1385,8 +1663,10 @@ void DesktopPet::startTimerFeature() {
     m_timerWindow->show();
 }
 
-void DesktopPet::startDrawingFeature() {
-    if (m_isDrawingCard) return;
+void DesktopPet::startDrawingFeature()
+{
+    if (m_isDrawingCard)
+        return;
     closeOtherSideWindows();
     m_isDrawingCard = true;
     m_idleCounter = 0;
@@ -1395,85 +1675,123 @@ void DesktopPet::startDrawingFeature() {
     QTimer::singleShot(1000, this, &DesktopPet::drawingStep2Idle);
 }
 
-void DesktopPet::drawingStep2Idle() {
+void DesktopPet::drawingStep2Idle()
+{
     setState(Idle);
     QTimer::singleShot(2000, this, &DesktopPet::drawingStep3Result);
 }
 
-void DesktopPet::drawingStep3Result() {
+void DesktopPet::drawingStep3Result()
+{
     setState(Result);
     QTimer::singleShot(1000, this, &DesktopPet::drawingStep4ShowWindow);
 }
 
-void DesktopPet::drawingStep4ShowWindow() {
+void DesktopPet::drawingStep4ShowWindow()
+{
     m_drawingWindow = new DrawingEffectWindow(this, m_drawingDir, m_scale);
-    static_cast<DrawingEffectWindow*>(m_drawingWindow.data())->startShow();
+    static_cast<DrawingEffectWindow *>(m_drawingWindow.data())->startShow();
 }
 
-void DesktopPet::startVolumeFeature() {
-    if (m_isDrawingCard) return;
+void DesktopPet::startVolumeFeature()
+{
+    if (m_isDrawingCard)
+        return;
     closeOtherSideWindows();
     m_idleCounter = 0;
     m_volumeWindow = new VolumeSliderWindow(this, m_scale);
     m_volumeWindow->show();
 }
 
-void DesktopPet::startAuthorFeature() {
-    if (m_isDrawingCard) return;
+void DesktopPet::startAuthorFeature()
+{
+    if (m_isDrawingCard)
+        return;
     closeOtherSideWindows();
     m_idleCounter = 0;
     m_authorWindow = new AuthorWindow(this, m_scale);
     m_authorWindow->show();
 }
 
-void DesktopPet::startResourceFeature() {
-    if (m_isDrawingCard) return;
+void DesktopPet::startResourceFeature()
+{
+    if (m_isDrawingCard)
+        return;
     closeOtherSideWindows();
     m_idleCounter = 0;
     m_resourceWindow = new ResourceWindow(this, m_scale);
     m_resourceWindow->show();
 }
 
-void DesktopPet::onDrawEffectFinished() {
+void DesktopPet::onDrawEffectFinished()
+{
     setState(Result);
     playSound("result.wav");
-    QTimer::singleShot(1000, this, [this]() {
+    QTimer::singleShot(1000, this, [this]()
+                       {
         m_isDrawingCard = false;
         m_idleCounter = 0;
-        setState(Idle);
-    });
+        setState(Idle); });
 }
 
-void DesktopPet::closeOtherSideWindows() {
-    if (m_effectWindow && m_effectWindow->isVisible()) { m_effectWindow->close(); m_effectWindow = nullptr; }
-    if (m_timerWindow) {
-        if (m_timerWindow->isVisible()) {
-            auto *tw = static_cast<TimerWindow*>(m_timerWindow.data());
+void DesktopPet::closeOtherSideWindows()
+{
+    if (m_effectWindow && m_effectWindow->isVisible())
+    {
+        m_effectWindow->close();
+        m_effectWindow = nullptr;
+    }
+    if (m_timerWindow)
+    {
+        if (m_timerWindow->isVisible())
+        {
+            auto *tw = static_cast<TimerWindow *>(m_timerWindow.data());
             tw->stopAndCleanup();
         }
         m_timerWindow = nullptr;
     }
-    if (m_drawingWindow && m_drawingWindow->isVisible()) { m_drawingWindow->close(); m_drawingWindow = nullptr; }
-    if (m_volumeWindow && m_volumeWindow->isVisible()) { m_volumeWindow->close(); m_volumeWindow = nullptr; }
-    if (m_authorWindow && m_authorWindow->isVisible()) { m_authorWindow->close(); m_authorWindow = nullptr; }
-    if (m_resourceWindow && m_resourceWindow->isVisible()) { m_resourceWindow->close(); m_resourceWindow = nullptr; }
+    if (m_drawingWindow && m_drawingWindow->isVisible())
+    {
+        m_drawingWindow->close();
+        m_drawingWindow = nullptr;
+    }
+    if (m_volumeWindow && m_volumeWindow->isVisible())
+    {
+        m_volumeWindow->close();
+        m_volumeWindow = nullptr;
+    }
+    if (m_authorWindow && m_authorWindow->isVisible())
+    {
+        m_authorWindow->close();
+        m_authorWindow = nullptr;
+    }
+    if (m_resourceWindow && m_resourceWindow->isVisible())
+    {
+        m_resourceWindow->close();
+        m_resourceWindow = nullptr;
+    }
 }
 
-void DesktopPet::closeEvent(QCloseEvent *event) {
+void DesktopPet::closeEvent(QCloseEvent *event)
+{
     saveSettings();
     hide();
     event->ignore();
 }
 
-void DesktopPet::saveSettings() {
+void DesktopPet::saveSettings()
+{
     QSettings s;
     // 位置按屏幕可用区域比例保存（右边缘比例 + 顶部比例 + 屏幕名），
     // 分辨率/屏幕大小变化后按比例重算，相对位置保持不变。
     QScreen *sc = screen();
-    if (!sc) sc = QApplication::primaryScreen();
-    if (sc) {
+    if (!sc)
+        sc = QApplication::primaryScreen();
+    if (sc)
+    {
         QRect avail = sc->availableGeometry();
-        if (avail.width() > 0 && avail.height() > 0) {
+        if (avail.width() > 0 && avail.height() > 0)
+        {
             m_rightRatio = (double)(x() + width() - avail.left()) / avail.width();
             m_yRatio = (double)(y() - avail.top()) / avail.height();
             m_screenName = sc->name();
@@ -1491,11 +1809,13 @@ void DesktopPet::saveSettings() {
     s.sync();
 }
 
-void DesktopPet::loadSettings() {
+void DesktopPet::loadSettings()
+{
     QSettings s;
     // 1. Scale first — applyScale() may resize & shift position
     float savedScale = s.value("window/scale", -1.0f).toFloat();
-    if (savedScale > 0.1f) {
+    if (savedScale > 0.1f)
+    {
         m_scale = qBound(m_minScale, savedScale, m_maxScale);
         applyScale();
     }
@@ -1505,22 +1825,27 @@ void DesktopPet::loadSettings() {
     m_rightRatio = s.value("window/rightRatio", -1.0).toDouble();
     m_yRatio = s.value("window/yRatio", -1.0).toDouble();
     m_screenName = s.value("window/screenName").toString();
-    if (m_rightRatio < 0.0) {
+    if (m_rightRatio < 0.0)
+    {
         // migrate old absolute settings (window/right = x + width)
         int sRight = s.value("window/right", -1).toInt();
         int sy = s.value("window/y", -1).toInt();
         QScreen *sc0 = QApplication::primaryScreen();
-        if (sc0 && sRight >= 0) {
+        if (sc0 && sRight >= 0)
+        {
             QRect a0 = sc0->availableGeometry();
-            if (a0.width() > 0) m_rightRatio = (double)(sRight - a0.left()) / a0.width();
-            if (sy >= 0 && a0.height() > 0) m_yRatio = (double)(sy - a0.top()) / a0.height();
+            if (a0.width() > 0)
+                m_rightRatio = (double)(sRight - a0.left()) / a0.width();
+            if (sy >= 0 && a0.height() > 0)
+                m_yRatio = (double)(sy - a0.top()) / a0.height();
         }
     }
     if (m_rightRatio >= 0.0 || m_yRatio >= 0.0)
         applyRelativePosition();
     // 3. Volume
     m_volume = s.value("globalVolume", 80).toInt();
-    for (auto *s : m_sounds) s->setVolume(m_volume / 100.0f);
+    for (auto *s : m_sounds)
+        s->setVolume(m_volume / 100.0f);
     // 4. Stay on top — apply without toggling
     m_stayOnTop = s.value("stayOnTop", true).toBool();
     applyStayOnTop();
@@ -1534,12 +1859,13 @@ void DesktopPet::loadSettings() {
 }
 
 // 监听所有屏幕的可用区域变化：分辨率/任务栏/缩放切换时实时按比例重算位置。
-void DesktopPet::startScreenTracking() {
+void DesktopPet::startScreenTracking()
+{
     // qApp 是 QApplication*（QGuiApplication 子类），可直接连接基类信号 screenAdded
-    connect(qApp, &QGuiApplication::screenAdded, this, [this](QScreen *sc) {
+    connect(qApp, &QGuiApplication::screenAdded, this, [this](QScreen *sc)
+            {
         connect(sc, &QScreen::availableGeometryChanged, this, &DesktopPet::onScreenGeometryChanged);
-        onScreenGeometryChanged();
-    });
+        onScreenGeometryChanged(); });
     for (QScreen *sc : QGuiApplication::screens())
         connect(sc, &QScreen::availableGeometryChanged, this, &DesktopPet::onScreenGeometryChanged);
     m_screenMoveTimer = new QTimer(this);
@@ -1548,23 +1874,35 @@ void DesktopPet::startScreenTracking() {
     connect(m_screenMoveTimer, &QTimer::timeout, this, &DesktopPet::applyRelativePosition);
 }
 
-void DesktopPet::onScreenGeometryChanged() {
+void DesktopPet::onScreenGeometryChanged()
+{
     m_screenMoveTimer->start();
 }
 
 // 按保存的比例与目标屏幕（优先保存的屏幕名，缺失回退主屏）重算绝对位置。
-void DesktopPet::applyRelativePosition() {
-    if (m_rightRatio < 0.0 && m_yRatio < 0.0) return;
+void DesktopPet::applyRelativePosition()
+{
+    if (m_rightRatio < 0.0 && m_yRatio < 0.0)
+        return;
     QScreen *sc = nullptr;
-    if (!m_screenName.isEmpty()) {
-        for (QScreen *s : QGuiApplication::screens()) {
-            if (s->name() == m_screenName) { sc = s; break; }
+    if (!m_screenName.isEmpty())
+    {
+        for (QScreen *s : QGuiApplication::screens())
+        {
+            if (s->name() == m_screenName)
+            {
+                sc = s;
+                break;
+            }
         }
     }
-    if (!sc) sc = QApplication::primaryScreen();
-    if (!sc) return;
+    if (!sc)
+        sc = QApplication::primaryScreen();
+    if (!sc)
+        return;
     QRect avail = sc->availableGeometry();
-    if (avail.width() <= 0 || avail.height() <= 0) return;
+    if (avail.width() <= 0 || avail.height() <= 0)
+        return;
     double rr = m_rightRatio >= 0.0 ? qBound(0.0, m_rightRatio, 1.0) : 1.0;
     double yr = m_yRatio >= 0.0 ? qBound(0.0, m_yRatio, 1.0) : 0.0;
     // 至少 50px 可见
@@ -1582,13 +1920,16 @@ void DesktopPet::applyRelativePosition() {
 // 平台钩子回调入口（Windows/macOS 钩子线程即 Qt 主线程，直接调用）
 void desktopPetHandleGlobalKey(const QString &text)
 {
-    if (s_keyPet) s_keyPet->onGlobalKey(text);
+    if (s_keyPet)
+        s_keyPet->onGlobalKey(text);
 }
 
 void DesktopPet::onGlobalKey(const QString &text)
 {
-    if (!m_keyDisplayEnabled) return;
-    if (!m_keyWindow) {
+    if (!m_keyDisplayEnabled)
+        return;
+    if (!m_keyWindow)
+    {
         m_keyWindow = new KeyDisplayWindow(this, m_scale, m_stayOnTop || m_keyDisplayOnTop);
     }
     static_cast<KeyDisplayWindow *>(m_keyWindow.data())->showKey(text);
@@ -1605,7 +1946,8 @@ void DesktopPet::toggleKeyDisplayOnTop()
 {
     m_keyDisplayOnTop = !m_keyDisplayOnTop;
     applyKeyWindowTop();
-    if (m_trayKeyTopAction) m_trayKeyTopAction->setChecked(m_keyDisplayOnTop);
+    if (m_trayKeyTopAction)
+        m_trayKeyTopAction->setChecked(m_keyDisplayOnTop);
     saveSettings();
 }
 
@@ -1613,30 +1955,41 @@ void DesktopPet::toggleKeyDisplayOnTop()
 // 全局置顶关闭时，置顶模式开关独立决定键位窗口是否仍保持置顶。
 void DesktopPet::applyKeyWindowTop()
 {
-    if (!m_keyWindow) return;
+    if (!m_keyWindow)
+        return;
     QWidget *w = m_keyWindow.data();
     Qt::WindowFlags wf = w->windowFlags();
     bool onTop = m_stayOnTop || m_keyDisplayOnTop;
-    if (onTop) wf |= Qt::WindowStaysOnTopHint;
-    else wf &= ~Qt::WindowStaysOnTopHint;
+    if (onTop)
+        wf |= Qt::WindowStaysOnTopHint;
+    else
+        wf &= ~Qt::WindowStaysOnTopHint;
     w->setWindowFlags(wf);
-    if (w->isVisible()) w->show();
+    if (w->isVisible())
+        w->show();
 }
 
 void DesktopPet::applyKeyDisplay()
 {
-    if (m_keyDisplayEnabled) {
+    if (m_keyDisplayEnabled)
+    {
         startGlobalKeyHook();
-    } else {
+    }
+    else
+    {
         stopGlobalKeyListener();
-        if (m_linuxKeyPollTimer) m_linuxKeyPollTimer->stop();
-        if (m_keyWindow) {
+        if (m_linuxKeyPollTimer)
+            m_linuxKeyPollTimer->stop();
+        if (m_keyWindow)
+        {
             m_keyWindow->close();
             m_keyWindow = nullptr;
         }
     }
-    if (m_trayKeyAction) m_trayKeyAction->setChecked(m_keyDisplayEnabled);
-    if (m_trayKeyTopAction) {
+    if (m_trayKeyAction)
+        m_trayKeyAction->setChecked(m_keyDisplayEnabled);
+    if (m_trayKeyTopAction)
+    {
         m_trayKeyTopAction->setChecked(m_keyDisplayOnTop);
         m_trayKeyTopAction->setEnabled(m_keyDisplayEnabled);
     }
@@ -1646,21 +1999,24 @@ void DesktopPet::startGlobalKeyHook()
 {
 #ifdef Q_OS_LINUX
     startGlobalKeyListener(nullptr); // 仅初始化 X display，轮询由 QTimer 驱动
-    if (!m_linuxKeyPollTimer) {
+    if (!m_linuxKeyPollTimer)
+    {
         m_linuxKeyPollTimer = new QTimer(this);
         m_linuxKeyPollTimer->setInterval(40);
-        connect(m_linuxKeyPollTimer, &QTimer::timeout, this, [this]() {
+        connect(m_linuxKeyPollTimer, &QTimer::timeout, this, [this]()
+                {
             QString t = pollLinuxGlobalKey();
-            if (!t.isEmpty()) onGlobalKey(t);
-        });
+            if (!t.isEmpty()) onGlobalKey(t); });
     }
     m_linuxKeyPollTimer->start();
 #else
-    startGlobalKeyListener([](const QString &t) { desktopPetHandleGlobalKey(t); });
+    startGlobalKeyListener([](const QString &t)
+                           { desktopPetHandleGlobalKey(t); });
 #endif
 }
 
-void DesktopPet::setupTrayIcon() {
+void DesktopPet::setupTrayIcon()
+{
     m_trayIcon = new QSystemTrayIcon(this);
     m_trayIcon->setIcon(QIcon(":/icon.png"));
     m_trayIcon->setToolTip(QString::fromUtf8("蕾米埃尔桌宠"));
@@ -1669,10 +2025,10 @@ void DesktopPet::setupTrayIcon() {
     m_trayMenu->setStyleSheet(
         "QMenu{background:#FF8DA1;border:2px solid #fff;border-radius:10px;padding:6px 0;}"
         "QMenu::item{background:transparent;color:#fff;font-size:15px;font-weight:bold;padding:8px 24px;margin:3px 6px;border-radius:5px;}"
-        "QMenu::item:selected{background:#FF6B8B;}"
-    );
+        "QMenu::item:selected{background:#FF6B8B;}");
     QAction *showAction = m_trayMenu->addAction(QString::fromUtf8("显示桌面宠物"));
-    connect(showAction, &QAction::triggered, this, [this]() { show(); });
+    connect(showAction, &QAction::triggered, this, [this]()
+            { show(); });
     QAction *hideAction = m_trayMenu->addAction(QString::fromUtf8("隐藏桌面宠物"));
     connect(hideAction, &QAction::triggered, this, &DesktopPet::hide);
     m_trayMenu->addSeparator();
@@ -1691,34 +2047,38 @@ void DesktopPet::setupTrayIcon() {
     connect(m_trayKeyTopAction, &QAction::triggered, this, &DesktopPet::toggleKeyDisplayOnTop);
     m_trayMenu->addSeparator();
     QAction *resetPosAction = m_trayMenu->addAction(QString::fromUtf8("重置位置"));
-    connect(resetPosAction, &QAction::triggered, this, [this]() {
+    connect(resetPosAction, &QAction::triggered, this, [this]()
+            {
         QScreen *sc = QApplication::primaryScreen();
         if (!sc) return;
         QRect avail = sc->availableGeometry();
         move(qMax(0, avail.right() - width() - 30), qMax(0, avail.bottom() - height() - 30));
-        saveSettings();
-    });
+        saveSettings(); });
     m_trayMenu->addSeparator();
     QAction *quitAction = m_trayMenu->addAction(QString::fromUtf8("退出程序"));
-    connect(quitAction, &QAction::triggered, qApp, []() { qApp->exit(0); });
+    connect(quitAction, &QAction::triggered, qApp, []()
+            { qApp->exit(0); });
     m_trayIcon->setContextMenu(m_trayMenu);
 
-    connect(m_trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
+    connect(m_trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason)
+            {
         if (reason == QSystemTrayIcon::Trigger) {
             if (isVisible()) hide(); else show();
-        }
-    });
+        } });
     m_trayIcon->show();
 }
 
-void DesktopPet::toggleMouseTransparent() {
+void DesktopPet::toggleMouseTransparent()
+{
     m_mouseTransparent = !m_mouseTransparent;
     applyMouseTransparent();
     saveSettings();
 }
 
-void DesktopPet::applyMouseTransparent() {
-    if (m_trayMouseAction) m_trayMouseAction->setChecked(m_mouseTransparent);
+void DesktopPet::applyMouseTransparent()
+{
+    if (m_trayMouseAction)
+        m_trayMouseAction->setChecked(m_mouseTransparent);
 
     // Mouse transparency: cross-platform Qt + platform-native enhancement
     setAttribute(Qt::WA_TransparentForMouseEvents, m_mouseTransparent);
@@ -1734,10 +2094,12 @@ void DesktopPet::applyMouseTransparent() {
 #elif defined(Q_OS_MAC)
     {
         QWindow *win = windowHandle();
-        if (win) {
+        if (win)
+        {
             win->setFlag(Qt::WindowTransparentForInput, m_mouseTransparent);
             bool wasVisible = isVisible();
-            if (wasVisible) {
+            if (wasVisible)
+            {
                 hide();
                 show();
             }
@@ -1746,7 +2108,8 @@ void DesktopPet::applyMouseTransparent() {
 #elif defined(Q_OS_LINUX)
     {
         QWindow *win = windowHandle();
-        if (win) {
+        if (win)
+        {
             win->setFlags(m_mouseTransparent ? (win->flags() | Qt::WindowTransparentForInput) : (win->flags() & ~Qt::WindowTransparentForInput));
         }
     }
@@ -1755,23 +2118,26 @@ void DesktopPet::applyMouseTransparent() {
         m_trayIcon->setToolTip(QString::fromUtf8("\u857E\u7C73\u57C3\u5C14\u684C\u5BA0"));
 }
 
-void DesktopPet::toggleStayOnTop() {
+void DesktopPet::toggleStayOnTop()
+{
     m_stayOnTop = !m_stayOnTop;
     applyStayOnTop();
     saveSettings();
 }
 
-void DesktopPet::applyStayOnTop() {
+void DesktopPet::applyStayOnTop()
+{
 #ifdef Q_OS_WIN
     HWND hwnd = reinterpret_cast<HWND>(winId());
-    SetWindowPos(hwnd, m_stayOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
-                 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    SetWindowPos(hwnd, m_stayOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 #elif defined(Q_OS_MAC)
     {
         void *nsview = reinterpret_cast<void *>(winId());
-        if (nsview) {
+        if (nsview)
+        {
             id window = ((id (*)(id, SEL))objc_msgSend)((id)nsview, sel_registerName("window"));
-            if (window) {
+            if (window)
+            {
                 long level = m_stayOnTop ? (long)CGWindowLevelForKey(kCGOverlayWindowLevelKey) : (long)CGWindowLevelForKey(kCGNormalWindowLevelKey);
                 ((void (*)(id, SEL, long))objc_msgSend)(window, sel_registerName("setLevel:"), level);
             }
@@ -1779,19 +2145,26 @@ void DesktopPet::applyStayOnTop() {
     }
 #else
     Qt::WindowFlags flags = windowFlags();
-    if (m_stayOnTop) flags |= Qt::WindowStaysOnTopHint;
-    else flags &= ~Qt::WindowStaysOnTopHint;
+    if (m_stayOnTop)
+        flags |= Qt::WindowStaysOnTopHint;
+    else
+        flags &= ~Qt::WindowStaysOnTopHint;
     setWindowFlags(flags);
     show();
 #endif
 
-    auto updateWindowFlag = [this](QWidget *w) {
-        if (w) {
+    auto updateWindowFlag = [this](QWidget *w)
+    {
+        if (w)
+        {
             Qt::WindowFlags wf = w->windowFlags();
-            if (m_stayOnTop) wf |= Qt::WindowStaysOnTopHint;
-            else wf &= ~Qt::WindowStaysOnTopHint;
+            if (m_stayOnTop)
+                wf |= Qt::WindowStaysOnTopHint;
+            else
+                wf &= ~Qt::WindowStaysOnTopHint;
             w->setWindowFlags(wf);
-            if (w->isVisible()) w->show();
+            if (w->isVisible())
+                w->show();
         }
     };
     updateWindowFlag(m_effectWindow);
