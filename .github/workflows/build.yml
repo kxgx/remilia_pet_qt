@@ -1340,14 +1340,14 @@ jobs:
           cache: 'true'
       - name: 配置 CMake
         run: |
-          cmake -B build -S . -G "Visual Studio 17 2022" `
+          cmake -B build -S . -G "Visual Studio 17 2022" -A ARM64 `
             -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" `
             -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
       - name: 编译
         run: cmake --build build --config Release --parallel
       - name: 部署 Qt 动态库
         run: |
-          C:/Qt/6.8.2/msvc2022_arm64/bin/windeployqt build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
+          "$env:QT_ROOT_DIR/bin/windeployqt" build/Release/蕾米埃尔桌宠_Qt6.exe --release --no-translations
       - name: 打包 zip
         run: |
           New-Item -ItemType Directory -Force -Path dist
