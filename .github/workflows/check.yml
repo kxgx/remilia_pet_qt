@@ -434,5 +434,23 @@ jobs:
           grep -q '重置位置' /tmp/tray.txt || { echo "FAIL: tray menu must offer reset position"; exit 1; }
           echo "OK: screen-relative position + real-time resolution tracking + tray reset"
 
+      # ============================================================
+      # 十二、动态资源与键位显示
+      # ============================================================
+      - name: 47. 检查动态资源数量与键位显示完整性
+        run: |
+          if grep -q 'bounded(1, 56)' src/petwindow.cpp || grep -q 'bounded(1, 16)' src/petwindow.cpp; then
+            echo "FAIL: card/drawing counts must be dynamic via numberedResourceCount"
+            exit 1
+          fi
+          grep -q '^int DesktopPet::numberedResourceCount' src/petwindow.cpp || { echo "FAIL: numberedResourceCount missing"; exit 1; }
+          awk '/^void DesktopPet::saveSettings/,/^}/' src/petwindow.cpp | grep -q 'keyDisplay' || { echo "FAIL: saveSettings must persist keyDisplay"; exit 1; }
+          awk '/^void DesktopPet::setupTrayIcon/,/^}/' src/petwindow.cpp > /tmp/tray.txt
+          grep -q 'u952E' /tmp/tray.txt || { echo "FAIL: tray menu must offer key display toggle"; exit 1; }
+          awk '/^void DesktopPet::contextMenuEvent/,/^}/' src/petwindow.cpp > /tmp/cm.txt
+          grep -q 'u952E' /tmp/cm.txt || { echo "FAIL: context menu must offer key display toggle"; exit 1; }
+          grep -q 'm_isFinishedReminding ? qMax(7, (int)(14\*scale)) : qMax(8, (int)(22\*scale))' src/petwindow.cpp || { echo "FAIL: TimerWindow scaling must refresh m_statusLabel"; exit 1; }
+          echo "OK: dynamic resource counts + key display toggles + status label scaling"
+
       - name: 汇总
-        run: echo "✅ 全部 46 项约束检查通过"
+        run: echo "✅ 全部 47 项约束检查通过"

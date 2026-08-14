@@ -21,6 +21,7 @@ class TimerWindow;
 class VolumeSliderWindow;
 class AuthorWindow;
 class ResourceWindow;
+class KeyDisplayWindow;
 class QFileSystemWatcher;
 
 class DesktopPet : public QLabel {
@@ -52,6 +53,8 @@ public:
     // Debounced entry: file-manager signals and external watcher events both route here,
     // so bursts of changes coalesce into a single applyResourceChanges().
     void scheduleResourceReload();
+    // 编号资源数量（1..N 连续）：内置 QRC + 覆盖目录都算，新增编号文件即可被抽到
+    int numberedResourceCount(const QString &dir, const QString &base, const QString &ext) const;
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -164,6 +167,16 @@ private:
     // Resource overrides (directory-based): resourceKey -> absoluteFilePath
     QString m_resourceDir;
     QMap<QString, QString> m_resourceOverrides;
+
+    // 键位显示
+    bool m_keyDisplayEnabled = false;
+    QPointer<QWidget> m_keyWindow;
+    QAction *m_trayKeyAction = nullptr;
+    QTimer *m_linuxKeyPollTimer = nullptr;
+    void toggleKeyDisplay();
+    void applyKeyDisplay();
+    void startGlobalKeyHook();
+    void onGlobalKey(const QString &text);
 
     // 相对位置：按屏幕可用区域的比例保存/恢复，分辨率变化时实时重算保持相对位置不变
     double m_rightRatio = -1.0;

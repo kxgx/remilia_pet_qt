@@ -170,8 +170,20 @@ void ResourceWindow::initUi()
         defs.append({"audio/"+audios[i],"WAV - "+an[i],QString::fromUtf8("\u97f3\u6548"),"audio",".wav"});
     for (int i=1;i<=55;i++)
         defs.append({"cards/card_"+QString::number(i),QString::fromUtf8("PNG - card_%1").arg(i),QString::fromUtf8("\u5361\u7247"),"cards",".png"});
+    // 新增资源：覆盖目录中编号超过内置数量（card_56+）的卡片，连续编号即自动出现在列表
+    for (int i=56;i<=999;i++) {
+        QString k = "cards/card_"+QString::number(i);
+        if (!QFile::exists(m_pet->m_resourceDir + "cards/card_" + QString::number(i) + ".png")) break;
+        defs.append({k, QString::fromUtf8("PNG - card_%1").arg(i), QString::fromUtf8("\u5361\u7247"), "cards", ".png"});
+    }
     for (int i=1;i<=15;i++)
         defs.append({"drawing/drawing_"+QString::number(i),QString::fromUtf8("PNG - drawing_%1").arg(i),QString::fromUtf8("\u753b\u4f5c"),"drawing",".png"});
+    // 新增资源：覆盖目录中编号超过内置数量（drawing_16+）的画作
+    for (int i=16;i<=999;i++) {
+        QString k = "drawing/drawing_"+QString::number(i);
+        if (!QFile::exists(m_pet->m_resourceDir + "drawing/drawing_" + QString::number(i) + ".png")) break;
+        defs.append({k, QString::fromUtf8("PNG - drawing_%1").arg(i), QString::fromUtf8("\u753b\u4f5c"), "drawing", ".png"});
+    }
     defs.append({"drawing/author","PNG - author",QString::fromUtf8("\u5176\u4ed6"),"drawing",".png"});
 
     QString curCat;

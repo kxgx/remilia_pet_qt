@@ -146,7 +146,7 @@ jobs:
             libxkbcommon-dev libxcb1-dev libxcb-icccm4-dev \
             libxcb-image0-dev libxcb-keysyms1-dev \
             libxcb-render-util0-dev libxcb-shape0-dev \
-            libxcb-xinerama0-dev libpulse-dev libasound2-dev \
+            libxcb-xinerama0-dev libpulse-dev libasound2-dev libx11-dev \
             qt6-base-dev qt6-multimedia-dev qt6-wayland libqt6svg6-dev \
             python3-pil
       - name: 配置 CMake
@@ -321,7 +321,7 @@ jobs:
             libxkbcommon-dev libxcb1-dev libxcb-icccm4-dev \
             libxcb-image0-dev libxcb-keysyms1-dev \
             libxcb-render-util0-dev libxcb-shape0-dev \
-            libxcb-xinerama0-dev libpulse-dev libasound2-dev \
+            libxcb-xinerama0-dev libpulse-dev libasound2-dev libx11-dev \
             qt6-base-dev qt6-multimedia-dev qt6-wayland libqt6svg6-dev \
             python3-pil
       - name: 配置 CMake

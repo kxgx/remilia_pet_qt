@@ -50,20 +50,29 @@ set(SOURCES
     src/inappfiledialog.h
     src/resourcewindow.cpp
     src/resourcewindow.h
+    src/keydisplaywindow.cpp
+    src/keydisplaywindow.h
+    src/keyhook.h
     resources.qrc
 )
 
 # ── Platform-specific sources & flags ───────────────────────────────
 if(WIN32)
     list(APPEND SOURCES resources.rc)
+    list(APPEND SOURCES src/keyhook_win.cpp)
     set(GUI_TYPE WIN32)
     if(STATIC_BUILD)
         list(APPEND SOURCES src/static_plugins.cpp)
     endif()
 elseif(APPLE)
+    list(APPEND SOURCES src/keyhook_mac.mm)
     set(GUI_TYPE MACOSX_BUNDLE)
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
 else()
+    find_package(X11 QUIET)
+    if(X11_FOUND)
+        list(APPEND SOURCES src/keyhook_linux.cpp)
+    endif()
     set(GUI_TYPE "")
 endif()
 
@@ -92,6 +101,10 @@ target_link_libraries(RemiliaPet PRIVATE
     Qt6::Gui
     Qt6::Widgets
 )
+
+if(X11_FOUND)
+    target_link_libraries(RemiliaPet PRIVATE X11::X11)
+endif()
 
 # ── Platform-specific system libraries (static builds) ──────────────
 if(STATIC_BUILD)

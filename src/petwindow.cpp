@@ -45,6 +45,8 @@
 #include <QDesktopServices>
 #include "inappfiledialog.h"
 #include "resourcewindow.h"
+#include "keydisplaywindow.h"
+#include "keyhook.h"
 #include <QFileInfo>
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -78,6 +80,18 @@ QString DesktopPet::resolveResourcePath(const QString &qrcPath) const
     if (m_resourceOverrides.contains(key))
         return m_resourceOverrides[key];
     return qrcPath;
+}
+
+// 统计 :/dir/base1.ext .. baseN.ext 中连续存在的最大编号（内置 QRC + 覆盖目录都算）。
+// 用户放入 card_56.png / drawing_16.png 这类新增编号文件即可被抽到（编号需连续）。
+int DesktopPet::numberedResourceCount(const QString &dir, const QString &base, const QString &ext) const
+{
+    for (int i = 1; i <= 999; i++) {
+        QString path = resolveResourcePath(QString(":/%1/%2%3%4").arg(dir, base).arg(i).arg(ext));
+        if (!QFile::exists(path))
+            return i - 1;
+    }
+    return 999;
 }
 
 void DesktopPet::loadOverrides()
@@ -232,7 +246,8 @@ private:
         m_pet->setState(DesktopPet::Result);
         m_pet->playSound("result.wav", false);
         m_label->setMovie(nullptr);
-        int num = QRandomGenerator::global()->bounded(1, 56);
+        int count = m_pet->numberedResourceCount("cards", "card_", ".png");
+        int num = QRandomGenerator::global()->bounded(1, qMax(1, count) + 1);
         m_revealedCardPath = m_pet->resolveResourcePath(m_cardsDir + QString("card_%1.png").arg(num));
         m_cardRevealed = true;
         renderCardContent();
@@ -329,7 +344,8 @@ public:
     }
 
     void startShow() {
-        int num = QRandomGenerator::global()->bounded(1, 16);
+        int count = m_pet->numberedResourceCount("drawing", "drawing_", ".png");
+        int num = QRandomGenerator::global()->bounded(1, qMax(1, count) + 1);
         m_drawPath = m_pet->resolveResourcePath(m_drawingDir + QString("drawing_%1.png").arg(num));
         QPixmap pix(m_drawPath);
         if (pix.isNull()) { close(); return; }
@@ -454,6 +470,11 @@ public:
         int bs = qMax(18, (int)(24*scale));
         m_closeBtn->setFixedSize(bs, bs);
         m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#111;}").arg(bs/2).arg(qMax(10,(int)(13*scale))));
+        // 状态文字也要随缩放自适应（倒计时 22*scale / 提醒文案 14*scale）
+        if (m_statusLabel && !m_statusLabel->isHidden()) {
+            int sfs = m_isFinishedReminding ? qMax(7, (int)(14*scale)) : qMax(8, (int)(22*scale));
+            m_statusLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(sfs));
+        }
         positionNearPet();
     }
 
@@ -828,6 +849,7 @@ DesktopPet::DesktopPet(QWidget *parent) : QLabel(parent) {
     connect(qApp, &QApplication::aboutToQuit, this, &DesktopPet::saveSettings);
 
     setupTrayIcon();
+    s_keyPet = this;
 
     playSound("start.wav");
     show();
@@ -979,6 +1001,8 @@ void DesktopPet::updateSideWindowPositions() {
     if (auto *w = dynamic_cast<AuthorWindow*>(m_authorWindow.data()))
         if (w->isVisible()) w->updateScaleAndPosition(m_scale);
     if (auto *w = dynamic_cast<ResourceWindow*>(m_resourceWindow.data()))
+        if (w->isVisible()) w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<KeyDisplayWindow*>(m_keyWindow.data()))
         if (w->isVisible()) w->updateScaleAndPosition(m_scale);
 }
 
@@ -1207,6 +1231,9 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     QAction *mouseAction = menu.addAction(QString::fromUtf8("\u9F20\u6807\u7A7F\u900F"));
     mouseAction->setCheckable(true);
     mouseAction->setChecked(m_mouseTransparent);
+    QAction *keyAction = menu.addAction(QString::fromUtf8("\u2328 \u952E\u4F4D\u663E\u793A"));
+    keyAction->setCheckable(true);
+    keyAction->setChecked(m_keyDisplayEnabled);
     QAction *resetAction = menu.addAction(QString::fromUtf8("重置大小 (100%)"));
     menu.addSeparator();
     QAction *hideAction = menu.addAction(QString::fromUtf8("隐藏桌宠"));
@@ -1227,6 +1254,7 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     else if (chosen == resourceAction) startResourceFeature();
     else if (chosen == topAction) toggleStayOnTop();
     else if (chosen == mouseAction) toggleMouseTransparent();
+    else if (chosen == keyAction) toggleKeyDisplay();
     else if (chosen == resetAction) resetScale();
     else if (chosen == fontDefault) {
         m_fontFamily.clear();
@@ -1450,6 +1478,7 @@ void DesktopPet::saveSettings() {
     s.setValue("globalVolume", m_volume);
     s.setValue("stayOnTop", m_stayOnTop);
     s.setValue("mouseTransparent", m_mouseTransparent);
+    s.setValue("keyDisplay", m_keyDisplayEnabled);
     s.sync();
 }
 
@@ -1489,6 +1518,9 @@ void DesktopPet::loadSettings() {
     // 5. Mouse transparent — apply without toggling (toggle would flip the value back!)
     m_mouseTransparent = s.value("mouseTransparent", false).toBool();
     applyMouseTransparent();
+    // 6. Key display
+    m_keyDisplayEnabled = s.value("keyDisplay", false).toBool();
+    applyKeyDisplay();
 }
 
 // 监听所有屏幕的可用区域变化：分辨率/任务栏/缩放切换时实时按比例重算位置。
@@ -1535,6 +1567,63 @@ void DesktopPet::applyRelativePosition() {
     updateSideWindowPositions();
 }
 
+// ========== 键位显示 ==========
+
+static DesktopPet *s_keyPet = nullptr;
+
+// 平台钩子回调入口（Windows/macOS 钩子线程即 Qt 主线程，直接调用）
+void desktopPetHandleGlobalKey(const QString &text)
+{
+    if (s_keyPet) s_keyPet->onGlobalKey(text);
+}
+
+void DesktopPet::onGlobalKey(const QString &text)
+{
+    if (!m_keyDisplayEnabled) return;
+    if (!m_keyWindow) m_keyWindow = new KeyDisplayWindow(this, m_scale);
+    static_cast<KeyDisplayWindow *>(m_keyWindow.data())->showKey(text);
+}
+
+void DesktopPet::toggleKeyDisplay()
+{
+    m_keyDisplayEnabled = !m_keyDisplayEnabled;
+    applyKeyDisplay();
+    saveSettings();
+}
+
+void DesktopPet::applyKeyDisplay()
+{
+    if (m_keyDisplayEnabled) {
+        startGlobalKeyHook();
+    } else {
+        stopGlobalKeyListener();
+        if (m_linuxKeyPollTimer) m_linuxKeyPollTimer->stop();
+        if (m_keyWindow) {
+            m_keyWindow->close();
+            m_keyWindow = nullptr;
+        }
+    }
+    if (m_trayKeyAction) m_trayKeyAction->setChecked(m_keyDisplayEnabled);
+}
+
+void DesktopPet::startGlobalKeyHook()
+{
+#ifdef Q_OS_LINUX
+    startGlobalKeyListener(nullptr); // 仅初始化 X display，轮询由 QTimer 驱动
+    if (!m_linuxKeyPollTimer) {
+        m_linuxKeyPollTimer = new QTimer(this);
+        m_linuxKeyPollTimer->setInterval(40);
+        connect(m_linuxKeyPollTimer, &QTimer::timeout, this, [this]() {
+            QString t = pollLinuxGlobalKey();
+            if (!t.isEmpty()) onGlobalKey(t);
+        });
+    }
+    m_linuxKeyPollTimer->start();
+#else
+    startGlobalKeyListener([](const QString &t) { desktopPetHandleGlobalKey(t); });
+#endif
+}
+
 void DesktopPet::setupTrayIcon() {
     m_trayIcon = new QSystemTrayIcon(this);
     m_trayIcon->setIcon(QIcon(":/icon.png"));
@@ -1554,6 +1643,11 @@ void DesktopPet::setupTrayIcon() {
     m_trayMouseAction = m_trayMenu->addAction(QString::fromUtf8("鼠标穿透"));
     m_trayMouseAction->setCheckable(true);
     connect(m_trayMouseAction, &QAction::triggered, this, &DesktopPet::toggleMouseTransparent);
+    m_trayMenu->addSeparator();
+    m_trayKeyAction = m_trayMenu->addAction(QString::fromUtf8("\u2328 \u952E\u4F4D\u663E\u793A"));
+    m_trayKeyAction->setCheckable(true);
+    m_trayKeyAction->setChecked(m_keyDisplayEnabled);
+    connect(m_trayKeyAction, &QAction::triggered, this, &DesktopPet::toggleKeyDisplay);
     m_trayMenu->addSeparator();
     QAction *resetPosAction = m_trayMenu->addAction(QString::fromUtf8("重置位置"));
     connect(resetPosAction, &QAction::triggered, this, [this]() {
@@ -1665,4 +1759,5 @@ void DesktopPet::applyStayOnTop() {
     updateWindowFlag(m_volumeWindow);
     updateWindowFlag(m_authorWindow);
     updateWindowFlag(m_resourceWindow);
+    updateWindowFlag(m_keyWindow);
 }
