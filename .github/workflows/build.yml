@@ -534,7 +534,7 @@ jobs:
             echo "FAIL: linux distro matrix must have at least 15 container entries"
             exit 1
           fi
-          echo "OK: deskflow-level platform matrix present (flatpak 暂未启用，清单保留在 deploy/linux/)
+          echo "OK: deskflow-level platform matrix present (flatpak 暂未启用，清单保留在 deploy/linux/)"
 
       # ============================================================
       # 十七、代码风格（clang-format）
