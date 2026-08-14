@@ -538,7 +538,7 @@ private:
             m_titleLabel->setText(QString::fromUtf8("\u63D0\u9192"));
             int fs = qMax(7, (int)(14 * m_scale));
             m_statusLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(fs));
-            m_statusLabel->setText(QString::fromUtf8("\u65F6\u95F4\u5230\u4E86\u54E6\uFF0C\u7EC3\u4E60"));
+            m_statusLabel->setText(QString::fromUtf8("\u65F6\u95F4\u5230\u4E86\u54E6\uFF0C\u7EF3\u5320")); // 时间到了哦，绳匠
         } else {
             updateCountdownDisplay();
         }
