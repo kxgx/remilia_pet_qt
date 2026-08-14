@@ -174,7 +174,7 @@ jobs:
 
       - name: 26. 检查 actions/* 官方版本 >= v5
         run: |
-          if grep -qrE 'actions/[^@]+@v[1-4]\b' .github/workflows/; then echo "FAIL: actions/* version < v5 found"; grep -rnE 'actions/[^@]+@v[1-4]\b' .github/workflows/; exit 1; fi
+          if grep -qrE '(^|[^a-zA-Z])actions/[^@]+@v[1-4]\b' .github/workflows/; then echo "FAIL: actions/* version < v5 found"; grep -rnE '(^|[^a-zA-Z])actions/[^@]+@v[1-4]\b' .github/workflows/; exit 1; fi
           echo "OK: all actions/* >= v5"
 
       # ============================================================
