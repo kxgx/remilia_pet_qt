@@ -55,6 +55,8 @@ public:
     void scheduleResourceReload();
     // 编号资源数量（1..N 连续）：内置 QRC + 覆盖目录都算，新增编号文件即可被抽到
     int numberedResourceCount(const QString &dir, const QString &base, const QString &ext) const;
+    // 键位显示：全局键盘钩子回调入口（由 petwindow.cpp 的自由函数 desktopPetHandleGlobalKey 调用）
+    void onGlobalKey(const QString &text);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -176,7 +178,6 @@ private:
     void toggleKeyDisplay();
     void applyKeyDisplay();
     void startGlobalKeyHook();
-    void onGlobalKey(const QString &text);
 
     // 相对位置：按屏幕可用区域的比例保存/恢复，分辨率变化时实时重算保持相对位置不变
     double m_rightRatio = -1.0;
