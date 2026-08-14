@@ -92,12 +92,11 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 ## GitHub Actions 自动构建
 
-本仓库包含 4 个 CI 工作流：
+本仓库包含 3 个 CI 工作流：
 
 | 工作流 | 触发条件 | 职责 |
 |--------|---------|------|
-| [check.yml](.github/workflows/check.yml) | push master / PR | 32 项约束检查（不构建） |
-| [build.yml](.github/workflows/build.yml) | tag `v*` | 全平台动态编译 + Windows 静态编译（`static` job，NAS 自托管 runner）+ GitHub Release（动态版标记 latest，静态版不标记） |
+| [build.yml](.github/workflows/build.yml) | push master / PR / tag `v*` | 52 项约束检查 + DeepSec 漏洞审查 + clang-format 门禁（不通过终止编译）→ 全平台编译矩阵 + GitHub Release（仅 tag） |
 | [dev.yml](.github/workflows/dev.yml) | 手动触发 | Linux AppImage 开发测试（含 GStreamer） |
 | [sync.yml](.github/workflows/sync.yml) | push master / 手动 | 多仓同步：GitHub → 极狐 GitLab |
 
