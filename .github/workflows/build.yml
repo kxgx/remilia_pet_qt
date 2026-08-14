@@ -561,21 +561,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write # PR 粘性评论（fork PR 的 token 会自动降级为只读，安全）
     steps:
       - uses: actions/checkout@v5
-      - name: DeepSec Shield 安全审查
-        uses: Unclecheng-li/DeepSec@main
-        with:
-          path: src
-          fail_on: critical
-          mode: full-scan
-          package_verification: seed
-          l2: 'true'
-          l3: 'false'
-          github_annotations: 'true'
-          step_summary: 'true'
-          pr_comment: 'true'
+      # 说明：Unclecheng-li/DeepSec@main 的 composite action 内部 setup-node 缓存
+      # 路径解析失败（上游 bug，任何仓库都会挂），这里直接调用 v0.2.0 发布 wheel 的 CLI。
+      - name: DeepSec Shield 安全审查（CLI）
+        run: |
+          pip install "https://github.com/Unclecheng-li/DeepSec/releases/download/v0.2.0/deepsec-0.2.0-py3-none-any.whl"
+          deepsec shield scan src --layer l1 --format json --output /tmp/ds1.json
+          deepsec shield scan src --layer l2 --format json --output /tmp/ds2.json
+          TOTAL=$(python3 -c "import json;a=json.load(open('/tmp/ds1.json'))['findings'];b=json.load(open('/tmp/ds2.json'))['findings'];print(len(a)+len(b))")
+          CRIT=$(python3 -c "import json;a=json.load(open('/tmp/ds1.json'))['findings'];b=json.load(open('/tmp/ds2.json'))['findings'];print(sum(1 for f in a+b if str(f.get('severity','')).lower()=='critical'))")
+          echo "DeepSec Shield: total=$TOTAL critical=$CRIT" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CRIT" -gt 0 ]; then echo "FAIL: critical findings found"; exit 1; fi
+          echo "OK: no critical findings"
   # ===================================================================
   # Windows x64
   # ===================================================================
