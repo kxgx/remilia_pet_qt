@@ -1167,20 +1167,28 @@ jobs:
       contents: write
       actions: read
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v7
         with:
           pattern: RemiliaPet_Qt6-**
           merge-multiple: true
       - name: 列出构件
         run: ls -la
-      - name: 生成校验和摘要
-        run: sha256sum RemiliaPet_Qt6-* > sums.txt
+      - name: 生成校验和与变更摘要（deskflow 同款）
+        run: |
+          echo "Build: ${{ github.ref_name }}" > sums.txt
+          sha256sum RemiliaPet_Qt6-* >> sums.txt
+          CHANGES=$(git log --abbrev=8 --abbrev-commit --pretty=format:" - %s(%h) by %an" -15)
+          { echo "## 最近变更:"; echo "$CHANGES"; } > changelog.txt
       - name: 创建 GitHub Release (动态版)
         uses: softprops/action-gh-release@v3
         with:
           files: |
             RemiliaPet_Qt6-*
             sums.txt
+            changelog.txt
           draft: false
           prerelease: false
           make_latest: true
