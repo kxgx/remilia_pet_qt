@@ -8,7 +8,7 @@
 
 #define MyAppName "蕾米埃尔桌宠"
 #define MyAppExeName "蕾米埃尔桌宠_Qt6.exe"
-#define MyAppVersion "1.0.8"
+#define MyAppVersion "1.0.9"
 #define MyAppPublisher "b站星光-k"
 #define MyAppURL "https://space.bilibili.com/32819169"
 

@@ -817,7 +817,7 @@ jobs:
           SYSTEMD
           cat > $DEB/DEBIAN/control << 'CONTROL'
           Package: remilia-pet
-          Version: 1.0.8
+          Version: 1.0.9
           Section: utils
           Priority: optional
           Architecture: amd64
@@ -994,7 +994,7 @@ jobs:
           SYSTEMD
           cat > $DEB/DEBIAN/control << 'CONTROL'
           Package: remilia-pet
-          Version: 1.0.8
+          Version: 1.0.9
           Section: utils
           Priority: optional
           Architecture: arm64
@@ -1462,21 +1462,33 @@ jobs:
           for r in ${{ needs.win-x64.result }} ${{ needs.mac-x64.result }} ${{ needs.mac-arm64.result }} ${{ needs.linux-x64.result }} ${{ needs.linux-arm64.result }} ${{ needs.windows-arm64.result }} ${{ needs.linux-distros.result }} ${{ needs.freebsd.result }}; do
             if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then FAIL=1; fi
           done
-          cat >> "$GITHUB_STEP_SUMMARY" << 'SUMMARY_EOF'
+          # 结果码转中文显示（通过/跳过/失败）
+          disp() { case "$1" in success) echo "✅ 通过";; skipped) echo "跳过";; failure) echo "❌ 失败";; *) echo "$1";; esac; }
+          R_CHECKS=${{ needs.checks.result }}
+          R_DEEPSEC=${{ needs.deepsec.result }}
+          R_WINX64=${{ needs.win-x64.result }}
+          R_WINARM=${{ needs.windows-arm64.result }}
+          R_MACX64=${{ needs.mac-x64.result }}
+          R_MACARM=${{ needs.mac-arm64.result }}
+          R_LINX64=${{ needs.linux-x64.result }}
+          R_LINARM=${{ needs.linux-arm64.result }}
+          R_DISTRO=${{ needs.linux-distros.result }}
+          R_BSD=${{ needs.freebsd.result }}
+          cat >> "$GITHUB_STEP_SUMMARY" << SUMMARY_EOF
           ## 全平台编译摘要
 
           | 项目 | 结果 |
           |------|------|
-          | 52 项约束检查 | ${{ needs.checks.result }} |
-          | DeepSec 漏洞审查 | ${{ needs.deepsec.result }} |
-          | Windows x64 | ${{ needs.win-x64.result }} |
-          | Windows ARM64 | ${{ needs.windows-arm64.result }} |
-          | macOS x64 (Intel) | ${{ needs.mac-x64.result }} |
-          | macOS ARM64 | ${{ needs.mac-arm64.result }} |
-          | Linux x64 | ${{ needs.linux-x64.result }} |
-          | Linux ARM64 | ${{ needs.linux-arm64.result }} |
-          | Linux 15 发行版矩阵 | ${{ needs.linux-distros.result }} |
-          | FreeBSD | ${{ needs.freebsd.result }} |
+          | 52 项约束检查 | $(disp "$R_CHECKS") |
+          | DeepSec 漏洞审查 | $(disp "$R_DEEPSEC") |
+          | Windows x64 | $(disp "$R_WINX64") |
+          | Windows ARM64 | $(disp "$R_WINARM") |
+          | macOS x64 (Intel) | $(disp "$R_MACX64") |
+          | macOS ARM64 | $(disp "$R_MACARM") |
+          | Linux x64 | $(disp "$R_LINX64") |
+          | Linux ARM64 | $(disp "$R_LINARM") |
+          | Linux 15 发行版矩阵 | $(disp "$R_DISTRO") |
+          | FreeBSD | $(disp "$R_BSD") |
           SUMMARY_EOF
           if [ "$FAIL" = "1" ]; then echo "❌ 存在失败平台" >> "$GITHUB_STEP_SUMMARY"; exit 1; fi
           echo "✅ 全部平台编译通过" >> "$GITHUB_STEP_SUMMARY"
