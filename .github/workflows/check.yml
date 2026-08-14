@@ -96,7 +96,8 @@ jobs:
       - name: 13. 检查 openDirInFM 去除尾部斜杠
         run: |
           awk '/void openDirInFM/,/^}/' src/inappfiledialog.cpp > /tmp/oa.txt
-          grep -q endsWith.*chop /tmp/oa.txt || { echo FAIL; exit 1; }
+          grep -q 'endsWith' /tmp/oa.txt || { echo FAIL; exit 1; }
+          grep -q 'chop(1)' /tmp/oa.txt || { echo FAIL; exit 1; }
           echo OK
 
       - name: 14. 检查 onOpenAll 调用 mkpath
@@ -352,7 +353,7 @@ jobs:
 
       - name: 39. 检查 loadOverrides 在 preloadNativeSizes 之前调用
         run: |
-          awk '/^DesktopPet::DesktopPet/,/^ }/' src/petwindow.cpp > /tmp/ctor.txt
+          awk '/^DesktopPet::DesktopPet/,/^}/' src/petwindow.cpp > /tmp/ctor.txt
           LO=$(grep -n 'loadOverrides();' /tmp/ctor.txt | head -1 | cut -d: -f1 || true)
           PN=$(grep -n 'preloadNativeSizes();' /tmp/ctor.txt | head -1 | cut -d: -f1 || true)
           if [ -z "$LO" ] || [ -z "$PN" ] || [ "$LO" -ge "$PN" ]; then
