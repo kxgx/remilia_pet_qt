@@ -381,10 +381,10 @@ jobs:
 
       - name: 42. 检查 NAS job 安全护栏步骤与 Bypass shell
         run: |
-          grep -q 'SECURITY: pull_request events are not allowed' .github/workflows/build.yml || { echo "FAIL: NAS jobs must throw on pull_request events"; exit 1; }
-          grep -q 'SECURITY: only tag pushes or manual dispatch' .github/workflows/build.yml || { echo "FAIL: NAS jobs must throw on non-tag triggers"; exit 1; }
+          grep -q 'SECURITY: fork PRs are not allowed' .github/workflows/build.yml || { echo "FAIL: NAS jobs must throw on fork PRs"; exit 1; }
+          grep -q 'head.repo.fork' .github/workflows/build.yml || { echo "FAIL: NAS guard must block fork PRs only (same-repo PR allowed)"; exit 1; }
           grep -q 'powershell -ExecutionPolicy Bypass' .github/workflows/build.yml || { echo "FAIL: NAS jobs must use -ExecutionPolicy Bypass shell"; exit 1; }
-          echo "OK: NAS jobs guarded against PR/abnormal triggers"
+          echo "OK: NAS jobs guarded against fork PRs + Bypass shell"
 
       - name: 43. 检查工作流级最小权限（默认只读）
         run: |
@@ -468,13 +468,17 @@ jobs:
           grep -q 'pull_request:' .github/workflows/build.yml || { echo "FAIL: build.yml must trigger on pull_request (compile before merge)"; exit 1; }
           grep -q 'cancel-in-progress' .github/workflows/build.yml || { echo "FAIL: build.yml must cancel superseded runs"; exit 1; }
           awk '/^  static:/,/^    steps:/' .github/workflows/build.yml > /tmp/st.txt
-          grep -q 'refs/tags/' /tmp/st.txt || { echo "FAIL: static job must stay tag-only (protect NAS runner from PRs)"; exit 1; }
+          if grep -q 'refs/tags/' /tmp/st.txt; then
+            echo "FAIL: static job must compile on all triggers like dynamic jobs (release stays tag-only)"
+            exit 1
+          fi
+          grep -q 'head.repo.fork' .github/workflows/build.yml || { echo "FAIL: static guard must block fork PRs only"; exit 1; }
           awk '/^  win-x64:/,/^    steps:/' .github/workflows/build.yml > /tmp/dy.txt
           if grep -q 'refs/tags/' /tmp/dy.txt; then
             echo "FAIL: dynamic jobs must compile on PR (no tag gating)"
             exit 1
           fi
-          echo "OK: PR-triggered dynamic builds + tag-only static + cancel-in-progress"
+          echo "OK: PR-triggered dynamic+static builds + fork-PR guard + tag-only release"
 
       # ============================================================
       # 十四、发布门禁（防误发布）

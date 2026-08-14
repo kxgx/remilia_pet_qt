@@ -506,8 +506,9 @@ jobs:
   # ===================================================================
   static:
     name: Windows x64 静态版
-    # 静态版仅 tag 触发：PR/master push 不在 NAS 自托管 runner 上执行（构建逻辑不变）
-    if: github.repository == 'kxgx/remilia_pet_qt' && startsWith(github.ref, 'refs/tags/')
+    # 编译触发与动态 job 一致（push master / PR / tag / dispatch），仅 fork PR 被护栏拦截；
+    # 发布仍由 release-static job 的 tag 门禁控制，本 job 只编译+上传构件
+    if: github.repository == 'kxgx/remilia_pet_qt'
     runs-on: [self-hosted, Windows, X64, nas]
     permissions:
       actions: write
@@ -519,11 +520,13 @@ jobs:
         #   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine）
         shell: 'powershell -ExecutionPolicy Bypass -command ". ''{0}''"'
     steps:
-      - name: 安全护栏（禁止 PR / 非 tag 触发在本 runner 执行）
+      - name: 安全护栏（禁止 fork PR 在本 runner 执行）
         run: |
           # NOTE: script content must stay ASCII — Windows PowerShell 5.1 reads .ps1 as ANSI
-          if ("$env:GITHUB_EVENT_NAME" -eq 'pull_request') { throw "SECURITY: pull_request events are not allowed on the NAS runner" }
-          if ("$env:GITHUB_REF" -notlike 'refs/tags/v*' -and "$env:GITHUB_EVENT_NAME" -ne 'workflow_dispatch') { throw "SECURITY: only tag pushes or manual dispatch are allowed on the NAS runner" }
+          if ("$env:GITHUB_EVENT_NAME" -eq 'pull_request') {
+            $ev = Get-Content $env:GITHUB_EVENT_PATH | ConvertFrom-Json
+            if ($ev.pull_request.head.repo.fork) { throw "SECURITY: fork PRs are not allowed on the NAS runner" }
+          }
       - uses: actions/checkout@v5
 
       - name: 添加 Git usr/bin 到 PATH
