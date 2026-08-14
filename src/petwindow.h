@@ -175,6 +175,7 @@ private:
     bool m_keyDisplayOnTop = true; // 置顶模式：跟随宠物置顶开关；非置顶模式：从不置顶
     QPointer<QWidget> m_keyWindow;
     QAction *m_trayKeyAction = nullptr;
+    QAction *m_trayKeyTopAction = nullptr;
     QTimer *m_linuxKeyPollTimer = nullptr;
     void toggleKeyDisplay();
     void toggleKeyDisplayOnTop();

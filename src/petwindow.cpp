@@ -1605,6 +1605,7 @@ void DesktopPet::toggleKeyDisplayOnTop()
 {
     m_keyDisplayOnTop = !m_keyDisplayOnTop;
     applyKeyWindowTop();
+    if (m_trayKeyTopAction) m_trayKeyTopAction->setChecked(m_keyDisplayOnTop);
     saveSettings();
 }
 
@@ -1633,6 +1634,10 @@ void DesktopPet::applyKeyDisplay()
         }
     }
     if (m_trayKeyAction) m_trayKeyAction->setChecked(m_keyDisplayEnabled);
+    if (m_trayKeyTopAction) {
+        m_trayKeyTopAction->setChecked(m_keyDisplayOnTop);
+        m_trayKeyTopAction->setEnabled(m_keyDisplayEnabled);
+    }
 }
 
 void DesktopPet::startGlobalKeyHook()
@@ -1677,6 +1682,11 @@ void DesktopPet::setupTrayIcon() {
     m_trayKeyAction->setCheckable(true);
     m_trayKeyAction->setChecked(m_keyDisplayEnabled);
     connect(m_trayKeyAction, &QAction::triggered, this, &DesktopPet::toggleKeyDisplay);
+    m_trayKeyTopAction = m_trayMenu->addAction(QString::fromUtf8("\u2328 \u952E\u4F4D\u663E\u793A\u7F6E\u9876"));
+    m_trayKeyTopAction->setCheckable(true);
+    m_trayKeyTopAction->setChecked(m_keyDisplayOnTop);
+    m_trayKeyTopAction->setEnabled(m_keyDisplayEnabled);
+    connect(m_trayKeyTopAction, &QAction::triggered, this, &DesktopPet::toggleKeyDisplayOnTop);
     m_trayMenu->addSeparator();
     QAction *resetPosAction = m_trayMenu->addAction(QString::fromUtf8("重置位置"));
     connect(resetPosAction, &QAction::triggered, this, [this]() {

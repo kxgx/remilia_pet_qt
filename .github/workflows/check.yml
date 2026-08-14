@@ -446,7 +446,11 @@ jobs:
           grep -q '^int DesktopPet::numberedResourceCount' src/petwindow.cpp || { echo "FAIL: numberedResourceCount missing"; exit 1; }
           awk '/^void DesktopPet::saveSettings/,/^}/' src/petwindow.cpp | grep -q 'keyDisplayOnTop' || { echo "FAIL: saveSettings must persist keyDisplayOnTop"; exit 1; }
           awk '/^void DesktopPet::setupTrayIcon/,/^}/' src/petwindow.cpp > /tmp/tray.txt
-          grep -q 'u952E' /tmp/tray.txt || { echo "FAIL: tray menu must offer key display toggle"; exit 1; }
+          KTR=$(grep -c 'u952E' /tmp/tray.txt || true)
+          if [ "$KTR" -lt 2 ]; then
+            echo "FAIL: tray menu must offer key display toggle + top mode toggle"
+            exit 1
+          fi
           awk '/^void DesktopPet::contextMenuEvent/,/^}/' src/petwindow.cpp > /tmp/cm.txt
           KCM=$(grep -c 'u952E' /tmp/cm.txt || true)
           if [ "$KCM" -lt 2 ]; then
