@@ -1589,7 +1589,7 @@ void DesktopPet::onGlobalKey(const QString &text)
 {
     if (!m_keyDisplayEnabled) return;
     if (!m_keyWindow) {
-        m_keyWindow = new KeyDisplayWindow(this, m_scale, m_keyDisplayOnTop && m_stayOnTop);
+        m_keyWindow = new KeyDisplayWindow(this, m_scale, m_stayOnTop || m_keyDisplayOnTop);
     }
     static_cast<KeyDisplayWindow *>(m_keyWindow.data())->showKey(text);
 }
@@ -1609,13 +1609,15 @@ void DesktopPet::toggleKeyDisplayOnTop()
     saveSettings();
 }
 
-// 键位窗口置顶模式：置顶模式时跟随宠物置顶开关，非置顶模式从不置顶
+// 键位窗口置顶规则：全局置顶开启时所有窗口置顶（开关自然失效，无冲突）；
+// 全局置顶关闭时，置顶模式开关独立决定键位窗口是否仍保持置顶。
 void DesktopPet::applyKeyWindowTop()
 {
     if (!m_keyWindow) return;
     QWidget *w = m_keyWindow.data();
     Qt::WindowFlags wf = w->windowFlags();
-    if (m_keyDisplayOnTop && m_stayOnTop) wf |= Qt::WindowStaysOnTopHint;
+    bool onTop = m_stayOnTop || m_keyDisplayOnTop;
+    if (onTop) wf |= Qt::WindowStaysOnTopHint;
     else wf &= ~Qt::WindowStaysOnTopHint;
     w->setWindowFlags(wf);
     if (w->isVisible()) w->show();

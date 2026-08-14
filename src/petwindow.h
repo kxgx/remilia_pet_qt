@@ -172,7 +172,7 @@ private:
 
     // 键位显示
     bool m_keyDisplayEnabled = false;
-    bool m_keyDisplayOnTop = true; // 置顶模式：跟随宠物置顶开关；非置顶模式：从不置顶
+    bool m_keyDisplayOnTop = true; // 独立置顶开关：仅全局置顶关闭时生效，开启时键位窗口单独保持置顶
     QPointer<QWidget> m_keyWindow;
     QAction *m_trayKeyAction = nullptr;
     QAction *m_trayKeyTopAction = nullptr;
