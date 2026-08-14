@@ -12,7 +12,7 @@ class DesktopPet;
 class KeyDisplayWindow : public QWidget {
     Q_OBJECT
 public:
-    KeyDisplayWindow(DesktopPet *pet, float scale);
+    KeyDisplayWindow(DesktopPet *pet, float scale, bool stayOnTop);
 
     void showKey(const QString &text);
     void updateScaleAndPosition(float scale);

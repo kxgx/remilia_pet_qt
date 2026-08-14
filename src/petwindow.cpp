@@ -473,9 +473,9 @@ public:
         int bs = qMax(18, (int)(24*scale));
         m_closeBtn->setFixedSize(bs, bs);
         m_closeBtn->setStyleSheet(QString("QPushButton{background:transparent;color:#FF8DA1;border:1px solid #FF8DA1;border-radius:%1px;font-weight:bold;font-size:%2px;padding:0;}QPushButton:hover{background:#FF8DA1;color:#111;}").arg(bs/2).arg(qMax(10,(int)(13*scale))));
-        // 状态文字也要随缩放自适应（倒计时 22*scale / 提醒文案 14*scale）
+        // 状态文字也要随缩放自适应（倒计时 22*scale / 提醒文案 26*scale，下限保证最小缩放可读）
         if (m_statusLabel && !m_statusLabel->isHidden()) {
-            int sfs = m_isFinishedReminding ? qMax(7, (int)(14*scale)) : qMax(8, (int)(22*scale));
+            int sfs = m_isFinishedReminding ? qMax(14, (int)(26*scale)) : qMax(12, (int)(22*scale));
             m_statusLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(sfs));
         }
         positionNearPet();
@@ -560,7 +560,7 @@ private:
             m_pet->setState(DesktopPet::Drag);
             m_pet->playSound("alarm.wav");
             m_titleLabel->setText(QString::fromUtf8("\u63D0\u9192"));
-            int fs = qMax(7, (int)(14 * m_scale));
+            int fs = qMax(14, (int)(26 * m_scale));
             m_statusLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(fs));
             m_statusLabel->setText(QString::fromUtf8("\u65F6\u95F4\u5230\u4E86\u54E6\uFF0C\u7EF3\u5320")); // 时间到了哦，绳匠
         } else {
@@ -571,7 +571,7 @@ private:
     void updateCountdownDisplay() {
         int mins = m_remainingSeconds / 60;
         int secs = m_remainingSeconds % 60;
-        int fs = qMax(8, (int)(22 * m_scale));
+        int fs = qMax(12, (int)(22 * m_scale));
         m_statusLabel->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;").arg(fs));
         m_statusLabel->setText(QString("%1:%2").arg(mins, 2, 10, QChar('0')).arg(secs, 2, 10, QChar('0')));
     }
@@ -1237,6 +1237,10 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     QAction *keyAction = menu.addAction(QString::fromUtf8("\u2328 \u952E\u4F4D\u663E\u793A"));
     keyAction->setCheckable(true);
     keyAction->setChecked(m_keyDisplayEnabled);
+    QAction *keyTopAction = menu.addAction(QString::fromUtf8("\u2328 \u952E\u4F4D\u663E\u793A\u7F6E\u9876"));
+    keyTopAction->setCheckable(true);
+    keyTopAction->setChecked(m_keyDisplayOnTop);
+    keyTopAction->setEnabled(m_keyDisplayEnabled);
     QAction *resetAction = menu.addAction(QString::fromUtf8("重置大小 (100%)"));
     menu.addSeparator();
     QAction *hideAction = menu.addAction(QString::fromUtf8("隐藏桌宠"));
@@ -1258,6 +1262,7 @@ void DesktopPet::contextMenuEvent(QContextMenuEvent *) {
     else if (chosen == topAction) toggleStayOnTop();
     else if (chosen == mouseAction) toggleMouseTransparent();
     else if (chosen == keyAction) toggleKeyDisplay();
+    else if (chosen == keyTopAction) toggleKeyDisplayOnTop();
     else if (chosen == resetAction) resetScale();
     else if (chosen == fontDefault) {
         m_fontFamily.clear();
@@ -1482,6 +1487,7 @@ void DesktopPet::saveSettings() {
     s.setValue("stayOnTop", m_stayOnTop);
     s.setValue("mouseTransparent", m_mouseTransparent);
     s.setValue("keyDisplay", m_keyDisplayEnabled);
+    s.setValue("keyDisplayOnTop", m_keyDisplayOnTop);
     s.sync();
 }
 
@@ -1523,6 +1529,7 @@ void DesktopPet::loadSettings() {
     applyMouseTransparent();
     // 6. Key display
     m_keyDisplayEnabled = s.value("keyDisplay", false).toBool();
+    m_keyDisplayOnTop = s.value("keyDisplayOnTop", true).toBool();
     applyKeyDisplay();
 }
 
@@ -1581,7 +1588,9 @@ void desktopPetHandleGlobalKey(const QString &text)
 void DesktopPet::onGlobalKey(const QString &text)
 {
     if (!m_keyDisplayEnabled) return;
-    if (!m_keyWindow) m_keyWindow = new KeyDisplayWindow(this, m_scale);
+    if (!m_keyWindow) {
+        m_keyWindow = new KeyDisplayWindow(this, m_scale, m_keyDisplayOnTop && m_stayOnTop);
+    }
     static_cast<KeyDisplayWindow *>(m_keyWindow.data())->showKey(text);
 }
 
@@ -1590,6 +1599,25 @@ void DesktopPet::toggleKeyDisplay()
     m_keyDisplayEnabled = !m_keyDisplayEnabled;
     applyKeyDisplay();
     saveSettings();
+}
+
+void DesktopPet::toggleKeyDisplayOnTop()
+{
+    m_keyDisplayOnTop = !m_keyDisplayOnTop;
+    applyKeyWindowTop();
+    saveSettings();
+}
+
+// 键位窗口置顶模式：置顶模式时跟随宠物置顶开关，非置顶模式从不置顶
+void DesktopPet::applyKeyWindowTop()
+{
+    if (!m_keyWindow) return;
+    QWidget *w = m_keyWindow.data();
+    Qt::WindowFlags wf = w->windowFlags();
+    if (m_keyDisplayOnTop && m_stayOnTop) wf |= Qt::WindowStaysOnTopHint;
+    else wf &= ~Qt::WindowStaysOnTopHint;
+    w->setWindowFlags(wf);
+    if (w->isVisible()) w->show();
 }
 
 void DesktopPet::applyKeyDisplay()
@@ -1760,5 +1788,5 @@ void DesktopPet::applyStayOnTop() {
     updateWindowFlag(m_volumeWindow);
     updateWindowFlag(m_authorWindow);
     updateWindowFlag(m_resourceWindow);
-    updateWindowFlag(m_keyWindow);
+    applyKeyWindowTop(); // 键位窗口按「置顶模式」规则跟随
 }

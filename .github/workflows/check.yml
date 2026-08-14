@@ -444,12 +444,16 @@ jobs:
             exit 1
           fi
           grep -q '^int DesktopPet::numberedResourceCount' src/petwindow.cpp || { echo "FAIL: numberedResourceCount missing"; exit 1; }
-          awk '/^void DesktopPet::saveSettings/,/^}/' src/petwindow.cpp | grep -q 'keyDisplay' || { echo "FAIL: saveSettings must persist keyDisplay"; exit 1; }
+          awk '/^void DesktopPet::saveSettings/,/^}/' src/petwindow.cpp | grep -q 'keyDisplayOnTop' || { echo "FAIL: saveSettings must persist keyDisplayOnTop"; exit 1; }
           awk '/^void DesktopPet::setupTrayIcon/,/^}/' src/petwindow.cpp > /tmp/tray.txt
           grep -q 'u952E' /tmp/tray.txt || { echo "FAIL: tray menu must offer key display toggle"; exit 1; }
           awk '/^void DesktopPet::contextMenuEvent/,/^}/' src/petwindow.cpp > /tmp/cm.txt
-          grep -q 'u952E' /tmp/cm.txt || { echo "FAIL: context menu must offer key display toggle"; exit 1; }
-          grep -q 'm_isFinishedReminding ? qMax(7, (int)(14\*scale)) : qMax(8, (int)(22\*scale))' src/petwindow.cpp || { echo "FAIL: TimerWindow scaling must refresh m_statusLabel"; exit 1; }
+          KCM=$(grep -c 'u952E' /tmp/cm.txt || true)
+          if [ "$KCM" -lt 2 ]; then
+            echo "FAIL: context menu must offer key display toggle + top mode toggle"
+            exit 1
+          fi
+          grep -q 'm_isFinishedReminding ? qMax(14, (int)(26\*scale)) : qMax(12, (int)(22\*scale))' src/petwindow.cpp || { echo "FAIL: TimerWindow scaling must refresh m_statusLabel with readable floor"; exit 1; }
           echo "OK: dynamic resource counts + key display toggles + status label scaling"
 
       - name: 汇总

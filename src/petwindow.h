@@ -172,11 +172,14 @@ private:
 
     // 键位显示
     bool m_keyDisplayEnabled = false;
+    bool m_keyDisplayOnTop = true; // 置顶模式：跟随宠物置顶开关；非置顶模式：从不置顶
     QPointer<QWidget> m_keyWindow;
     QAction *m_trayKeyAction = nullptr;
     QTimer *m_linuxKeyPollTimer = nullptr;
     void toggleKeyDisplay();
+    void toggleKeyDisplayOnTop();
     void applyKeyDisplay();
+    void applyKeyWindowTop();
     void startGlobalKeyHook();
 
     // 相对位置：按屏幕可用区域的比例保存/恢复，分辨率变化时实时重算保持相对位置不变

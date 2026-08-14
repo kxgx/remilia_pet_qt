@@ -7,8 +7,8 @@
 #include <QPen>
 #include <QBrush>
 
-KeyDisplayWindow::KeyDisplayWindow(DesktopPet *pet, float scale)
-    : QWidget(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool)
+KeyDisplayWindow::KeyDisplayWindow(DesktopPet *pet, float scale, bool stayOnTop)
+    : QWidget(nullptr, Qt::FramelessWindowHint | (stayOnTop ? Qt::WindowStaysOnTopHint : Qt::WindowType(0)) | Qt::Tool)
     , m_pet(pet), m_scale(scale)
 {
     setAttribute(Qt::WA_TranslucentBackground);
