@@ -76,9 +76,12 @@ elseif(APPLE)
     set(GUI_TYPE MACOSX_BUNDLE)
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
 else()
+    # keyhook_linux.cpp 始终编译：无 X11 环境（如 Flatpak SDK 缺头文件）时内部退化为空实现，
+    # 避免 petwindow.cpp 的引用缺符号链接失败
+    list(APPEND SOURCES src/keyhook_linux.cpp)
     find_package(X11 QUIET)
     if(X11_FOUND)
-        list(APPEND SOURCES src/keyhook_linux.cpp)
+        target_compile_definitions(RemiliaPet PRIVATE KEYHOOK_X11)
     endif()
     set(GUI_TYPE "")
 endif()

@@ -1,11 +1,12 @@
 // keyhook_linux.cpp — Linux 全局键盘轮询（XQueryKeymap）
 // 每 40ms 由 Qt 定时器调用 pollLinuxGlobalKey()：比较前后键盘位图找出新按下的键。
 // Wayland 纯会话无 X display（XOpenDisplay 失败），功能无显示；XWayland 正常。
+// 无 X11 头文件环境（如 Flatpak SDK）编译为空实现（KEYHOOK_X11 未定义）。
 #include "keyhook.h"
+#ifdef KEYHOOK_X11
 #include <X11/Xlib.h>
 #include <X11/XKBlib.h>
 #include <X11/keysym.h>
-
 #include <cstring>
 
 static Display *s_dpy = nullptr;
@@ -126,3 +127,19 @@ QString pollLinuxGlobalKey()
     std::memcpy(s_prev, keys, 32);
     return QString();
 }
+
+#else // !KEYHOOK_X11 — 空实现，键位显示在此环境不可用
+bool startGlobalKeyListener(GlobalKeyCallback)
+{
+    return false;
+}
+
+void stopGlobalKeyListener()
+{
+}
+
+QString pollLinuxGlobalKey()
+{
+    return QString();
+}
+#endif
