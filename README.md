@@ -96,31 +96,45 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 | 工作流 | 触发条件 | 职责 |
 |--------|---------|------|
-| [build.yml](.github/workflows/build.yml) | push master / PR / tag `v*` | 52 项约束检查 + DeepSec 漏洞审查 + clang-format 门禁（不通过终止编译）→ 全平台编译矩阵 + GitHub Release（仅 tag） |
+| [build.yml](.github/workflows/build.yml) | push master / PR / tag `v*`（.md 文档变更不触发） | 唯一主流水线：**52 项约束检查 + DeepSec 漏洞审查 + clang-format 门禁**（任一不通过即终止编译）→ 全平台编译矩阵 → 发布（仅 tag） |
 | [dev.yml](.github/workflows/dev.yml) | 手动触发 | Linux AppImage 开发测试（含 GStreamer） |
-| [sync.yml](.github/workflows/sync.yml) | push master / 手动 | 多仓同步：GitHub → 极狐 GitLab |
+| [sync.yml](.github/workflows/sync.yml) | push master / 手动 | 多仓同步：GitHub → 极狐 GitLab + Gitee（含 tag 同步） |
 
-> 原 `static.yml` 副 CI 已合并进 `build.yml`（`static`/`release-static` job）。
+> 纯 .md 文档变更（README、约束文档等）通过 `paths-ignore` 排除在构建触发之外（省构建额度）；代码 / 工作流变更照常触发全流程。
 
-`build.yml` 自动编译覆盖以下平台：
+### 门禁（编译前）
 
-| 平台 | 架构 | Runner | Qt 来源 | 产物大小 |
-|------|------|--------|---------|----------|
-| Windows | x64 | windows-2022 | aqtinstall | ZIP 约 41 MB |
-| macOS | x64 (Intel) | macos-26-intel | Homebrew | DMG 约 57 MB |
-| macOS | ARM64 (Apple Silicon) | macos-latest | Homebrew | DMG 约 54 MB |
-| Linux | x86_64 | ubuntu-latest | apt | tar.gz 约 49 MB |
-| Linux | ARM64 | ubuntu-24.04-arm | apt | tar.gz 约 49 MB |
+- **52 项约束检查**（checks job）：QSettings/资源路径/窗口缩放/位置锚点/NAS 安全护栏等，见 `项目约束文件.md`
+- **DeepSec 漏洞审查**（deepsec job）：全仓库 L1（幻觉包/硬编码密钥/不安全配置）+ L2（轻量 SAST）扫描，critical 发现即失败
+- **clang-format 风格检查**：全量 `--dry-run --Werror`（配置在 `.clang-format`）
+- 9 个编译 job 均 `needs` 门禁——检查不过，编译一步都不会启动
+
+### 编译矩阵
+
+| 平台 | 架构 | Runner | 说明 |
+|------|------|--------|------|
+| Windows | x64 | windows-2022 | aqtinstall Qt 6.8.2，动态 + 静态（NAS 自托管）双版本 |
+| Windows | ARM64 | windows-11-arm | install-qt-action（自动处理宿主工具依赖） |
+| macOS | x64 (Intel) | macos-26-intel | Homebrew Qt |
+| macOS | ARM64 | macos-latest | Homebrew Qt |
+| Linux | x86_64 / ARM64 | ubuntu-latest / ubuntu-24.04-arm | apt Qt；dpkg-deb + alien 打包 deb/rpm + 便携 tar.gz |
+| Linux 15 发行版矩阵 | x86_64 / ARM64 | 容器内编译检查 | Debian stable/testing、Fedora latest/rawhide、openSUSE Tumbleweed、Arch、Ubuntu latest/devel（仅编译检查，不打包） |
+| FreeBSD | x86_64 | vmactions VM | pkg Qt，编译检查 |
+
+所有动态平台均开启 `-DCMAKE_COMPILE_WARNING_AS_ERROR=ON`（警告即失败）。
 
 > **已知限制**：
-> - **Windows ARM64**：aqtinstall 暂无 ARM64 Qt 预编译包；vcpkg 静态编译因 `qtdeclarative` 依赖问题受阻
-> - **Arch Linux**：使用便携版 `.tar.gz`，不打包 `.pkg.tar.zst`
+> - **Arch Linux**：发行版矩阵仅编译检查，不打包 `.pkg.tar.zst`，用户下载便携版 `.tar.gz`
+> - **Flatpak**：清单保留在 `deploy/linux/` 备用，暂未接入 CI
 
 ### 发布正式版
 
-推送 `v` 开头的标签（如 `v1.0.0`）自动触发全平台构建并创建 GitHub Release。也可在 Actions 页面手动触发。
+推送 `v` 开头的标签（如 `v1.0.9`）自动触发全平台构建并创建 GitHub Release：
 
-> 静态版（便携版 + 安装器）由 CI 的 `static`/`release-static` job（NAS 自托管 runner）自动编译并发布，无需手动上传。
+- 动态版标记 **Latest**（`make_latest: true`），静态版不标记
+- 发布产物附 `sums.txt`（Build 版本头 + sha256 校验和）与 `changelog.txt`（最近 15 条变更）
+- 每次运行的「全平台编译通过」job 会输出**编译摘要**（job summary：各平台 ✅ 通过/❌ 失败表）
+- 静态版由 NAS 自托管 runner 编译；Gitee Release 自动同步
 
 ## 静态编译版本
 

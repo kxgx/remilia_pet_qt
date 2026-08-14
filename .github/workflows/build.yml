@@ -4,7 +4,14 @@ on:
   push:
     branches: [master]
     tags: ['v*']
+    # 纯 .md 文档变更不触发构建（paths-ignore 对 tag 推送不生效，发布流程不受影响）
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
   pull_request:
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
   workflow_dispatch:
 
 # 同一分支/PR 的新提交取消旧运行（deskflow 同款）
