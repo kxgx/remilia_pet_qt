@@ -22,4 +22,4 @@ modules:
       - install -Dm644 icon.png /app/share/icons/hicolor/256x256/apps/remilia-pet.png
     sources:
       - type: dir
-        path: .
+        path: ../.. # dir 源相对 manifest 所在目录（deploy/linux）解析，../.. 即仓库根
