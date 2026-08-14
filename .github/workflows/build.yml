@@ -36,7 +36,8 @@ jobs:
       - name: 配置 CMake
         run: |
           cmake -B build -S . -G "Visual Studio 17 2022" `
-            -DCMAKE_PREFIX_PATH="C:/Qt/6.8.2/msvc2022_64"
+            -DCMAKE_PREFIX_PATH="C:/Qt/6.8.2/msvc2022_64" `
+            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
       - name: 编译
         run: cmake --build build --config Release --parallel
       - name: 部署 Qt 动态库
@@ -73,6 +74,7 @@ jobs:
         run: |
           cmake -B build -S . -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
       - name: 编译
         run: cmake --build build --parallel
@@ -116,6 +118,7 @@ jobs:
         run: |
           cmake -B build -S . -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DCMAKE_PREFIX_PATH="${{ env.QT_PATH }}"
       - name: 编译
         run: cmake --build build --parallel
@@ -162,9 +165,17 @@ jobs:
             python3-pil
       - name: 配置 CMake
         run: |
-          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
       - name: 编译
         run: cmake --build build --parallel
+      - name: 检查构建是否污染仓库
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "FAIL: build modified tracked files"
+            git status --porcelain
+            exit 1
+          fi
+          echo "OK: working tree clean after build"
       - name: 打包 .deb + .rpm + tar.gz
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
@@ -338,7 +349,7 @@ jobs:
             python3-pil
       - name: 配置 CMake
         run: |
-          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -S . -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
       - name: 编译
         run: cmake --build build --parallel
       - name: 打包 .deb + .rpm + tar.gz
@@ -740,3 +751,23 @@ jobs:
             }
           }
           Write-Host "Done: Gitee release complete"
+
+  # ===================================================================
+  # 质量门（同 deskflow ci-passed）：所有动态平台编译成功才算通过，
+  # 供分支保护规则挂载，避免逐 job 罗列。
+  # ===================================================================
+  ci-passed:
+    name: 全平台编译通过
+    needs: [win-x64, mac-x64, mac-arm64, linux-x64, linux-arm64]
+    if: always() && github.repository == 'kxgx/remilia_pet_qt'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 校验所有平台结果
+        run: |
+          for r in ${{ needs.win-x64.result }} ${{ needs.mac-x64.result }} ${{ needs.mac-arm64.result }} ${{ needs.linux-x64.result }} ${{ needs.linux-arm64.result }}; do
+            if [ "$r" != "success" ]; then
+              echo "FAIL: one or more platform builds failed"
+              exit 1
+            fi
+          done
+          echo "OK: all dynamic platform builds passed"

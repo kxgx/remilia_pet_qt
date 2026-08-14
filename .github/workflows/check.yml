@@ -489,5 +489,19 @@ jobs:
           done
           echo "OK: release jobs gated by official repository + tag"
 
+      # ============================================================
+      # 十五、deskflow 级编译质量
+      # ============================================================
+      - name: 50. 检查 Werror 编译与 ci-passed 质量门
+        run: |
+          WER=$(grep -c 'CMAKE_COMPILE_WARNING_AS_ERROR=ON' .github/workflows/build.yml || true)
+          if [ "$WER" -lt 5 ]; then
+            echo "FAIL: all 5 dynamic jobs must compile with CMAKE_COMPILE_WARNING_AS_ERROR=ON"
+            exit 1
+          fi
+          grep -q '^  ci-passed:' .github/workflows/build.yml || { echo "FAIL: ci-passed gate job missing"; exit 1; }
+          grep -q '检查构建是否污染仓库' .github/workflows/build.yml || { echo "FAIL: repo-clean check after build missing"; exit 1; }
+          echo "OK: Werror builds + ci-passed gate + repo-clean check"
+
       - name: 汇总
-        run: echo "✅ 全部 49 项约束检查通过"
+        run: echo "✅ 全部 50 项约束检查通过"
