@@ -150,8 +150,3 @@ if(DEFINED VCPKG_TARGET_TRIPLET)
     message(STATUS "vcpkg triplet: ${VCPKG_TARGET_TRIPLET}")
 endif()
 
-# ── Install rules ───────────────────────────────────────────────────
-install(TARGETS RemiliaPet
-    BUNDLE  DESTINATION .
-    RUNTIME DESTINATION .
-)
