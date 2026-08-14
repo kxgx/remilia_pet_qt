@@ -140,7 +140,13 @@ endif()
 if(APPLE)
     install(TARGETS RemiliaPet BUNDLE DESTINATION ".")
 else()
-    install(TARGETS RemiliaPet RUNTIME DESTINATION bin RENAME remilia-pet)
+    # install(FILES + 生成器表达式) 重命名二进制，行为确定（Flatpak 的 command 校验依赖此名）
+    install(FILES "$<TARGET_FILE:RemiliaPet>" DESTINATION bin RENAME remilia-pet)
+    # Flatpak 元数据一并由 CMake 安装（post-install 不再依赖环境变量）
+    if(EXISTS "${CMAKE_SOURCE_DIR}/deploy/linux/remilia-pet.desktop")
+        install(FILES "${CMAKE_SOURCE_DIR}/deploy/linux/remilia-pet.desktop" DESTINATION share/applications)
+        install(FILES "${CMAKE_SOURCE_DIR}/icon.png" DESTINATION share/icons/hicolor/256x256/apps RENAME remilia-pet.png)
+    endif()
 endif()
 
 # ── Build info output ───────────────────────────────────────────────
