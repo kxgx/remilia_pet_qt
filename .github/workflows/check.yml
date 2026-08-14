@@ -536,3 +536,28 @@ jobs:
 
       - name: 汇总
         run: echo "✅ 全部 52 项约束检查通过"
+
+  # ===================================================================
+  # DeepSec 漏洞审查（Shield）：幻觉包/硬编码密钥/不安全配置 + 轻量 SAST
+  # 仅在 GitHub 托管 runner 执行，绝不使用 NAS 自托管 runner
+  # ===================================================================
+  deepsec:
+    name: DeepSec 漏洞审查
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # PR 粘性评论（fork PR 的 token 会自动降级为只读，安全）
+    steps:
+      - uses: actions/checkout@v5
+      - name: DeepSec Shield 安全审查
+        uses: Unclecheng-li/DeepSec@main
+        with:
+          path: src
+          fail_on: high
+          mode: full-scan
+          package_verification: seed
+          l2: 'true'
+          l3: 'false'
+          github_annotations: 'true'
+          step_summary: 'true'
+          pr_comment: 'true'
