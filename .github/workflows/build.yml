@@ -27,8 +27,29 @@ jobs:
 
   checks:
     runs-on: ubuntu-24.04
+    # 供编译矩阵按需跳过：仅 .md/工作流/打包清单等非代码变更时输出 code=false
+    outputs:
+      code: ${{ steps.codechange.outputs.code }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: 0. 检测代码变更（非代码变更时编译矩阵按需跳过）
+        id: codechange
+        run: |
+          BASE=master
+          if [ "${{ github.event_name }}" = "pull_request" ]; then BASE="${{ github.base_ref }}"; fi
+          git fetch --no-tags origin "$BASE" 2>/dev/null || true
+          if ! git rev-parse --verify "origin/$BASE" >/dev/null 2>&1; then
+            # 无法确定基线时按代码变更处理（宁可编译，不可漏编译）
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "origin/$BASE...HEAD" -- . \
+            ':(exclude)*.md' ':(exclude)**/*.md' ':(exclude).github/**' ':(exclude)deploy/**' \
+            ':(exclude).gitignore' ':(exclude)LICENSE' ':(exclude).clang-format' > /tmp/changed.txt 2>/dev/null; then
+            if [ -s /tmp/changed.txt ]; then echo "code=true" >> "$GITHUB_OUTPUT"; else echo "code=false" >> "$GITHUB_OUTPUT"; fi
+          else
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: 0. 提取编译段（避免后续检查自引用）
         run: sed -n '1,/^  checks:/p; /^  win-x64:/,$p' .github/workflows/build.yml > /tmp/bld.yml
 
@@ -485,22 +506,19 @@ jobs:
       # ============================================================
       # 十三、动态编译流程（PR 全平台编译保障）
       # ============================================================
-      - name: 48. 检查动态全平台 PR 编译保障
+      - name: 48. 检查编译矩阵按需跳过（代码变更门控 + tag 恒编译）
         run: |
           grep -q 'pull_request:' /tmp/bld.yml || { echo "FAIL: build.yml must trigger on pull_request (compile before merge)"; exit 1; }
           grep -q 'cancel-in-progress' /tmp/bld.yml || { echo "FAIL: build.yml must cancel superseded runs"; exit 1; }
+          # 静态 job：代码变更即编译（非代码变更跳过），tag 恒编译——仅 tag 才编译的旧式门控不允许
           awk '/^  static:/,/^    steps:/' /tmp/bld.yml > /tmp/st.txt
-          if grep -q 'refs/tags/' /tmp/st.txt; then
-            echo "FAIL: static job must compile on all triggers like dynamic jobs (release stays tag-only)"
-            exit 1
-          fi
+          grep -q "needs.checks.outputs.code == 'true'" /tmp/st.txt || { echo "FAIL: static job must compile when code changes"; exit 1; }
+          grep -q "startsWith(github.ref, 'refs/tags/')" /tmp/st.txt || { echo "FAIL: static job must always compile on tags"; exit 1; }
           grep -q 'head.repo.fork' /tmp/bld.yml || { echo "FAIL: static guard must block fork PRs only"; exit 1; }
+          # 动态 job：同样按代码变更门控
           awk '/^  win-x64:/,/^    steps:/' /tmp/bld.yml > /tmp/dy.txt
-          if grep -q 'refs/tags/' /tmp/dy.txt; then
-            echo "FAIL: dynamic jobs must compile on PR (no tag gating)"
-            exit 1
-          fi
-          echo "OK: PR-triggered dynamic+static builds + fork-PR guard + tag-only release"
+          grep -q "needs.checks.outputs.code == 'true'" /tmp/dy.txt || { echo "FAIL: dynamic jobs must compile when code changes"; exit 1; }
+          echo "OK: code-change gated builds + always build on tags + fork-PR guard + tag-only release"
 
       # ============================================================
       # 十四、发布门禁（防误发布）
@@ -586,6 +604,7 @@ jobs:
   win-x64:
     name: Windows x64
     needs: [checks, deepsec]
+    if: needs.checks.outputs.code == 'true' || startsWith(github.ref, 'refs/tags/')
     runs-on: windows-2022
     timeout-minutes: 40
     permissions:
@@ -623,6 +642,7 @@ jobs:
   mac-x64:
     name: macOS x64 (Intel)
     needs: [checks, deepsec]
+    if: needs.checks.outputs.code == 'true' || startsWith(github.ref, 'refs/tags/')
     runs-on: macos-26-intel
     timeout-minutes: 40
     permissions:
@@ -668,6 +688,7 @@ jobs:
   mac-arm64:
     name: macOS ARM64
     needs: [checks, deepsec]
+    if: needs.checks.outputs.code == 'true' || startsWith(github.ref, 'refs/tags/')
     runs-on: macos-latest
     timeout-minutes: 40
     permissions:
@@ -713,6 +734,7 @@ jobs:
   linux-x64:
     name: Linux x64
     needs: [checks, deepsec]
+    if: needs.checks.outputs.code == 'true' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -898,6 +920,7 @@ jobs:
   linux-arm64:
     name: Linux ARM64
     needs: [checks, deepsec]
+    if: needs.checks.outputs.code == 'true' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 40
     permissions:
@@ -1077,7 +1100,7 @@ jobs:
     needs: [checks, deepsec]
     # 编译触发与动态 job 一致（push master / PR / tag / dispatch），仅 fork PR 被护栏拦截；
     # 发布仍由 release-static job 的 tag 门禁控制，本 job 只编译+上传构件
-    if: github.repository == 'kxgx/remilia_pet_qt'
+    if: github.repository == 'kxgx/remilia_pet_qt' && (needs.checks.outputs.code == 'true' || startsWith(github.ref, 'refs/tags/'))
     runs-on: [self-hosted, Windows, X64, nas]
     permissions:
       actions: write
@@ -1341,6 +1364,7 @@ jobs:
   windows-arm64:
     name: Windows ARM64
     needs: [checks, deepsec]
+    if: needs.checks.outputs.code == 'true' || startsWith(github.ref, 'refs/tags/')
     runs-on: windows-11-arm
     timeout-minutes: 40
     permissions:
@@ -1383,7 +1407,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     container: ${{ matrix.container }}
     timeout-minutes: 25
-    if: github.repository == 'kxgx/remilia_pet_qt'
+    if: github.repository == 'kxgx/remilia_pet_qt' && (needs.checks.outputs.code == 'true' || startsWith(github.ref, 'refs/tags/'))
     strategy:
       fail-fast: false
       matrix:
@@ -1440,7 +1464,7 @@ jobs:
     needs: [checks, deepsec]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    if: github.repository == 'kxgx/remilia_pet_qt'
+    if: github.repository == 'kxgx/remilia_pet_qt' && (needs.checks.outputs.code == 'true' || startsWith(github.ref, 'refs/tags/'))
     steps:
       - uses: actions/checkout@v5
       - name: Build on FreeBSD
@@ -1498,4 +1522,8 @@ jobs:
           | FreeBSD | $(disp "$R_BSD") |
           SUMMARY_EOF
           if [ "$FAIL" = "1" ]; then echo "❌ 存在失败平台" >> "$GITHUB_STEP_SUMMARY"; exit 1; fi
-          echo "✅ 全部平台编译通过" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ needs.checks.outputs.code }}" != "true" ] && [ "${{ github.ref }}" != refs/tags/* ]; then
+            echo "✅ 门禁通过，编译矩阵跳过（本次无代码变更）" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "✅ 全部平台编译通过" >> "$GITHUB_STEP_SUMMARY"
+          fi

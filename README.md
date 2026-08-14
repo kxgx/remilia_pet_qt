@@ -96,18 +96,18 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 | 工作流 | 触发条件 | 职责 |
 |--------|---------|------|
-| [build.yml](.github/workflows/build.yml) | push master / PR / tag `v*`（.md 文档变更不触发） | 唯一主流水线：**52 项约束检查 + DeepSec 漏洞审查 + clang-format 门禁**（任一不通过即终止编译）→ 全平台编译矩阵 → 发布（仅 tag） |
+| [build.yml](.github/workflows/build.yml) | push master / PR / tag `v*`（.md 不触发；非代码变更跳过编译矩阵） | 唯一主流水线：**52 项约束检查 + DeepSec 漏洞审查 + clang-format 门禁**（任一不通过即终止编译）→ 全平台编译矩阵 → 发布（仅 tag） |
 | [dev.yml](.github/workflows/dev.yml) | 手动触发 | Linux AppImage 开发测试（含 GStreamer） |
 | [sync.yml](.github/workflows/sync.yml) | push master / 手动 | 多仓同步：GitHub → 极狐 GitLab + Gitee（含 tag 同步） |
 
-> 纯 .md 文档变更（README、约束文档等）通过 `paths-ignore` 排除在构建触发之外（省构建额度）；代码 / 工作流变更照常触发全流程。
+> 纯 .md 文档变更通过 `paths-ignore` 完全不触发；仅工作流/格式配置等非代码变更只跑 52 项检查 + DeepSec 门禁（编译矩阵自动跳过）；代码变更照常全流程编译，**tag 恒编译**。
 
 ### 门禁（编译前）
 
 - **52 项约束检查**（checks job）：QSettings/资源路径/窗口缩放/位置锚点/NAS 安全护栏等，见 `项目约束文件.md`
 - **DeepSec 漏洞审查**（deepsec job）：全仓库 L1（幻觉包/硬编码密钥/不安全配置）+ L2（轻量 SAST）扫描，critical 发现即失败
 - **clang-format 风格检查**：全量 `--dry-run --Werror`（配置在 `.clang-format`）
-- 9 个编译 job 均 `needs` 门禁——检查不过，编译一步都不会启动
+- 9 个编译 job 均 `needs` 门禁——检查不过，编译一步都不会启动；仅 .md/工作流等非代码变更时编译矩阵自动跳过（tag 恒编译）
 
 ### 编译矩阵
 
@@ -133,7 +133,7 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 - 动态版标记 **Latest**（`make_latest: true`），静态版不标记
 - 发布产物附 `sums.txt`（Build 版本头 + sha256 校验和）与 `changelog.txt`（最近 15 条变更）
-- 每次运行的「全平台编译通过」job 会输出**编译摘要**（job summary：各平台 ✅ 通过/❌ 失败表）
+- 每次运行的「全平台编译通过」job 会输出**编译摘要**（job summary：✅ 通过 / 跳过 / ❌ 失败 表；非代码变更时注明矩阵跳过）
 - 静态版由 NAS 自托管 runner 编译；Gitee Release 自动同步
 
 ## 静态编译版本
