@@ -80,9 +80,6 @@ else()
     # 避免 petwindow.cpp 的引用缺符号链接失败
     list(APPEND SOURCES src/keyhook_linux.cpp)
     find_package(X11 QUIET)
-    if(X11_FOUND)
-        target_compile_definitions(RemiliaPet PRIVATE KEYHOOK_X11)
-    endif()
     set(GUI_TYPE "")
 endif()
 
@@ -114,6 +111,7 @@ target_link_libraries(RemiliaPet PRIVATE
 
 if(X11_FOUND)
     target_link_libraries(RemiliaPet PRIVATE X11::X11)
+    target_compile_definitions(RemiliaPet PRIVATE KEYHOOK_X11)
 endif()
 if(APPLE)
     # 键位显示：CGEventTap 在 ApplicationServices（含 CoreGraphics）
