@@ -47,6 +47,9 @@
 #include "resourcewindow.h"
 #include "keydisplaywindow.h"
 #include "keyhook.h"
+
+// 键位显示钩子回调的桌宠实例（构造函数中赋值，声明须在构造函数之前）
+static DesktopPet *s_keyPet = nullptr;
 #include <QFileInfo>
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -1568,8 +1571,6 @@ void DesktopPet::applyRelativePosition() {
 }
 
 // ========== 键位显示 ==========
-
-static DesktopPet *s_keyPet = nullptr;
 
 // 平台钩子回调入口（Windows/macOS 钩子线程即 Qt 主线程，直接调用）
 void desktopPetHandleGlobalKey(const QString &text)

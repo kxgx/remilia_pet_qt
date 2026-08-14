@@ -105,6 +105,10 @@ target_link_libraries(RemiliaPet PRIVATE
 if(X11_FOUND)
     target_link_libraries(RemiliaPet PRIVATE X11::X11)
 endif()
+if(APPLE)
+    # 键位显示：CGEventTap 在 ApplicationServices（含 CoreGraphics）
+    target_link_libraries(RemiliaPet PRIVATE "-framework ApplicationServices")
+endif()
 
 # ── Platform-specific system libraries (static builds) ──────────────
 if(STATIC_BUILD)
