@@ -568,8 +568,8 @@ jobs:
       - name: DeepSec Shield 安全审查（CLI）
         run: |
           pip install "https://github.com/Unclecheng-li/DeepSec/releases/download/v0.2.0/deepsec-0.2.0-py3-none-any.whl"
-          deepsec shield scan src --layer l1 --format json --output /tmp/ds1.json
-          deepsec shield scan src --layer l2 --format json --output /tmp/ds2.json
+          deepsec shield scan . --layer l1 --format json --output /tmp/ds1.json
+          deepsec shield scan . --layer l2 --format json --output /tmp/ds2.json
           TOTAL=$(python3 -c "import json;a=json.load(open('/tmp/ds1.json'))['findings'];b=json.load(open('/tmp/ds2.json'))['findings'];print(len(a)+len(b))")
           CRIT=$(python3 -c "import json;a=json.load(open('/tmp/ds1.json'))['findings'];b=json.load(open('/tmp/ds2.json'))['findings'];print(sum(1 for f in a+b if str(f.get('severity','')).lower()=='critical'))")
           echo "DeepSec Shield: total=$TOTAL critical=$CRIT" >> "$GITHUB_STEP_SUMMARY"
