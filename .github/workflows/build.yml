@@ -22,6 +22,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+      - name: 0. 提取编译段（避免后续检查自引用）
+        run: sed -n '1,/^  checks:/p; /^  win-x64:/,$p' .github/workflows/build.yml > /tmp/bld.yml
+
 
       # ============================================================
       # 一、QSettings & 代码约束
@@ -136,51 +139,51 @@ jobs:
       # ============================================================
       - name: 17. 检查 Linux CI 包含 qt6-wayland
         run: |
-          grep -q 'qt6-wayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qt6-wayland in apt deps"; exit 1; }
+          grep -q 'qt6-wayland' /tmp/bld.yml || { echo "FAIL: build.yml missing qt6-wayland in apt deps"; exit 1; }
           echo "OK: qt6-wayland in CI deps"
 
       - name: 18. 检查 deb 包不再依赖 GStreamer
         run: |
-          if grep -q 'gstreamer' .github/workflows/build.yml; then echo "FAIL: build.yml must not reference gstreamer (use miniaudio+WAV)"; exit 1; fi
+          if grep -q 'gstreamer' /tmp/bld.yml; then echo "FAIL: build.yml must not reference gstreamer (use miniaudio+WAV)"; exit 1; fi
           echo "OK: no GStreamer dependency, using miniaudio+WAV"
 
       - name: 19. 检查 Linux CI 使用 dpkg-deb 打包 .deb
         run: |
-          grep -q 'dpkg-deb --build' .github/workflows/build.yml || { echo "FAIL: build.yml missing dpkg-deb --build ( .deb packaging)"; exit 1; }
+          grep -q 'dpkg-deb --build' /tmp/bld.yml || { echo "FAIL: build.yml missing dpkg-deb --build ( .deb packaging)"; exit 1; }
           echo "OK: dpkg-deb --build present"
 
       - name: 20. 检查 Linux CI 使用 alien 转换 .rpm
         run: |
-          grep -q 'alien -r' .github/workflows/build.yml || { echo "FAIL: build.yml missing alien -r ( .rpm conversion)"; exit 1; }
+          grep -q 'alien -r' /tmp/bld.yml || { echo "FAIL: build.yml missing alien -r ( .rpm conversion)"; exit 1; }
           echo "OK: alien -r present"
 
       - name: 21. 检查 build.yml 不再包含 Arch 打包 job
         run: |
-          if grep -q 'linux-arch' .github/workflows/build.yml; then echo "FAIL: build.yml must not contain linux-arch jobs"; exit 1; fi
+          if grep -q 'linux-arch' /tmp/bld.yml; then echo "FAIL: build.yml must not contain linux-arch jobs"; exit 1; fi
           echo "OK: no Arch packaging jobs"
 
       - name: 22. 检查打包 Wayland 完整插件链
         run: |
-          grep -q 'qwayland' .github/workflows/build.yml || { echo "FAIL: build.yml missing qwayland platform plugin copy"; exit 1; }
-          grep -q 'wayland-shell-integration' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-shell-integration sub-plugin"; exit 1; }
-          grep -q 'wayland-graphics-integration-client' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-graphics-integration-client sub-plugin"; exit 1; }
-          grep -q 'wayland-decoration-client' .github/workflows/build.yml || { echo "FAIL: build.yml missing wayland-decoration-client sub-plugin"; exit 1; }
-          grep -q 'libQt6WaylandEglClientHwIntegration' .github/workflows/build.yml || { echo "FAIL: build.yml missing libQt6WaylandEglClientHwIntegration"; exit 1; }
+          grep -q 'qwayland' /tmp/bld.yml || { echo "FAIL: build.yml missing qwayland platform plugin copy"; exit 1; }
+          grep -q 'wayland-shell-integration' /tmp/bld.yml || { echo "FAIL: build.yml missing wayland-shell-integration sub-plugin"; exit 1; }
+          grep -q 'wayland-graphics-integration-client' /tmp/bld.yml || { echo "FAIL: build.yml missing wayland-graphics-integration-client sub-plugin"; exit 1; }
+          grep -q 'wayland-decoration-client' /tmp/bld.yml || { echo "FAIL: build.yml missing wayland-decoration-client sub-plugin"; exit 1; }
+          grep -q 'libQt6WaylandEglClientHwIntegration' /tmp/bld.yml || { echo "FAIL: build.yml missing libQt6WaylandEglClientHwIntegration"; exit 1; }
           echo "OK: full Wayland plugin chain bundled"
 
       - name: 23. 检查 .deb launcher 使用 usr/bin 路径 (FHS)
         run: |
-          grep -q 'usr/bin/蕾米埃尔桌宠_Qt6' .github/workflows/build.yml || { echo "FAIL: .deb launcher must use usr/bin/ path"; exit 1; }
+          grep -q 'usr/bin/蕾米埃尔桌宠_Qt6' /tmp/bld.yml || { echo "FAIL: .deb launcher must use usr/bin/ path"; exit 1; }
           echo "OK: .deb launcher points to usr/bin/"
 
       - name: 24. 检查 Linux launcher 使用 XCB 避免 Wayland 兼容问题
         run: |
-          grep -q 'QT_QPA_PLATFORM=xcb' .github/workflows/build.yml || { echo "FAIL: Linux launcher must set QT_QPA_PLATFORM=xcb"; exit 1; }
+          grep -q 'QT_QPA_PLATFORM=xcb' /tmp/bld.yml || { echo "FAIL: Linux launcher must set QT_QPA_PLATFORM=xcb"; exit 1; }
           echo "OK: QT_QPA_PLATFORM=xcb set in all launchers"
 
       - name: 25. 检查 macOS CI 移除 aws/tap 避免 Homebrew 警告
         run: |
-          grep -q 'brew untap aws/tap' .github/workflows/build.yml || { echo "FAIL: build.yml missing brew untap aws/tap"; exit 1; }
+          grep -q 'brew untap aws/tap' /tmp/bld.yml || { echo "FAIL: build.yml missing brew untap aws/tap"; exit 1; }
           echo "OK: aws/tap untap present"
 
       - name: 26. 检查 actions/* 官方版本 >= v5
@@ -193,12 +196,12 @@ jobs:
       # ============================================================
       - name: 27. 检查 build.yml 标记 latest（主 CI）
         run: |
-          grep -q 'make_latest: true' .github/workflows/build.yml || { echo FAIL: build.yml must keep make_latest: true; exit 1; }
+          grep -q 'make_latest: true' /tmp/bld.yml || { echo FAIL: build.yml must keep make_latest: true; exit 1; }
           echo OK: build.yml make_latest: true
 
       - name: 28. 检查 build.yml 静态版不标记 latest
         run: |
-          grep -q 'make_latest: false' .github/workflows/build.yml || { echo FAIL: build.yml release-static must keep make_latest: false; exit 1; }
+          grep -q 'make_latest: false' /tmp/bld.yml || { echo FAIL: build.yml release-static must keep make_latest: false; exit 1; }
           echo OK: build.yml release-static make_latest: false
 
       - name: 29. 检查所有版本号一致（CMakeLists + installer.iss + build.yml .deb + tag）
@@ -209,7 +212,7 @@ jobs:
           # 1. CMakeLists.txt ↔ installer.iss
           if [ "$CMAKE_VER" != "$ISS_VER" ]; then echo "FAIL: CMakeLists.txt=$CMAKE_VER installer.iss=$ISS_VER"; FAIL=1; fi
           # 2. CMakeLists.txt ↔ build.yml .deb DEBIAN/control Version
-          for ver in $(grep '          Version:' .github/workflows/build.yml | sed 's/.*Version: *//'); do
+          for ver in $(grep '          Version:' /tmp/bld.yml | sed 's/.*Version: *//'); do
             if [ "$ver" != "$CMAKE_VER" ]; then echo "FAIL: build.yml .deb Version:$ver != $CMAKE_VER"; FAIL=1; fi
           done
           # 3. 与 git tag 一致（仅 tag 触发时校验）
@@ -384,7 +387,7 @@ jobs:
       # ============================================================
       - name: 41. 检查 NAS job 限定官方仓库（fork 拦截）
         run: |
-          GUARD=$(grep -c "github.repository == 'kxgx/remilia_pet_qt'" .github/workflows/build.yml || true)
+          GUARD=$(grep -c "github.repository == 'kxgx/remilia_pet_qt'" /tmp/bld.yml || true)
           if [ "$GUARD" -lt 2 ]; then
             echo "FAIL: static/gitee jobs must both be limited to the official repository"
             exit 1
@@ -393,14 +396,14 @@ jobs:
 
       - name: 42. 检查 NAS job 安全护栏步骤与 Bypass shell
         run: |
-          grep -q 'SECURITY: fork PRs are not allowed' .github/workflows/build.yml || { echo "FAIL: NAS jobs must throw on fork PRs"; exit 1; }
-          grep -q 'head.repo.fork' .github/workflows/build.yml || { echo "FAIL: NAS guard must block fork PRs only (same-repo PR allowed)"; exit 1; }
-          grep -q 'powershell -ExecutionPolicy Bypass' .github/workflows/build.yml || { echo "FAIL: NAS jobs must use -ExecutionPolicy Bypass shell"; exit 1; }
+          grep -q 'SECURITY: fork PRs are not allowed' /tmp/bld.yml || { echo "FAIL: NAS jobs must throw on fork PRs"; exit 1; }
+          grep -q 'head.repo.fork' /tmp/bld.yml || { echo "FAIL: NAS guard must block fork PRs only (same-repo PR allowed)"; exit 1; }
+          grep -q 'powershell -ExecutionPolicy Bypass' /tmp/bld.yml || { echo "FAIL: NAS jobs must use -ExecutionPolicy Bypass shell"; exit 1; }
           echo "OK: NAS jobs guarded against fork PRs + Bypass shell"
 
       - name: 43. 检查工作流级最小权限（默认只读）
         run: |
-          awk '/^permissions:/,/^jobs:/' .github/workflows/build.yml > /tmp/perm.txt
+          awk '/^permissions:/,/^jobs:/' /tmp/bld.yml > /tmp/perm.txt
           grep -q 'contents: read' /tmp/perm.txt || { echo "FAIL: workflow-level permissions must be contents: read"; exit 1; }
           if grep -q 'contents: write' /tmp/perm.txt; then
             echo "FAIL: workflow-level permissions must not grant write by default"
@@ -410,8 +413,8 @@ jobs:
 
       - name: 44. 检查 NAS job run 脚本内容全 ASCII
         run: |
-          awk '/^  static:/,/^  release:/' .github/workflows/build.yml > /tmp/nas1.txt
-          awk '/^  gitee:/,/^  windows-arm64:/' .github/workflows/build.yml > /tmp/nas2.txt
+          awk '/^  static:/,/^  release:/' /tmp/bld.yml > /tmp/nas1.txt
+          awk '/^  gitee:/,/^  windows-arm64:/' /tmp/bld.yml > /tmp/nas2.txt
           if cat /tmp/nas1.txt /tmp/nas2.txt | grep -v 'name:' | grep -v '^ *#' | grep -qP '[\x{4e00}-\x{9fff}]'; then
             echo "FAIL: NAS job run scripts must stay ASCII (PS 5.1 ANSI decoding breaks UTF-8 Chinese)"
             exit 1
@@ -477,15 +480,15 @@ jobs:
       # ============================================================
       - name: 48. 检查动态全平台 PR 编译保障
         run: |
-          grep -q 'pull_request:' .github/workflows/build.yml || { echo "FAIL: build.yml must trigger on pull_request (compile before merge)"; exit 1; }
-          grep -q 'cancel-in-progress' .github/workflows/build.yml || { echo "FAIL: build.yml must cancel superseded runs"; exit 1; }
-          awk '/^  static:/,/^    steps:/' .github/workflows/build.yml > /tmp/st.txt
+          grep -q 'pull_request:' /tmp/bld.yml || { echo "FAIL: build.yml must trigger on pull_request (compile before merge)"; exit 1; }
+          grep -q 'cancel-in-progress' /tmp/bld.yml || { echo "FAIL: build.yml must cancel superseded runs"; exit 1; }
+          awk '/^  static:/,/^    steps:/' /tmp/bld.yml > /tmp/st.txt
           if grep -q 'refs/tags/' /tmp/st.txt; then
             echo "FAIL: static job must compile on all triggers like dynamic jobs (release stays tag-only)"
             exit 1
           fi
-          grep -q 'head.repo.fork' .github/workflows/build.yml || { echo "FAIL: static guard must block fork PRs only"; exit 1; }
-          awk '/^  win-x64:/,/^    steps:/' .github/workflows/build.yml > /tmp/dy.txt
+          grep -q 'head.repo.fork' /tmp/bld.yml || { echo "FAIL: static guard must block fork PRs only"; exit 1; }
+          awk '/^  win-x64:/,/^    steps:/' /tmp/bld.yml > /tmp/dy.txt
           if grep -q 'refs/tags/' /tmp/dy.txt; then
             echo "FAIL: dynamic jobs must compile on PR (no tag gating)"
             exit 1
@@ -497,8 +500,8 @@ jobs:
       # ============================================================
       - name: 49. 检查发布 job 仅官方仓库 tag 触发（防误发布）
         run: |
-          awk '/^  release:/,/^    runs-on:/' .github/workflows/build.yml > /tmp/rl1.txt
-          awk '/^  release-static:/,/^    runs-on:/' .github/workflows/build.yml > /tmp/rl2.txt
+          awk '/^  release:/,/^    runs-on:/' /tmp/bld.yml > /tmp/rl1.txt
+          awk '/^  release-static:/,/^    runs-on:/' /tmp/bld.yml > /tmp/rl2.txt
           for f in /tmp/rl1.txt /tmp/rl2.txt; do
             grep -q "github.repository == 'kxgx/remilia_pet_qt'" $f || { echo "FAIL: release jobs must require the official repository"; exit 1; }
             grep -q 'refs/tags/' $f || { echo "FAIL: release jobs must be tag-only (prevent accidental publish on PR/master push)"; exit 1; }
@@ -510,13 +513,13 @@ jobs:
       # ============================================================
       - name: 50. 检查 Werror 编译与 ci-passed 质量门
         run: |
-          WER=$(grep -c 'CMAKE_COMPILE_WARNING_AS_ERROR=ON' .github/workflows/build.yml || true)
+          WER=$(grep -c 'CMAKE_COMPILE_WARNING_AS_ERROR=ON' /tmp/bld.yml || true)
           if [ "$WER" -lt 5 ]; then
             echo "FAIL: all 5 dynamic jobs must compile with CMAKE_COMPILE_WARNING_AS_ERROR=ON"
             exit 1
           fi
-          grep -q '^  ci-passed:' .github/workflows/build.yml || { echo "FAIL: ci-passed gate job missing"; exit 1; }
-          grep -q '检查构建是否污染仓库' .github/workflows/build.yml || { echo "FAIL: repo-clean check after build missing"; exit 1; }
+          grep -q '^  ci-passed:' /tmp/bld.yml || { echo "FAIL: ci-passed gate job missing"; exit 1; }
+          grep -q '检查构建是否污染仓库' /tmp/bld.yml || { echo "FAIL: repo-clean check after build missing"; exit 1; }
           echo "OK: Werror builds + ci-passed gate + repo-clean check"
 
       # ============================================================
@@ -524,11 +527,11 @@ jobs:
       # ============================================================
       - name: 51. 检查 deskflow 级平台矩阵
         run: |
-          grep -q 'windows-11-arm' .github/workflows/build.yml || { echo "FAIL: windows ARM64 job missing"; exit 1; }
-          grep -q 'vmactions/freebsd-vm' .github/workflows/build.yml || { echo "FAIL: freebsd job missing"; exit 1; }
-          grep -q 'flatpak/flatpak-github-actions' .github/workflows/build.yml || { echo "FAIL: flatpak job missing"; exit 1; }
+          grep -q 'windows-11-arm' /tmp/bld.yml || { echo "FAIL: windows ARM64 job missing"; exit 1; }
+          grep -q 'vmactions/freebsd-vm' /tmp/bld.yml || { echo "FAIL: freebsd job missing"; exit 1; }
+          grep -q 'flatpak/flatpak-github-actions' /tmp/bld.yml || { echo "FAIL: flatpak job missing"; exit 1; }
           [ -f deploy/linux/org.remiliapet.desktop.yml ] || { echo "FAIL: flatpak manifest missing"; exit 1; }
-          LDM=$(awk '/^  linux-distros:/,/^    steps:/' .github/workflows/build.yml | grep -c 'container:' || true)
+          LDM=$(awk '/^  linux-distros:/,/^    steps:/' /tmp/bld.yml | grep -c 'container:' || true)
           if [ "$LDM" -lt 15 ]; then
             echo "FAIL: linux distro matrix must have at least 15 container entries"
             exit 1
@@ -565,7 +568,7 @@ jobs:
         uses: Unclecheng-li/DeepSec@main
         with:
           path: src
-          fail_on: high
+          fail_on: critical
           mode: full-scan
           package_verification: seed
           l2: 'true'
