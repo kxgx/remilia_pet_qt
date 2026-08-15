@@ -96,15 +96,15 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 | 工作流 | 触发条件 | 职责 |
 |--------|---------|------|
-| [build.yml](.github/workflows/build.yml) | push master / PR / tag `v*`（.md 不触发；非代码变更跳过编译矩阵） | 唯一主流水线：**52 项约束检查 + DeepSec 漏洞审查 + clang-format 门禁**（任一不通过即终止编译）→ 全平台编译矩阵 → 发布（仅 tag） |
+| [build.yml](.github/workflows/build.yml) | push master / PR / tag `v*`（.md 不触发；非代码变更跳过编译矩阵） | 唯一主流水线：**53 项约束检查 + DeepSec 漏洞审查 + clang-format 门禁**（任一不通过即终止编译）→ 全平台编译矩阵 → 发布（仅 tag） |
 | [dev.yml](.github/workflows/dev.yml) | 手动触发 | Linux AppImage 开发测试（含 GStreamer） |
 | [sync.yml](.github/workflows/sync.yml) | push master / 手动 | 多仓同步：GitHub → 极狐 GitLab + Gitee（含 tag 同步） |
 
-> 纯 .md 文档变更通过 `paths-ignore` 完全不触发；仅工作流/格式配置等非代码变更只跑 52 项检查 + DeepSec 门禁（编译矩阵自动跳过）；代码变更照常全流程编译，**tag 恒编译**。
+> 纯 .md 文档变更通过 `paths-ignore` 完全不触发；仅工作流/格式配置等非代码变更只跑 53 项检查 + DeepSec 门禁（编译矩阵自动跳过）；代码变更照常全流程编译，**tag 恒编译**。
 
 ### 门禁（编译前）
 
-- **52 项约束检查**（checks job）：QSettings/资源路径/窗口缩放/位置锚点/NAS 安全护栏等，见 `项目约束文件.md`
+- **53 项约束检查**（checks job）：QSettings/资源路径/窗口缩放/位置锚点/NAS 安全护栏等，见 `项目约束文件.md`
 - **DeepSec 漏洞审查**（deepsec job）：全仓库 L1（幻觉包/硬编码密钥/不安全配置）+ L2（轻量 SAST）扫描，critical 发现即失败
 - **clang-format 风格检查**：全量 `--dry-run --Werror`（配置在 `.clang-format`）
 - 9 个编译 job 均 `needs` 门禁——检查不过，编译一步都不会启动；仅 .md/工作流等非代码变更时编译矩阵自动跳过（tag 恒编译）
@@ -154,26 +154,26 @@ resources/          ← 替换资源根目录（也支持中文名"资源"）
 
 | 平台 | 架构 | 状态 |
 |------|------|------|
-| Windows | x64 | ✅ 可编译（`x64-windows-static-md` triplet） |
+| Windows | x64 | ✅ 可编译（`x64-windows-static` 全静态 triplet） |
 | Windows | ARM64 | ❌ vcpkg 编译 `qtdeclarative` 等依赖存在问题 |
 
 ### 构建产物
 
 | 产物 | 大小 | 说明 |
 |------|------|------|
-| 便携版 EXE | 约 39 MB | 单文件，无需 DLL，解压即用 |
-| 便携版 ZIP | 约 55 MB | 压缩包，含 EXE |
-| 安装器 Setup.exe | 约 27 MB | Inno Setup 打包，安装到 Program Files |
+| 便携版 EXE | 约 60 MB | 单文件全静态（CRT/ICU 全部链接进 EXE），无需 DLL，解压即用 |
+| 便携版 ZIP | 约 65 MB | 压缩包，含 EXE |
+| 安装器 Setup.exe | 约 40 MB | Inno Setup 打包，安装到 Program Files |
 
 ### 本地编译步骤
 
 ```powershell
 # 1. 安装 vcpkg 并编译 Qt 静态库（首次约 1-2 小时）
-vcpkg install qtbase[gui,widgets,jpeg,png,network] --triplet x64-windows-static-md
+vcpkg install qtbase[gui,widgets,jpeg,png,network] --triplet x64-windows-static
 
 # 2. 配置 CMake
 cmake -B build-static -S . -G "Visual Studio 17 2022" -T version=14.44 `
-  -DVCPKG_TARGET_TRIPLET=x64-windows-static-md `
+  -DVCPKG_TARGET_TRIPLET=x64-windows-static `
   -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 # 3. 编译
