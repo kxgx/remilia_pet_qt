@@ -174,6 +174,20 @@ void mapXInput(const XINPUT_STATE &st, GamepadState &out)
 
 // 上次活跃的手柄编号：双柄场景下优先保持显示当前正在操作的那只
 DWORD s_activePad = static_cast<DWORD>(-1);
+// 上一轮是否有手柄在线：断开后的首次轮询返回一次 connected=false 的"断开事件"，
+// 供 UI 显示"未连接"提示后隐藏
+bool s_wasConnected = false;
+
+// 断开事件：仅在线→离线切换时返回 true（out 已重置为默认 disconnected 状态）
+bool emitDisconnectEvent()
+{
+    if (s_wasConnected)
+    {
+        s_wasConnected = false;
+        return true;
+    }
+    return false;
+}
 } // namespace
 
 bool initGamepad()
@@ -203,13 +217,21 @@ void shutdownGamepad()
     }
     s_xiGetState = nullptr;
     s_activePad = static_cast<DWORD>(-1);
+    s_wasConnected = false;
 }
 
 bool pollGamepad(GamepadState &out)
 {
     out = GamepadState();
     if (!s_xiGetState)
-        return pollDirectInput(out);
+    {
+        if (pollDirectInput(out))
+        {
+            s_wasConnected = true;
+            return true;
+        }
+        return emitDisconnectEvent();
+    }
 
     bool anyConnected = false;
     bool activeHasInput = false;
@@ -229,7 +251,14 @@ bool pollGamepad(GamepadState &out)
     }
 
     if (!anyConnected)
-        return pollDirectInput(out);
+    {
+        if (pollDirectInput(out))
+        {
+            s_wasConnected = true;
+            return true;
+        }
+        return emitDisconnectEvent();
+    }
 
     // 选中策略：活跃手柄仍有输入 → 继续；否则选任意有输入的手柄；再否则选最近活跃或第一个连接的
     DWORD chosen = static_cast<DWORD>(-1);
@@ -261,5 +290,6 @@ bool pollGamepad(GamepadState &out)
     out.controllerIndex = static_cast<int>(chosen);
     out.isXInput = true;
     out.connected = true;
+    s_wasConnected = true;
     return true;
 }

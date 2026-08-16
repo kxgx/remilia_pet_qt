@@ -2018,6 +2018,7 @@ void DesktopPet::applyKeyDisplay()
             connect(m_musicPollTimer, &QTimer::timeout, this, &DesktopPet::pollMediaInfo);
         }
         m_musicPollTimer->start();
+        m_gamepadAnnounceChecked = false; // 重新开启：无手柄时允许再提示一次"未连接"
 #endif
     }
     else
@@ -2063,14 +2064,25 @@ void DesktopPet::applyKeyDisplay()
     }
 }
 
-// 手柄轮询（30ms）：有输入时驱动手柄图 + 文字气泡显示；手柄拔出后计时不再续，2s 内自动隐藏
+// 手柄轮询（30ms）：有输入时驱动手柄图 + 文字气泡显示；断开事件显示"未连接" 2 秒；
+// 开启开关且始终无手柄时提示一次"未连接"
 void DesktopPet::pollGamepadState()
 {
     if (!m_keyDisplayEnabled)
         return;
     GamepadState st;
     if (!pollGamepad(st))
+    {
+        if (!m_gamepadAnnounceChecked)
+        {
+            m_gamepadAnnounceChecked = true;
+            if (!m_gamepadKeyWindow)
+                m_gamepadKeyWindow = new GamepadKeyWindow(this, m_scale, m_stayOnTop || m_keyDisplayOnTop);
+            static_cast<GamepadKeyWindow *>(m_gamepadKeyWindow.data())->showDisconnectedNotice();
+        }
         return;
+    }
+    m_gamepadAnnounceChecked = true;
     if (!m_gamepadWindow)
         m_gamepadWindow = new GamepadWindow(this, m_scale, m_stayOnTop || m_keyDisplayOnTop);
     if (!m_gamepadKeyWindow)

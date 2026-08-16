@@ -303,8 +303,17 @@ void GamepadKeyWindow::showState(const GamepadState &state)
 {
     if (!state.connected)
     {
-        m_state = state;
-        hide(); // 手柄断开：立即隐藏
+        if (m_state.connected)
+        {
+            // 在线→离线切换：显示"手柄未连接"2 秒后自动隐藏
+            m_state = state;
+            showDisconnectedNotice();
+        }
+        else
+        {
+            m_state = state;
+            hide();
+        }
         return;
     }
     bool anyPressed = false;
@@ -326,6 +335,16 @@ void GamepadKeyWindow::showState(const GamepadState &state)
     {
         m_hideTimer->start(); // 按住不放视为持续输入，气泡保持显示
     }
+}
+
+void GamepadKeyWindow::showDisconnectedNotice()
+{
+    m_text = QString::fromUtf8("\u672A\u8FDE\u63A5"); // 未连接
+    relayoutLabel();
+    positionNearPet();
+    show();
+    raise();
+    m_hideTimer->start();
 }
 
 void GamepadKeyWindow::updateScaleAndPosition(float scale)
