@@ -22,6 +22,8 @@ class VolumeSliderWindow;
 class AuthorWindow;
 class ResourceWindow;
 class KeyDisplayWindow;
+class GamepadWindow;
+class MusicWindow;
 class QFileSystemWatcher;
 
 class DesktopPet : public QLabel
@@ -34,6 +36,9 @@ class DesktopPet : public QLabel
     friend class VolumeSliderWindow;
     friend class AuthorWindow;
     friend class ResourceWindow;
+    friend class KeyDisplayWindow;
+    friend class GamepadWindow;
+    friend class MusicWindow;
 
     public:
     enum State
@@ -84,6 +89,8 @@ class DesktopPet : public QLabel
     void checkIdle();
     void onResourceWatchChanged(const QString &path);
     void onScreenGeometryChanged();
+    void pollGamepadState();
+    void pollMediaInfo();
 
     private:
     void setState(State state);
@@ -196,6 +203,12 @@ class DesktopPet : public QLabel
     void applyKeyDisplay();
     void applyKeyWindowTop();
     void startGlobalKeyHook();
+
+    // 实验性功能（仅 Windows）：手柄键位显示 + 音乐信息显示，合入"⌨ 键位显示"开关
+    QPointer<QWidget> m_gamepadWindow;
+    QPointer<QWidget> m_musicWindow;
+    QTimer *m_gamepadPollTimer = nullptr; // 手柄轮询 30ms（XInput/DI 均轻量）
+    QTimer *m_musicPollTimer = nullptr;   // SMTC 音乐信息轮询 800ms
 
     // 相对位置：按屏幕可用区域的比例保存/恢复，分辨率变化时实时重算保持相对位置不变
     double m_rightRatio = -1.0;

@@ -46,7 +46,11 @@
 #include "inappfiledialog.h"
 #include "resourcewindow.h"
 #include "keydisplaywindow.h"
+#include "gamepadwindow.h"
+#include "musicwindow.h"
 #include "keyhook.h"
+#include "gamepad.h"
+#include "mediainfo.h"
 
 // 键位显示钩子回调的桌宠实例（构造函数中赋值，声明须在构造函数之前）
 static DesktopPet *s_keyPet = nullptr;
@@ -980,6 +984,11 @@ DesktopPet::~DesktopPet()
         disconnect(m_movie, &QMovie::frameChanged, this, &DesktopPet::manualPaintFrame);
         m_movie->stop();
     }
+#ifdef Q_OS_WIN
+    // 实验性功能后端清理：线程 join 与设备释放必须在进程退出前完成
+    shutdownGamepad();
+    stopMediaInfo();
+#endif
 }
 
 void DesktopPet::preloadNativeSizes()
@@ -1164,6 +1173,12 @@ void DesktopPet::updateSideWindowPositions()
         if (w->isVisible())
             w->updateScaleAndPosition(m_scale);
     if (auto *w = dynamic_cast<KeyDisplayWindow *>(m_keyWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<GamepadWindow *>(m_gamepadWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<MusicWindow *>(m_musicWindow.data()))
         if (w->isVisible())
             w->updateScaleAndPosition(m_scale);
 }
@@ -1953,20 +1968,27 @@ void DesktopPet::toggleKeyDisplayOnTop()
 
 // 键位窗口置顶规则：全局置顶开启时所有窗口置顶（开关自然失效，无冲突）；
 // 全局置顶关闭时，置顶模式开关独立决定键位窗口是否仍保持置顶。
+// 手柄/音乐窗同属"键位显示"功能组，沿用同一置顶规则。
 void DesktopPet::applyKeyWindowTop()
 {
-    if (!m_keyWindow)
-        return;
-    QWidget *w = m_keyWindow.data();
-    Qt::WindowFlags wf = w->windowFlags();
-    bool onTop = m_stayOnTop || m_keyDisplayOnTop;
-    if (onTop)
-        wf |= Qt::WindowStaysOnTopHint;
-    else
-        wf &= ~Qt::WindowStaysOnTopHint;
-    w->setWindowFlags(wf);
-    if (w->isVisible())
-        w->show();
+    auto applyTop = [this](QPointer<QWidget> &win)
+    {
+        QWidget *w = win.data();
+        if (!w)
+            return;
+        Qt::WindowFlags wf = w->windowFlags();
+        const bool onTop = m_stayOnTop || m_keyDisplayOnTop;
+        if (onTop)
+            wf |= Qt::WindowStaysOnTopHint;
+        else
+            wf &= ~Qt::WindowStaysOnTopHint;
+        w->setWindowFlags(wf);
+        if (w->isVisible())
+            w->show();
+    };
+    applyTop(m_keyWindow);
+    applyTop(m_gamepadWindow);
+    applyTop(m_musicWindow);
 }
 
 void DesktopPet::applyKeyDisplay()
@@ -1974,6 +1996,25 @@ void DesktopPet::applyKeyDisplay()
     if (m_keyDisplayEnabled)
     {
         startGlobalKeyHook();
+#ifdef Q_OS_WIN
+        // 实验性功能：手柄键位显示（30ms 轮询）+ 音乐信息显示（800ms 轮询）
+        initGamepad();
+        startMediaInfo();
+        if (!m_gamepadPollTimer)
+        {
+            m_gamepadPollTimer = new QTimer(this);
+            m_gamepadPollTimer->setInterval(30);
+            connect(m_gamepadPollTimer, &QTimer::timeout, this, &DesktopPet::pollGamepadState);
+        }
+        m_gamepadPollTimer->start();
+        if (!m_musicPollTimer)
+        {
+            m_musicPollTimer = new QTimer(this);
+            m_musicPollTimer->setInterval(800);
+            connect(m_musicPollTimer, &QTimer::timeout, this, &DesktopPet::pollMediaInfo);
+        }
+        m_musicPollTimer->start();
+#endif
     }
     else
     {
@@ -1985,6 +2026,24 @@ void DesktopPet::applyKeyDisplay()
             m_keyWindow->close();
             m_keyWindow = nullptr;
         }
+#ifdef Q_OS_WIN
+        shutdownGamepad();
+        stopMediaInfo();
+        if (m_gamepadPollTimer)
+            m_gamepadPollTimer->stop();
+        if (m_musicPollTimer)
+            m_musicPollTimer->stop();
+        if (m_gamepadWindow)
+        {
+            m_gamepadWindow->close();
+            m_gamepadWindow = nullptr;
+        }
+        if (m_musicWindow)
+        {
+            m_musicWindow->close();
+            m_musicWindow = nullptr;
+        }
+#endif
     }
     if (m_trayKeyAction)
         m_trayKeyAction->setChecked(m_keyDisplayEnabled);
@@ -1992,6 +2051,42 @@ void DesktopPet::applyKeyDisplay()
     {
         m_trayKeyTopAction->setChecked(m_keyDisplayOnTop);
         m_trayKeyTopAction->setEnabled(m_keyDisplayEnabled);
+    }
+}
+
+// 手柄轮询（30ms）：有输入时驱动手柄窗显示；手柄拔出后计时不再续，2s 内自动隐藏
+void DesktopPet::pollGamepadState()
+{
+    if (!m_keyDisplayEnabled)
+        return;
+    GamepadState st;
+    if (!pollGamepad(st))
+        return;
+    if (!m_gamepadWindow)
+        m_gamepadWindow = new GamepadWindow(this, m_scale, m_stayOnTop || m_keyDisplayOnTop);
+    static_cast<GamepadWindow *>(m_gamepadWindow.data())->showState(st);
+}
+
+// 音乐信息轮询（800ms）：有媒体会话且标题非空时显示，否则隐藏
+void DesktopPet::pollMediaInfo()
+{
+    if (!m_keyDisplayEnabled)
+        return;
+    const MediaInfoSnapshot snap = mediaInfoSnapshot();
+    if (!snap.hasSession || snap.title.trimmed().isEmpty())
+    {
+        if (m_musicWindow)
+            m_musicWindow->hide();
+        return;
+    }
+    if (!m_musicWindow)
+        m_musicWindow = new MusicWindow(this, m_scale, m_stayOnTop || m_keyDisplayOnTop);
+    auto *w = static_cast<MusicWindow *>(m_musicWindow.data());
+    w->updateInfo(snap);
+    if (!w->isVisible())
+    {
+        w->show();
+        w->raise();
     }
 }
 

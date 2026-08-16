@@ -59,6 +59,12 @@ set(SOURCES
     src/resourcewindow.h
     src/keydisplaywindow.cpp
     src/keydisplaywindow.h
+    src/gamepadwindow.cpp
+    src/gamepadwindow.h
+    src/musicwindow.cpp
+    src/musicwindow.h
+    src/gamepad.h
+    src/mediainfo.h
     src/keyhook.h
     resources.qrc
 )
@@ -67,18 +73,22 @@ set(SOURCES
 if(WIN32)
     list(APPEND SOURCES resources.rc)
     list(APPEND SOURCES src/keyhook_win.cpp)
+    # 实验性功能（手柄 + SMTC 音乐信息）后端：仅 Windows 实现，其他平台用 stub 保证链接
+    list(APPEND SOURCES src/gamepad_win.cpp src/mediainfo_win.cpp)
     set(GUI_TYPE WIN32)
     if(STATIC_BUILD)
         list(APPEND SOURCES src/static_plugins.cpp)
     endif()
 elseif(APPLE)
     list(APPEND SOURCES src/keyhook_mac.mm)
+    list(APPEND SOURCES src/gamepad_stub.cpp src/mediainfo_stub.cpp)
     set(GUI_TYPE MACOSX_BUNDLE)
     set(MACOSX_BUNDLE_ICON_FILE icon.icns)
 else()
     # keyhook_linux.cpp 始终编译：无 X11 环境（如 Flatpak SDK 缺头文件）时内部退化为空实现，
     # 避免 petwindow.cpp 的引用缺符号链接失败
     list(APPEND SOURCES src/keyhook_linux.cpp)
+    list(APPEND SOURCES src/gamepad_stub.cpp src/mediainfo_stub.cpp)
     find_package(X11 QUIET)
     set(GUI_TYPE "")
 endif()
@@ -108,6 +118,16 @@ target_link_libraries(RemiliaPet PRIVATE
     Qt6::Gui
     Qt6::Widgets
 )
+
+# ── 实验性功能系统库（均为 Windows SDK 自带，零新依赖）───────────────
+if(WIN32)
+    # dinput8/dxguid：DirectInput 手柄轮询；windowsapp：WinRT 总括库（RoGetActivationFactory/RoInitialize，
+    # SDK 不单独分发 combase.lib）；ole32：COM 运行时
+    target_link_libraries(RemiliaPet PRIVATE dinput8 dxguid windowsapp ole32)
+    # C++/WinRT 投影头文件要求 /permissive-（两阶段查找），仅对该 TU 生效，
+    # 避免影响其他编译单元既有编译行为
+    set_source_files_properties(src/mediainfo_win.cpp PROPERTIES COMPILE_OPTIONS "/permissive-")
+endif()
 
 if(X11_FOUND)
     target_link_libraries(RemiliaPet PRIVATE X11::X11)

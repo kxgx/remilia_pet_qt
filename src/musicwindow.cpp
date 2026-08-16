@@ -1,0 +1,170 @@
+// musicwindow.cpp — 音乐信息显示窗口实现（实验性功能：SMTC 当前播放内容）
+// 全量信息：专辑封面 + 标题 + 歌手 + 专辑 + 播放状态 + 时间 + 进度条；
+// 逻辑布局 360×132（scale=1），随宠物缩放整体缩放；贴靠宠物左侧。
+#include "musicwindow.h"
+#include "petwindow.h"
+#include "inappfiledialog.h" // PINK
+
+#include <QPainter>
+#include <QPen>
+#include <QBrush>
+#include <QPixmap>
+#include <QScreen>
+#include <QGuiApplication>
+
+namespace
+{
+constexpr int kWinW = 360;
+constexpr int kWinH = 132;
+
+QString fmtTime(double sec)
+{
+    if (sec < 0.0 || sec > 359999.0)
+        sec = 0.0;
+    const int total = static_cast<int>(sec);
+    const int h = total / 3600;
+    const int m = (total % 3600) / 60;
+    const int s = total % 60;
+    if (h > 0)
+        return QStringLiteral("%1:%2:%3").arg(h).arg(m, 2, 10, QLatin1Char('0')).arg(s, 2, 10, QLatin1Char('0'));
+    return QStringLiteral("%1:%2").arg(m).arg(s, 2, 10, QLatin1Char('0'));
+}
+} // namespace
+
+MusicWindow::MusicWindow(DesktopPet *pet, float scale, bool stayOnTop)
+    : QWidget(nullptr, Qt::FramelessWindowHint | (stayOnTop ? Qt::WindowStaysOnTopHint : Qt::WindowType(0)) | Qt::Tool), m_pet(pet), m_scale(scale)
+{
+    setAttribute(Qt::WA_TranslucentBackground);
+    setAttribute(Qt::WA_DeleteOnClose);
+    m_cover = new QLabel(this);
+    m_cover->setAlignment(Qt::AlignCenter);
+    m_title = new QLabel(this);
+    m_artist = new QLabel(this);
+    m_status = new QLabel(this);
+    m_time = new QLabel(this);
+    m_barBg = new QLabel(this);
+    m_barFill = new QLabel(this);
+    m_barFill->setParent(m_barBg);
+    updateScaleAndPosition(scale);
+}
+
+void MusicWindow::updateInfo(const MediaInfoSnapshot &snap)
+{
+    m_snap = snap;
+    rebuildLayout();
+    positionNearPet(); // 隐藏→显示期间宠物可能移动过，显示前重新贴靠
+}
+
+void MusicWindow::updateScaleAndPosition(float scale)
+{
+    m_scale = scale;
+    const int w = qMax(200, static_cast<int>(kWinW * scale));
+    const int h = qMax(80, static_cast<int>(kWinH * scale));
+    const int cover = qMax(48, static_cast<int>(88 * scale));
+    setFixedSize(w, h);
+    m_cover->setGeometry(10, (h - cover) / 2, cover, cover);
+    const int x0 = cover + 22;
+    const int colW = w - x0 - 12;
+    const int titleFs = qMax(13, static_cast<int>(15 * scale));
+    const int artistFs = qMax(11, static_cast<int>(12 * scale));
+    const int statusFs = qMax(11, static_cast<int>(12 * scale));
+    m_title->setGeometry(x0, 8, colW, titleFs + 8);
+    m_title->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;background:transparent;").arg(titleFs));
+    m_artist->setGeometry(x0, 8 + titleFs + 8, colW, artistFs + 6);
+    m_artist->setStyleSheet(QString("color:#E8E8E8;font-size:%1px;background:transparent;").arg(artistFs));
+    m_status->setGeometry(x0, h - 34, colW / 2, statusFs + 6);
+    m_status->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;background:transparent;").arg(statusFs));
+    m_time->setGeometry(x0 + colW / 2, h - 34, colW / 2, statusFs + 6);
+    m_time->setStyleSheet(QString("color:#9A9A9A;font-size:%1px;background:transparent;").arg(statusFs));
+    m_time->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_barBg->setGeometry(x0, h - 18, colW, 8);
+    m_barBg->setStyleSheet("background:#3A3A3A;border-radius:4px;");
+    m_coverCacheKey = -1; // 尺寸变化：强制重缩放封面
+    rebuildLayout();
+    positionNearPet();
+}
+
+void MusicWindow::positionNearPet()
+{
+    if (!m_pet)
+        return;
+    const QRect pr = m_pet->geometry();
+    // 独立窗口：贴靠宠物左侧，垂直居中
+    int x = pr.x() - width() - 12;
+    int y = pr.y() + (pr.height() - height()) / 2;
+    QScreen *sc = QGuiApplication::screenAt(pr.center());
+    if (sc)
+    {
+        const QRect avail = sc->availableGeometry();
+        if (x < avail.left())
+            x = avail.left(); // 左侧无空间时贴屏幕左缘（不跨屏）
+        y = qBound(avail.top(), y, avail.top() + avail.height() - height());
+    }
+    move(x, y);
+}
+
+QString MusicWindow::statusText() const
+{
+    if (!m_snap.hasSession)
+        return QString();
+    if (m_snap.isPlaying)
+        return QString::fromUtf8("\u64AD\u653E\u4E2D"); // 播放中
+    return QString::fromUtf8("\u5DF2\u6682\u505C");     // 已暂停（Stopped 亦显示为未播放）
+}
+
+void MusicWindow::rebuildLayout()
+{
+    // 封面（无封面时显示音符占位）；按 cacheKey 去重，避免每轮轮询重复缩放整张图
+    const int side = m_cover->height();
+    if (!m_snap.cover.isNull())
+    {
+        if (m_snap.cover.cacheKey() != m_coverCacheKey)
+        {
+            m_coverCacheKey = m_snap.cover.cacheKey();
+            m_cover->setPixmap(QPixmap::fromImage(m_snap.cover).scaled(side, side, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
+        m_cover->setText(QString());
+        m_cover->setStyleSheet("background:#2E2E2E;border:1px solid #5A5A5A;border-radius:8px;");
+    }
+    else
+    {
+        m_coverCacheKey = 0;
+        m_cover->setPixmap(QPixmap());
+        m_cover->setText(QStringLiteral("\u266A"));
+        m_cover->setStyleSheet(QString("color:#9A9A9A;font-size:%1px;font-weight:bold;background:#2E2E2E;border:1px solid #5A5A5A;border-radius:8px;").arg(qMax(18, static_cast<int>(30 * m_scale))));
+    }
+    // 标题/歌手（歌手行为歌手 + 专辑，过长省略）
+    // 注：QSS 设置的 font-size 不反映在 widget->font()，这里用与 QSS 一致的字体做 elide 测量
+    QFont tf = m_title->font();
+    tf.setPixelSize(qMax(13, static_cast<int>(15 * m_scale)));
+    tf.setBold(true);
+    const QFontMetrics fm(tf);
+    m_title->setText(fm.elidedText(m_snap.title, Qt::ElideRight, m_title->width()));
+    const QString artistLine = m_snap.artist + (m_snap.album.isEmpty() ? QString() : QStringLiteral(" \u2014 ") + m_snap.album);
+    QFont af = m_artist->font();
+    af.setPixelSize(qMax(11, static_cast<int>(12 * m_scale)));
+    const QFontMetrics fam(af);
+    m_artist->setText(fam.elidedText(artistLine, Qt::ElideRight, m_artist->width()));
+    // 状态 + 时间 + 进度条
+    m_status->setText(statusText());
+    m_time->setText(fmtTime(m_snap.positionSec) + QStringLiteral(" / ") + fmtTime(m_snap.durationSec));
+    const int bw = m_barBg->width();
+    int fw = 0;
+    if (m_snap.durationSec > 0.5 && bw > 0)
+    {
+        const double frac = qBound(0.0, m_snap.positionSec / m_snap.durationSec, 1.0);
+        fw = qMax(6, static_cast<int>(bw * frac));
+    }
+    m_barFill->setGeometry(0, 0, fw, m_barBg->height());
+    m_barFill->setStyleSheet(fw > 0 ? "background:#FF8DA1;border-radius:4px;" : "background:transparent;");
+}
+
+void MusicWindow::paintEvent(QPaintEvent *)
+{
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    QRectF bg(2.0, 2.0, width() - 4.0, height() - 4.0);
+    p.setBrush(QBrush(QColor(26, 26, 26, 255)));
+    p.setPen(QPen(PINK, 4));
+    p.drawRoundedRect(bg, 10, 10);
+}
