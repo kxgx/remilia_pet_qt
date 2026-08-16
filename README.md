@@ -190,6 +190,9 @@ cmake --build build-static --config Release --parallel
 
 # 4. （可选）打包安装器
 & "C:\Program Files (x86)\Inno Setup 6\iscc.exe" /DBuildDir="build-static\Release" installer.iss
+#    无管理员权限时也可安装到用户目录：下载 Inno Setup 6 安装器后执行
+#    & installer.exe /VERYSILENT /CURRENTUSER /SUPPRESSMSGBOXES /DIR="$env:LOCALAPPDATA\InnoSetup" /NOICONS /NORESTART
+#    然后 & "$env:LOCALAPPDATA\InnoSetup\iscc.exe" /DBuildDir="build-static\Release" installer.iss
 ```
 
 构建输出在 `build-static/Release/` 目录，Inno Setup 安装器输出在 `Output/`。
