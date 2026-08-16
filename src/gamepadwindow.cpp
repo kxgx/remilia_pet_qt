@@ -61,7 +61,8 @@ void drawCircle(QPainter &p, const QPointF &c, double radius, bool pressed, cons
 }
 } // namespace
 
-// 手柄状态 → 按键名文本（与手柄图共用同一状态源，气泡独立显示）
+// 手柄状态 → 按键名文本（无按键时返回空串；"手柄已连接"提示由 showConnectedNotice 单独负责，
+// 只在连接瞬间显示一次，松开按键不会重复弹出）
 QString gamepadStateText(const GamepadState &state)
 {
     QStringList parts;
@@ -113,7 +114,7 @@ QString gamepadStateText(const GamepadState &state)
         parts << QString::fromUtf8("R\u2190");
     if (state.buttons[GP_RS_RIGHT])
         parts << QString::fromUtf8("R\u2192");
-    return parts.isEmpty() ? QString::fromUtf8("\u624B\u67C4\u5DF2\u8FDE\u63A5") : parts.join(QStringLiteral(" \u00B7 "));
+    return parts.join(QStringLiteral(" \u00B7 "));
 }
 
 // ── GamepadWindow：手柄图 ───────────────────────────────────────────
@@ -316,12 +317,19 @@ void GamepadKeyWindow::showState(const GamepadState &state)
         }
         return;
     }
+    // 连接瞬间：仅此一次显示"手柄已连接"（松开按键不再重复弹出）
+    if (!m_state.connected)
+    {
+        m_state = state;
+        showConnectedNotice();
+        return;
+    }
     bool anyPressed = false;
     for (int i = 0; i < GP_COUNT; ++i)
         anyPressed = anyPressed || state.buttons[i];
     const bool changed = memcmp(state.buttons, m_state.buttons, sizeof(state.buttons)) != 0 || state.controllerIndex != m_state.controllerIndex;
     m_state = state;
-    if (changed)
+    if (changed && anyPressed)
     {
         m_text = gamepadStateText(state);
         relayoutLabel();   // 气泡宽度随内容自适应
@@ -335,6 +343,7 @@ void GamepadKeyWindow::showState(const GamepadState &state)
     {
         m_hideTimer->start(); // 按住不放视为持续输入，气泡保持显示
     }
+    // 全部松开：保持最后按键文本，等待 2 秒计时自动隐藏
 }
 
 void GamepadKeyWindow::showDisconnectedNotice()
@@ -345,6 +354,17 @@ void GamepadKeyWindow::showDisconnectedNotice()
     show();
     raise();
     m_hideTimer->start();
+}
+
+void GamepadKeyWindow::showConnectedNotice()
+{
+    m_text = QString::fromUtf8("\u624B\u67C4\u5DF2\u8FDE\u63A5"); // 手柄已连接
+    relayoutLabel();
+    positionNearPet();
+    show();
+    raise();
+    m_hideTimer->start();
+    m_pet->updateSideWindowPositions(); // 音乐窗等立即避开本气泡
 }
 
 void GamepadKeyWindow::updateScaleAndPosition(float scale)

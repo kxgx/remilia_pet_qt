@@ -45,6 +45,7 @@ class GamepadKeyWindow : public QWidget
 
     void showState(const GamepadState &state);
     void showDisconnectedNotice(); // 显示"手柄未连接"2 秒后自动隐藏（断开/无手柄提示）
+    void showConnectedNotice();    // 显示"手柄已连接"2 秒后自动隐藏（仅连接瞬间一次）
     void updateScaleAndPosition(float scale);
 
     protected:
