@@ -1,5 +1,10 @@
 # 蕾米埃尔桌宠 (Remilia Pet)
 
+> ⚠️ **本分支（`dev`）为实验功能分支**：在手柄键位显示 + 音乐信息显示基础上开发，
+> **实验功能仅支持 Windows**（XInput/DirectInput 手柄轮询、系统媒体控制 SMTC）。
+> macOS / Linux / FreeBSD 可正常编译运行（实验功能为空实现），但无手柄/音乐显示。
+> 稳定版在 `master` 分支；本分支的推送不触发 CI（build.yml 仅 master/tag/PR 触发）。
+
 基于 Qt6 的桌面宠物程序，支持 GIF 动画播放、抽卡、随机画画、闹钟计时等功能。
 
 - **原作者**：[b站诉说新语](https://www.bilibili.com/video/BV1M13h6AEHr)
