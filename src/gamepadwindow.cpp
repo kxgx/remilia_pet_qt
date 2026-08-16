@@ -365,12 +365,22 @@ QFont GamepadKeyWindow::labelFont() const
     return f;
 }
 
-// 气泡宽度随文本自然宽度自适应：下限 80（x scale），上限与手柄图同宽（260 x scale），超长省略
+// 气泡宽度随文本自然宽度自适应：下限 80（x scale），上限为屏幕可用宽度（留 48px 边距），
+// 只有文本超出屏幕时才省略——多键同按的完整按键名优先显示
 void GamepadKeyWindow::relayoutLabel()
 {
     const QFontMetrics fm(labelFont());
     const int minW = qMax(60, static_cast<int>(80 * m_scale));
-    const int maxW = qMax(minW, static_cast<int>(kPadW * m_scale));
+    int availW = 0;
+    if (m_pet)
+    {
+        QScreen *sc = m_pet->screen();
+        if (!sc)
+            sc = QGuiApplication::primaryScreen();
+        if (sc)
+            availW = sc->availableGeometry().width() - 48;
+    }
+    const int maxW = qMax(minW, availW > 0 ? availW : static_cast<int>(600 * m_scale));
     const int labelW = qBound(minW, fm.horizontalAdvance(m_text) + 20, maxW);
     const int labelH = qMax(44, static_cast<int>(60 * m_scale));
     m_label->setFixedSize(labelW, labelH);
