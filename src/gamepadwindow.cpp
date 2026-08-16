@@ -173,31 +173,44 @@ void GamepadWindow::positionNearPet()
     if (!m_pet)
         return;
     const QRect pr = m_pet->geometry();
-    // 与键盘气泡同排：键盘气泡居中于宠物上方，手柄窗贴其左侧（间隔 8px）；
-    // 键盘气泡未显示时手柄窗占键盘位居中（与键位显示一致，不偏移）
+    QScreen *sc = QGuiApplication::screenAt(pr.center());
+    const QRect avail = sc ? sc->availableGeometry() : QRect();
     int keyW = 0;
     if (QWidget *kw = m_pet->m_keyWindow.data())
     {
         if (kw->isVisible())
             keyW = kw->width();
     }
-    int x;
-    if (keyW > 0)
-        x = pr.x() + pr.width() / 2 - keyW / 2 - 8 - width();
-    else
-        x = pr.x() + (pr.width() - width()) / 2;
-    int y = pr.y() - height() - 10;
-    QScreen *sc = QGuiApplication::screenAt(pr.center());
-    if (sc)
+
+    auto inAvail = [&avail](const QRect &r)
     {
-        const QRect avail = sc->availableGeometry();
-        // 上方无空间时移到宠物下方（不遮挡宠物）
-        if (y < avail.top())
-            y = pr.y() + pr.height() + 10;
-        x = qBound(avail.left(), x, avail.left() + avail.width() - width());
-        y = qBound(avail.top(), y, avail.top() + avail.height() - height());
+        if (!avail.isValid())
+            return true;
+        return r.left() >= avail.left() && r.top() >= avail.top() && r.right() <= avail.left() + avail.width() - 1 &&
+               r.bottom() <= avail.top() + avail.height() - 1;
+    };
+
+    // 槽位依次避让：键盘气泡左侧同行 → 键盘气泡右侧同行 → 宠物下方居中（
+    // 杜绝独立钳位造成的互相压叠）
+    QRect cand;
+    if (keyW > 0)
+    {
+        cand = QRect(pr.x() + pr.width() / 2 - keyW / 2 - 8 - width(), pr.y() - height() - 10, width(), height());
+        if (!inAvail(cand))
+            cand = QRect(pr.x() + pr.width() / 2 + keyW / 2 + 8, pr.y() - height() - 10, width(), height());
     }
-    move(x, y);
+    else
+    {
+        cand = QRect(pr.x() + (pr.width() - width()) / 2, pr.y() - height() - 10, width(), height());
+    }
+    if (!inAvail(cand))
+        cand = QRect(pr.x() + (pr.width() - width()) / 2, pr.y() + pr.height() + 10, width(), height());
+    if (!inAvail(cand) && avail.isValid())
+    {
+        cand.moveTo(qBound(avail.left(), cand.x(), avail.left() + avail.width() - width()),
+                    qBound(avail.top(), cand.y(), avail.top() + avail.height() - height()));
+    }
+    move(cand.topLeft());
 }
 
 void GamepadWindow::paintEvent(QPaintEvent *)
@@ -331,36 +344,91 @@ void GamepadKeyWindow::positionNearPet()
     if (!m_pet)
         return;
     const QRect pr = m_pet->geometry();
-    // 贴手柄图左侧同行、底部对齐（间隔 8px）；手柄图未显示时居中于宠物上方
+    QScreen *sc = QGuiApplication::screenAt(pr.center());
+    const QRect avail = sc ? sc->availableGeometry() : QRect();
     QRect padRect;
     if (QWidget *pw = m_pet->m_gamepadWindow.data())
     {
         if (pw->isVisible())
             padRect = pw->geometry();
     }
-    int x;
-    int y;
+    QRect keyRect;
+    if (QWidget *kw = m_pet->m_keyWindow.data())
+    {
+        if (kw->isVisible())
+            keyRect = kw->geometry();
+    }
+
+    // 候选位置：不压宠物、不压手柄图、不与键盘气泡重叠（外扩 8px 视为重叠，避免贴死）
+    auto fits = [&](const QRect &r)
+    {
+        if (r.intersects(pr))
+            return false;
+        if (padRect.isValid() && r.intersects(padRect))
+            return false;
+        if (keyRect.isValid() && r.intersects(keyRect.adjusted(-8, -8, 8, 8)))
+            return false;
+        if (avail.isValid())
+            return r.left() >= avail.left() && r.top() >= avail.top() && r.right() <= avail.left() + avail.width() - 1 &&
+                   r.bottom() <= avail.top() + avail.height() - 1;
+        return true;
+    };
+
+    QRect cand;
     if (padRect.isValid())
     {
-        x = padRect.x() - width() - 8;
-        y = padRect.y() + padRect.height() - height();
+        // 槽位依次避让：手柄图左侧（底部对齐）→ 右侧 → 上方 → 下方
+        cand = QRect(padRect.x() - width() - 8, padRect.y() + padRect.height() - height(), width(), height());
+        if (fits(cand))
+        {
+            move(cand.topLeft());
+            return;
+        }
+        cand = QRect(padRect.x() + padRect.width() + 8, padRect.y() + padRect.height() - height(), width(), height());
+        if (fits(cand))
+        {
+            move(cand.topLeft());
+            return;
+        }
+        cand = QRect(padRect.x(), padRect.y() - height() - 8, width(), height());
+        if (fits(cand))
+        {
+            move(cand.topLeft());
+            return;
+        }
+        cand = QRect(padRect.x(), padRect.y() + padRect.height() + 8, width(), height());
+        if (fits(cand))
+        {
+            move(cand.topLeft());
+            return;
+        }
     }
     else
     {
-        x = pr.x() + (pr.width() - width()) / 2;
-        y = pr.y() - height() - 10;
+        // 手柄图未显示：居中于宠物上方 → 下方
+        cand = QRect(pr.x() + (pr.width() - width()) / 2, pr.y() - height() - 10, width(), height());
+        if (fits(cand))
+        {
+            move(cand.topLeft());
+            return;
+        }
+        cand = QRect(pr.x() + (pr.width() - width()) / 2, pr.y() + pr.height() + 10, width(), height());
+        if (fits(cand))
+        {
+            move(cand.topLeft());
+            return;
+        }
     }
-    QScreen *sc = QGuiApplication::screenAt(pr.center());
-    if (sc)
+    // 兜底钳位
+    if (avail.isValid())
     {
-        const QRect avail = sc->availableGeometry();
-        // 上方无空间时移到宠物下方（不遮挡宠物）
-        if (y < avail.top())
-            y = pr.y() + pr.height() + 10;
-        x = qBound(avail.left(), x, avail.left() + avail.width() - width());
-        y = qBound(avail.top(), y, avail.top() + avail.height() - height());
+        move(qBound(avail.left(), cand.x(), avail.left() + avail.width() - width()),
+             qBound(avail.top(), cand.y(), avail.top() + avail.height() - height()));
     }
-    move(x, y);
+    else
+    {
+        move(cand.topLeft());
+    }
 }
 
 void GamepadKeyWindow::paintEvent(QPaintEvent *)
