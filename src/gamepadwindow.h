@@ -8,6 +8,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QTimer>
+#include <QFont>
 #include "gamepad.h"
 
 class DesktopPet;
@@ -50,12 +51,15 @@ class GamepadKeyWindow : public QWidget
 
     private:
     void positionNearPet();
+    QFont labelFont() const; // 与标签 QSS 一致的字体（QSS 不影响 widget->font()）
+    void relayoutLabel();    // 按文本自然宽度自适应窗口尺寸，超长省略
 
     DesktopPet *m_pet;
     float m_scale;
     QLabel *m_label = nullptr;
     QTimer *m_hideTimer = nullptr;
     GamepadState m_state;
+    QString m_text; // 完整文本（标签显示省略后版本，重新测量时用）
 };
 
 #endif // GAMEPADWINDOW_H

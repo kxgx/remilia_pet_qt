@@ -314,7 +314,8 @@ void GamepadKeyWindow::showState(const GamepadState &state)
     m_state = state;
     if (changed)
     {
-        m_label->setText(gamepadStateText(state));
+        m_text = gamepadStateText(state);
+        relayoutLabel();   // 气泡宽度随内容自适应
         positionNearPet(); // 隐藏期间宠物可能移动/缩放，显示前重新贴靠
         show();
         raise();
@@ -330,13 +331,33 @@ void GamepadKeyWindow::showState(const GamepadState &state)
 void GamepadKeyWindow::updateScaleAndPosition(float scale)
 {
     m_scale = scale;
-    // 与键盘气泡一致的样式与尺寸（随宠物缩放）
     const int fs = qMax(16, static_cast<int>(36 * scale));
     m_label->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;background:transparent;").arg(fs));
-    m_label->setFixedSize(qMax(60, static_cast<int>(80 * scale)), qMax(44, static_cast<int>(60 * scale)));
-    setFixedSize(m_label->width() + 16, m_label->height() + 16);
-    m_label->move(8, 8);
+    relayoutLabel();
     positionNearPet();
+}
+
+QFont GamepadKeyWindow::labelFont() const
+{
+    // QSS 设置的 font-size 不反映在 widget->font()，这里构造与标签 QSS 一致的字体做测量
+    QFont f = m_label->font();
+    f.setPixelSize(qMax(16, static_cast<int>(36 * m_scale)));
+    f.setBold(true);
+    return f;
+}
+
+// 气泡宽度随文本自然宽度自适应：下限 80（x scale），上限与手柄图同宽（260 x scale），超长省略
+void GamepadKeyWindow::relayoutLabel()
+{
+    const QFontMetrics fm(labelFont());
+    const int minW = qMax(60, static_cast<int>(80 * m_scale));
+    const int maxW = qMax(minW, static_cast<int>(kPadW * m_scale));
+    const int labelW = qBound(minW, fm.horizontalAdvance(m_text) + 20, maxW);
+    const int labelH = qMax(44, static_cast<int>(60 * m_scale));
+    m_label->setFixedSize(labelW, labelH);
+    setFixedSize(labelW + 16, labelH + 16);
+    m_label->move(8, 8);
+    m_label->setText(fm.elidedText(m_text, Qt::ElideRight, qMax(12, labelW - 4)));
 }
 
 void GamepadKeyWindow::positionNearPet()
