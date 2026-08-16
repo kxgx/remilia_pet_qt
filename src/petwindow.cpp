@@ -1,4 +1,4 @@
-﻿// petwindow.cpp — 桌面宠物主窗口 DesktopPet 实现
+// petwindow.cpp — 桌面宠物主窗口 DesktopPet 实现
 // 包含 GIF 状态机、托盘、设置、各功能侧窗类定义，以及资源覆盖目录的
 // 扫描（loadOverrides）、文件监听（QFileSystemWatcher）与即时重载（applyResourceChanges）。
 #include "petwindow.h"
@@ -1178,6 +1178,9 @@ void DesktopPet::updateSideWindowPositions()
     if (auto *w = dynamic_cast<GamepadWindow *>(m_gamepadWindow.data()))
         if (w->isVisible())
             w->updateScaleAndPosition(m_scale);
+    if (auto *w = dynamic_cast<GamepadKeyWindow *>(m_gamepadKeyWindow.data()))
+        if (w->isVisible())
+            w->updateScaleAndPosition(m_scale);
     if (auto *w = dynamic_cast<MusicWindow *>(m_musicWindow.data()))
         if (w->isVisible())
             w->updateScaleAndPosition(m_scale);
@@ -1988,6 +1991,7 @@ void DesktopPet::applyKeyWindowTop()
     };
     applyTop(m_keyWindow);
     applyTop(m_gamepadWindow);
+    applyTop(m_gamepadKeyWindow);
     applyTop(m_musicWindow);
 }
 
@@ -2038,6 +2042,11 @@ void DesktopPet::applyKeyDisplay()
             m_gamepadWindow->close();
             m_gamepadWindow = nullptr;
         }
+        if (m_gamepadKeyWindow)
+        {
+            m_gamepadKeyWindow->close();
+            m_gamepadKeyWindow = nullptr;
+        }
         if (m_musicWindow)
         {
             m_musicWindow->close();
@@ -2054,7 +2063,7 @@ void DesktopPet::applyKeyDisplay()
     }
 }
 
-// 手柄轮询（30ms）：有输入时驱动手柄窗显示；手柄拔出后计时不再续，2s 内自动隐藏
+// 手柄轮询（30ms）：有输入时驱动手柄图 + 文字气泡显示；手柄拔出后计时不再续，2s 内自动隐藏
 void DesktopPet::pollGamepadState()
 {
     if (!m_keyDisplayEnabled)
@@ -2064,7 +2073,10 @@ void DesktopPet::pollGamepadState()
         return;
     if (!m_gamepadWindow)
         m_gamepadWindow = new GamepadWindow(this, m_scale, m_stayOnTop || m_keyDisplayOnTop);
+    if (!m_gamepadKeyWindow)
+        m_gamepadKeyWindow = new GamepadKeyWindow(this, m_scale, m_stayOnTop || m_keyDisplayOnTop);
     static_cast<GamepadWindow *>(m_gamepadWindow.data())->showState(st);
+    static_cast<GamepadKeyWindow *>(m_gamepadKeyWindow.data())->showState(st);
 }
 
 // 音乐信息轮询（800ms）：有媒体会话且标题非空时显示，否则隐藏

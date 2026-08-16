@@ -1,5 +1,6 @@
 // gamepadwindow.cpp — 手柄键位显示窗口实现（实验性功能）
-// 手柄图在逻辑坐标 260×150 内绘制，随宠物缩放整体缩放；按下按键粉色高亮。
+// GamepadWindow：手柄图在逻辑坐标 260×150 内绘制，随宠物缩放整体缩放，按下按键粉色高亮；
+// GamepadKeyWindow：独立文字气泡（粉色圆角边框），贴手柄图左侧同行、底部对齐，列出按下键名。
 #include "gamepadwindow.h"
 #include "petwindow.h"
 #include "inappfiledialog.h" // PINK
@@ -60,97 +61,8 @@ void drawCircle(QPainter &p, const QPointF &c, double radius, bool pressed, cons
 }
 } // namespace
 
-GamepadWindow::GamepadWindow(DesktopPet *pet, float scale, bool stayOnTop)
-    : QWidget(nullptr, Qt::FramelessWindowHint | (stayOnTop ? Qt::WindowStaysOnTopHint : Qt::WindowType(0)) | Qt::Tool), m_pet(pet), m_scale(scale)
-{
-    setAttribute(Qt::WA_TranslucentBackground);
-    setAttribute(Qt::WA_DeleteOnClose);
-    m_label = new QLabel(this);
-    m_label->setAlignment(Qt::AlignCenter);
-    m_label->setAttribute(Qt::WA_TransparentForMouseEvents);
-    m_hideTimer = new QTimer(this);
-    m_hideTimer->setSingleShot(true);
-    m_hideTimer->setInterval(2000); // 2 秒无输入自动隐藏
-    connect(m_hideTimer, &QTimer::timeout, this, &QWidget::hide);
-    updateScaleAndPosition(scale);
-}
-
-void GamepadWindow::showState(const GamepadState &state)
-{
-    if (!state.connected)
-    {
-        m_state = state;
-        hide(); // 手柄断开：立即隐藏
-        return;
-    }
-    bool anyPressed = false;
-    for (int i = 0; i < GP_COUNT; ++i)
-        anyPressed = anyPressed || state.buttons[i];
-    const bool changed = memcmp(state.buttons, m_state.buttons, sizeof(state.buttons)) != 0 || state.controllerIndex != m_state.controllerIndex;
-    m_state = state;
-    if (changed)
-    {
-        buildKeyText(state);
-        positionNearPet(); // 隐藏期间宠物可能移动/缩放，显示前重新贴靠
-        show();
-        raise();
-        update();
-        m_hideTimer->start();
-        // 触发全员重排：音乐窗等立即避开本窗，避免最长 800ms 的重叠空窗
-        m_pet->updateSideWindowPositions();
-    }
-    else if (anyPressed)
-    {
-        m_hideTimer->start(); // 按住不放视为持续输入，窗口保持显示
-    }
-}
-
-void GamepadWindow::updateScaleAndPosition(float scale)
-{
-    m_scale = scale;
-    const int padW = qMax(60, static_cast<int>(kPadW * scale));
-    const int padH = qMax(40, static_cast<int>(kPadH * scale));
-    const int labelH = qMax(24, static_cast<int>(26 * scale));
-    const int fs = qMax(14, static_cast<int>(17 * scale));
-    m_label->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;background:transparent;").arg(fs));
-    setFixedSize(padW + 16, padH + labelH + 24);
-    m_label->setGeometry(8, padH + 8, padW, labelH);
-    positionNearPet();
-}
-
-void GamepadWindow::positionNearPet()
-{
-    if (!m_pet)
-        return;
-    const QRect pr = m_pet->geometry();
-    // 与键盘气泡同排：键盘气泡居中于宠物上方，手柄窗贴其左侧（间隔 8px）；
-    // 键盘气泡未显示时手柄窗占键盘位居中（与键位显示一致，不偏移）
-    int keyW = 0;
-    if (QWidget *kw = m_pet->m_keyWindow.data())
-    {
-        if (kw->isVisible())
-            keyW = kw->width();
-    }
-    int x;
-    if (keyW > 0)
-        x = pr.x() + pr.width() / 2 - keyW / 2 - 8 - width();
-    else
-        x = pr.x() + (pr.width() - width()) / 2;
-    int y = pr.y() - height() - 10;
-    QScreen *sc = QGuiApplication::screenAt(pr.center());
-    if (sc)
-    {
-        const QRect avail = sc->availableGeometry();
-        // 上方无空间时移到宠物下方（不遮挡宠物）
-        if (y < avail.top())
-            y = pr.y() + pr.height() + 10;
-        x = qBound(avail.left(), x, avail.left() + avail.width() - width());
-        y = qBound(avail.top(), y, avail.top() + avail.height() - height());
-    }
-    move(x, y);
-}
-
-void GamepadWindow::buildKeyText(const GamepadState &state)
+// 手柄状态 → 按键名文本（与手柄图共用同一状态源，气泡独立显示）
+QString gamepadStateText(const GamepadState &state)
 {
     QStringList parts;
     if (state.buttons[GP_A])
@@ -201,8 +113,91 @@ void GamepadWindow::buildKeyText(const GamepadState &state)
         parts << QString::fromUtf8("R\u2190");
     if (state.buttons[GP_RS_RIGHT])
         parts << QString::fromUtf8("R\u2192");
-    m_keyText = parts.isEmpty() ? QString::fromUtf8("\u624B\u67C4\u5DF2\u8FDE\u63A5") : parts.join(QStringLiteral(" \u00B7 "));
-    m_label->setText(m_keyText);
+    return parts.isEmpty() ? QString::fromUtf8("\u624B\u67C4\u5DF2\u8FDE\u63A5") : parts.join(QStringLiteral(" \u00B7 "));
+}
+
+// ── GamepadWindow：手柄图 ───────────────────────────────────────────
+
+GamepadWindow::GamepadWindow(DesktopPet *pet, float scale, bool stayOnTop)
+    : QWidget(nullptr, Qt::FramelessWindowHint | (stayOnTop ? Qt::WindowStaysOnTopHint : Qt::WindowType(0)) | Qt::Tool), m_pet(pet), m_scale(scale)
+{
+    setAttribute(Qt::WA_TranslucentBackground);
+    setAttribute(Qt::WA_DeleteOnClose);
+    m_hideTimer = new QTimer(this);
+    m_hideTimer->setSingleShot(true);
+    m_hideTimer->setInterval(2000); // 2 秒无输入自动隐藏
+    connect(m_hideTimer, &QTimer::timeout, this, &QWidget::hide);
+    updateScaleAndPosition(scale);
+}
+
+void GamepadWindow::showState(const GamepadState &state)
+{
+    if (!state.connected)
+    {
+        m_state = state;
+        hide(); // 手柄断开：立即隐藏
+        return;
+    }
+    bool anyPressed = false;
+    for (int i = 0; i < GP_COUNT; ++i)
+        anyPressed = anyPressed || state.buttons[i];
+    const bool changed = memcmp(state.buttons, m_state.buttons, sizeof(state.buttons)) != 0 || state.controllerIndex != m_state.controllerIndex;
+    m_state = state;
+    if (changed)
+    {
+        positionNearPet(); // 隐藏期间宠物可能移动/缩放，显示前重新贴靠
+        show();
+        raise();
+        update();
+        m_hideTimer->start();
+        // 触发全员重排：文字气泡/音乐窗等立即避开本窗，避免最长 800ms 的重叠空窗
+        m_pet->updateSideWindowPositions();
+    }
+    else if (anyPressed)
+    {
+        m_hideTimer->start(); // 按住不放视为持续输入，窗口保持显示
+    }
+}
+
+void GamepadWindow::updateScaleAndPosition(float scale)
+{
+    m_scale = scale;
+    const int padW = qMax(60, static_cast<int>(kPadW * scale));
+    const int padH = qMax(40, static_cast<int>(kPadH * scale));
+    setFixedSize(padW + 16, padH + 16);
+    positionNearPet();
+}
+
+void GamepadWindow::positionNearPet()
+{
+    if (!m_pet)
+        return;
+    const QRect pr = m_pet->geometry();
+    // 与键盘气泡同排：键盘气泡居中于宠物上方，手柄窗贴其左侧（间隔 8px）；
+    // 键盘气泡未显示时手柄窗占键盘位居中（与键位显示一致，不偏移）
+    int keyW = 0;
+    if (QWidget *kw = m_pet->m_keyWindow.data())
+    {
+        if (kw->isVisible())
+            keyW = kw->width();
+    }
+    int x;
+    if (keyW > 0)
+        x = pr.x() + pr.width() / 2 - keyW / 2 - 8 - width();
+    else
+        x = pr.x() + (pr.width() - width()) / 2;
+    int y = pr.y() - height() - 10;
+    QScreen *sc = QGuiApplication::screenAt(pr.center());
+    if (sc)
+    {
+        const QRect avail = sc->availableGeometry();
+        // 上方无空间时移到宠物下方（不遮挡宠物）
+        if (y < avail.top())
+            y = pr.y() + pr.height() + 10;
+        x = qBound(avail.left(), x, avail.left() + avail.width() - width());
+        y = qBound(avail.top(), y, avail.top() + avail.height() - height());
+    }
+    move(x, y);
 }
 
 void GamepadWindow::paintEvent(QPaintEvent *)
@@ -272,4 +267,109 @@ void GamepadWindow::paintEvent(QPaintEvent *)
     drawCircle(p, QPointF(222, 68), 11, st.buttons[GP_Y], QStringLiteral("Y"), 9);
 
     p.restore();
+}
+
+// ── GamepadKeyWindow：独立文字气泡 ─────────────────────────────────
+
+GamepadKeyWindow::GamepadKeyWindow(DesktopPet *pet, float scale, bool stayOnTop)
+    : QWidget(nullptr, Qt::FramelessWindowHint | (stayOnTop ? Qt::WindowStaysOnTopHint : Qt::WindowType(0)) | Qt::Tool), m_pet(pet), m_scale(scale)
+{
+    setAttribute(Qt::WA_TranslucentBackground);
+    setAttribute(Qt::WA_DeleteOnClose);
+    m_label = new QLabel(this);
+    m_label->setAlignment(Qt::AlignCenter);
+    m_label->setAttribute(Qt::WA_TransparentForMouseEvents);
+    m_hideTimer = new QTimer(this);
+    m_hideTimer->setSingleShot(true);
+    m_hideTimer->setInterval(2000); // 2 秒无输入自动隐藏
+    connect(m_hideTimer, &QTimer::timeout, this, &QWidget::hide);
+    updateScaleAndPosition(scale);
+}
+
+void GamepadKeyWindow::showState(const GamepadState &state)
+{
+    if (!state.connected)
+    {
+        m_state = state;
+        hide(); // 手柄断开：立即隐藏
+        return;
+    }
+    bool anyPressed = false;
+    for (int i = 0; i < GP_COUNT; ++i)
+        anyPressed = anyPressed || state.buttons[i];
+    const bool changed = memcmp(state.buttons, m_state.buttons, sizeof(state.buttons)) != 0 || state.controllerIndex != m_state.controllerIndex;
+    m_state = state;
+    if (changed)
+    {
+        m_label->setText(gamepadStateText(state));
+        positionNearPet(); // 隐藏期间宠物可能移动/缩放，显示前重新贴靠
+        show();
+        raise();
+        m_hideTimer->start();
+        m_pet->updateSideWindowPositions(); // 音乐窗等立即避开本气泡
+    }
+    else if (anyPressed)
+    {
+        m_hideTimer->start(); // 按住不放视为持续输入，气泡保持显示
+    }
+}
+
+void GamepadKeyWindow::updateScaleAndPosition(float scale)
+{
+    m_scale = scale;
+    // 与键盘气泡一致的样式与尺寸（随宠物缩放）
+    const int fs = qMax(16, static_cast<int>(36 * scale));
+    m_label->setStyleSheet(QString("color:#FF8DA1;font-weight:bold;font-size:%1px;background:transparent;").arg(fs));
+    m_label->setFixedSize(qMax(60, static_cast<int>(80 * scale)), qMax(44, static_cast<int>(60 * scale)));
+    setFixedSize(m_label->width() + 16, m_label->height() + 16);
+    m_label->move(8, 8);
+    positionNearPet();
+}
+
+void GamepadKeyWindow::positionNearPet()
+{
+    if (!m_pet)
+        return;
+    const QRect pr = m_pet->geometry();
+    // 贴手柄图左侧同行、底部对齐（间隔 8px）；手柄图未显示时居中于宠物上方
+    QRect padRect;
+    if (QWidget *pw = m_pet->m_gamepadWindow.data())
+    {
+        if (pw->isVisible())
+            padRect = pw->geometry();
+    }
+    int x;
+    int y;
+    if (padRect.isValid())
+    {
+        x = padRect.x() - width() - 8;
+        y = padRect.y() + padRect.height() - height();
+    }
+    else
+    {
+        x = pr.x() + (pr.width() - width()) / 2;
+        y = pr.y() - height() - 10;
+    }
+    QScreen *sc = QGuiApplication::screenAt(pr.center());
+    if (sc)
+    {
+        const QRect avail = sc->availableGeometry();
+        // 上方无空间时移到宠物下方（不遮挡宠物）
+        if (y < avail.top())
+            y = pr.y() + pr.height() + 10;
+        x = qBound(avail.left(), x, avail.left() + avail.width() - width());
+        y = qBound(avail.top(), y, avail.top() + avail.height() - height());
+    }
+    move(x, y);
+}
+
+void GamepadKeyWindow::paintEvent(QPaintEvent *)
+{
+    // 与键盘气泡一致的粉色圆角边框 + 深色底
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    QRectF r(2.0, 2.0, width() - 4.0, height() - 4.0);
+    p.setBrush(QBrush(QColor(26, 26, 26, 255)));
+    p.setPen(QPen(PINK, 4));
+    p.drawRoundedRect(r, 10, 10);
 }

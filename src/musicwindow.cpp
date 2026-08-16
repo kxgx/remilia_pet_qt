@@ -106,8 +106,9 @@ void MusicWindow::positionNearPet()
     };
     const QRect keyRect = visRect(m_pet->m_keyWindow);
     const QRect padRect = visRect(m_pet->m_gamepadWindow);
+    const QRect padKeyRect = visRect(m_pet->m_gamepadKeyWindow);
 
-    // 候选位置必须：不压宠物、不压键盘气泡、不压手柄窗、不出屏幕可用区
+    // 候选位置必须：不压宠物、不压键盘气泡、不压手柄图/文字气泡、不出屏幕可用区
     auto fits = [&](const QRect &r)
     {
         if (r.intersects(pr))
@@ -115,6 +116,8 @@ void MusicWindow::positionNearPet()
         if (keyRect.isValid() && r.intersects(keyRect))
             return false;
         if (padRect.isValid() && r.intersects(padRect))
+            return false;
+        if (padKeyRect.isValid() && r.intersects(padKeyRect))
             return false;
         if (avail.isValid())
             return r.left() >= avail.left() && r.top() >= avail.top() && r.right() <= avail.left() + avail.width() - 1 &&

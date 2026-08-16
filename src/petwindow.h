@@ -1,4 +1,4 @@
-﻿// petwindow.h — 桌面宠物主窗口 DesktopPet
+// petwindow.h — 桌面宠物主窗口 DesktopPet
 // 核心：GIF 状态机（idle/click/drag/sleep/result）、托盘菜单、设置保存、
 // 抽卡/计时/画画/音量/作者声明/资源替换等功能入口，以及资源覆盖目录的加载、文件监听与即时重载。
 // 各功能侧窗类（DrawEffectWindow/DrawingEffectWindow/TimerWindow 等）定义在对应 cpp 中。
@@ -23,6 +23,7 @@ class AuthorWindow;
 class ResourceWindow;
 class KeyDisplayWindow;
 class GamepadWindow;
+class GamepadKeyWindow;
 class MusicWindow;
 class QFileSystemWatcher;
 
@@ -38,6 +39,7 @@ class DesktopPet : public QLabel
     friend class ResourceWindow;
     friend class KeyDisplayWindow;
     friend class GamepadWindow;
+    friend class GamepadKeyWindow;
     friend class MusicWindow;
 
     public:
@@ -205,7 +207,8 @@ class DesktopPet : public QLabel
     void startGlobalKeyHook();
 
     // 实验性功能（仅 Windows）：手柄键位显示 + 音乐信息显示，合入"⌨ 键位显示"开关
-    QPointer<QWidget> m_gamepadWindow;
+    QPointer<QWidget> m_gamepadWindow;    // 手柄图
+    QPointer<QWidget> m_gamepadKeyWindow; // 手柄按键文字气泡（独立窗口）
     QPointer<QWidget> m_musicWindow;
     QTimer *m_gamepadPollTimer = nullptr; // 手柄轮询 30ms（XInput/DI 均轻量）
     QTimer *m_musicPollTimer = nullptr;   // SMTC 音乐信息轮询 800ms
