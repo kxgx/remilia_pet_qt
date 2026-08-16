@@ -339,7 +339,7 @@ void GamepadKeyWindow::showState(const GamepadState &state)
 
 void GamepadKeyWindow::showDisconnectedNotice()
 {
-    m_text = QString::fromUtf8("\u672A\u8FDE\u63A5"); // 未连接
+    m_text = QString::fromUtf8("\u624B\u67C4\u672A\u8FDE\u63A5"); // 手柄未连接
     relayoutLabel();
     positionNearPet();
     show();

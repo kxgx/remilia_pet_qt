@@ -212,7 +212,7 @@ class DesktopPet : public QLabel
     QPointer<QWidget> m_musicWindow;
     QTimer *m_gamepadPollTimer = nullptr;  // 手柄轮询 30ms（XInput/DI 均轻量）
     QTimer *m_musicPollTimer = nullptr;    // SMTC 音乐信息轮询 800ms
-    bool m_gamepadAnnounceChecked = false; // 开启后无手柄时是否已提示过"未连接"
+    bool m_gamepadAnnounceChecked = false; // 开启后无手柄时是否已提示过"手柄未连接"
 
     // 相对位置：按屏幕可用区域的比例保存/恢复，分辨率变化时实时重算保持相对位置不变
     double m_rightRatio = -1.0;
