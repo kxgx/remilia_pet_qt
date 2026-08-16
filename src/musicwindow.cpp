@@ -46,6 +46,11 @@ MusicWindow::MusicWindow(DesktopPet *pet, float scale, bool stayOnTop)
     m_barBg = new QLabel(this);
     m_barFill = new QLabel(this);
     m_barFill->setParent(m_barBg);
+    // 标题跑马灯定时器：60ms 步进，短标题不启动
+    m_scrollTimer = new QTimer(this);
+    m_scrollTimer->setInterval(60);
+    connect(m_scrollTimer, &QTimer::timeout, this, [this]()
+            { scrollTick(); });
     updateScaleAndPosition(scale);
 }
 
@@ -173,6 +178,57 @@ QString MusicWindow::statusText() const
     return QString::fromUtf8("\u5DF2\u6682\u505C");     // 已暂停（Stopped 亦显示为未播放）
 }
 
+QFont MusicWindow::titleFont() const
+{
+    // QSS 设置的 font-size 不反映在 widget->font()，这里构造与标题 QSS 一致的字体做测量
+    QFont f = m_title->font();
+    f.setPixelSize(qMax(13, static_cast<int>(15 * m_scale)));
+    f.setBold(true);
+    return f;
+}
+
+// 从 m_scrollFull 中截取偏移 offset 像素起、宽度不超过标签宽的一段可见文本
+QString MusicWindow::scrollWindow(const QFontMetrics &fm, int offset) const
+{
+    int acc = 0;
+    int start = 0;
+    while (start < m_scrollFull.size() && acc < offset)
+    {
+        acc += fm.horizontalAdvance(m_scrollFull.at(start));
+        ++start;
+    }
+    QString shown;
+    int used = 0;
+    for (int i = start; i < m_scrollFull.size(); ++i)
+    {
+        const QChar c = m_scrollFull.at(i);
+        const int w = fm.horizontalAdvance(c);
+        if (used + w > m_scrollFitWidth && used > 0)
+            break;
+        shown += c;
+        used += w;
+    }
+    return shown;
+}
+
+void MusicWindow::scrollTick()
+{
+    if (!m_scrolling || m_scrollFull.isEmpty())
+        return;
+    if (m_scrollHold > 0)
+    {
+        --m_scrollHold; // 停留阶段：保持当前显示
+        return;
+    }
+    m_scrollOffset += 4; // 4px/60ms ≈ 67px/s
+    if (m_scrollOffset >= m_scrollTotal)
+    {
+        m_scrollOffset = 0;
+        m_scrollHold = 12; // 无缝循环（第二段 base 衔接），开头再停留约 0.7s
+    }
+    m_title->setText(scrollWindow(QFontMetrics(titleFont()), m_scrollOffset));
+}
+
 void MusicWindow::rebuildLayout()
 {
     // 封面（无封面时显示音符占位）；按 cacheKey 去重，避免每轮轮询重复缩放整张图
@@ -194,13 +250,29 @@ void MusicWindow::rebuildLayout()
         m_cover->setText(QStringLiteral("\u266A"));
         m_cover->setStyleSheet(QString("color:#9A9A9A;font-size:%1px;font-weight:bold;background:#2E2E2E;border:1px solid #5A5A5A;border-radius:8px;").arg(qMax(18, static_cast<int>(30 * m_scale))));
     }
-    // 标题/歌手（歌手行为歌手 + 专辑，过长省略）
-    // 注：QSS 设置的 font-size 不反映在 widget->font()，这里用与 QSS 一致的字体做 elide 测量
-    QFont tf = m_title->font();
-    tf.setPixelSize(qMax(13, static_cast<int>(15 * m_scale)));
-    tf.setBold(true);
-    const QFontMetrics fm(tf);
-    m_title->setText(fm.elidedText(m_snap.title, Qt::ElideRight, m_title->width()));
+    // 标题：放得下 → 静态显示；放不下 → 跑马灯滚动（标题/宽度变化时重置，
+    // 否则保持 scrollTick 的推进节奏，不被 800ms 信息刷新打断）
+    const QFontMetrics fm(titleFont());
+    const int labelW = m_title->width();
+    if (m_snap.title.isEmpty() || fm.horizontalAdvance(m_snap.title) <= labelW)
+    {
+        m_scrolling = false;
+        m_scrollTimer->stop();
+        m_scrollBase.clear();
+        m_title->setText(m_snap.title);
+    }
+    else if (m_scrollBase != m_snap.title || m_scrollFitWidth != labelW)
+    {
+        m_scrollBase = m_snap.title;
+        m_scrollFitWidth = labelW;
+        m_scrollFull = m_scrollBase + QStringLiteral("       ") + m_scrollBase;
+        m_scrollTotal = fm.horizontalAdvance(m_scrollBase) + fm.horizontalAdvance(QStringLiteral("       "));
+        m_scrollOffset = 0;
+        m_scrollHold = 15; // 开头停留约 0.9s
+        m_scrolling = true;
+        m_scrollTimer->start();
+        m_title->setText(scrollWindow(fm, m_scrollOffset));
+    }
     const QString artistLine = m_snap.artist + (m_snap.album.isEmpty() ? QString() : QStringLiteral(" \u2014 ") + m_snap.album);
     QFont af = m_artist->font();
     af.setPixelSize(qMax(11, static_cast<int>(12 * m_scale)));
