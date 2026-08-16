@@ -11,6 +11,7 @@
 #include <QPixmap>
 #include <QScreen>
 #include <QGuiApplication>
+#include <QPointer>
 
 namespace
 {
@@ -89,18 +90,78 @@ void MusicWindow::positionNearPet()
     if (!m_pet)
         return;
     const QRect pr = m_pet->geometry();
-    // 独立窗口：贴靠宠物左侧，垂直居中
-    int x = pr.x() - width() - 12;
-    int y = pr.y() + (pr.height() - height()) / 2;
     QScreen *sc = QGuiApplication::screenAt(pr.center());
-    if (sc)
+    const QRect avail = sc ? sc->availableGeometry() : QRect();
+
+    // 已占位窗口（键盘气泡/手柄窗），避免互相遮挡
+    auto visRect = [this](const QPointer<QWidget> &win) -> QRect
     {
-        const QRect avail = sc->availableGeometry();
-        if (x < avail.left())
-            x = avail.left(); // 左侧无空间时贴屏幕左缘（不跨屏）
-        y = qBound(avail.top(), y, avail.top() + avail.height() - height());
+        QWidget *w = win.data();
+        return (w && w->isVisible()) ? w->geometry() : QRect();
+    };
+    const QRect keyRect = visRect(m_pet->m_keyWindow);
+    const QRect padRect = visRect(m_pet->m_gamepadWindow);
+
+    // 候选位置必须：不压宠物、不压键盘气泡、不压手柄窗、不出屏幕可用区
+    auto fits = [&](const QRect &r)
+    {
+        if (r.intersects(pr))
+            return false;
+        if (keyRect.isValid() && r.intersects(keyRect))
+            return false;
+        if (padRect.isValid() && r.intersects(padRect))
+            return false;
+        if (avail.isValid())
+            return r.left() >= avail.left() && r.top() >= avail.top() && r.right() <= avail.left() + avail.width() - 1 &&
+                   r.bottom() <= avail.top() + avail.height() - 1;
+        return true;
+    };
+
+    QRect cand;
+    // 1) 宠物左侧垂直居中（首选）
+    cand = QRect(pr.x() - width() - 12, pr.y() + (pr.height() - height()) / 2, width(), height());
+    if (fits(cand))
+    {
+        move(cand.topLeft());
+        return;
     }
-    move(x, y);
+    // 2) 宠物右侧垂直居中
+    cand = QRect(pr.x() + pr.width() + 12, pr.y() + (pr.height() - height()) / 2, width(), height());
+    if (fits(cand))
+    {
+        move(cand.topLeft());
+        return;
+    }
+    // 3) 宠物上方：叠在键盘/手柄气泡行之上
+    int topmost = pr.y() - 10;
+    if (keyRect.isValid())
+        topmost = qMin(topmost, keyRect.top() - 10);
+    if (padRect.isValid())
+        topmost = qMin(topmost, padRect.top() - 10);
+    cand = QRect(pr.x() + (pr.width() - width()) / 2, topmost - height(), width(), height());
+    if (fits(cand))
+    {
+        move(cand.topLeft());
+        return;
+    }
+    // 4) 宠物下方兜底
+    cand = QRect(pr.x() + (pr.width() - width()) / 2, pr.y() + pr.height() + 10, width(), height());
+    if (fits(cand))
+    {
+        move(cand.topLeft());
+        return;
+    }
+    // 5) 全部槽位不可用：屏幕可用区内钳位
+    if (avail.isValid())
+    {
+        const int x = qBound(avail.left(), cand.x(), avail.left() + avail.width() - width());
+        const int y = qBound(avail.top(), cand.y(), avail.top() + avail.height() - height());
+        move(x, y);
+    }
+    else
+    {
+        move(cand.topLeft());
+    }
 }
 
 QString MusicWindow::statusText() const

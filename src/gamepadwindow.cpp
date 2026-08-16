@@ -91,10 +91,13 @@ void GamepadWindow::showState(const GamepadState &state)
     if (changed)
     {
         buildKeyText(state);
+        positionNearPet(); // 隐藏期间宠物可能移动/缩放，显示前重新贴靠
         show();
         raise();
         update();
         m_hideTimer->start();
+        // 触发全员重排：音乐窗等立即避开本窗，避免最长 800ms 的重叠空窗
+        m_pet->updateSideWindowPositions();
     }
     else if (anyPressed)
     {
@@ -120,19 +123,27 @@ void GamepadWindow::positionNearPet()
     if (!m_pet)
         return;
     const QRect pr = m_pet->geometry();
-    // 与键盘气泡并排：手柄窗排在键盘气泡左侧（键盘气泡缺失时贴宠物中轴左侧）
+    // 与键盘气泡同排：键盘气泡居中于宠物上方，手柄窗贴其左侧（间隔 8px）；
+    // 键盘气泡未显示时手柄窗占键盘位居中（与键位显示一致，不偏移）
     int keyW = 0;
     if (QWidget *kw = m_pet->m_keyWindow.data())
     {
         if (kw->isVisible())
             keyW = kw->width();
     }
-    int x = pr.x() + pr.width() / 2 - keyW / 2 - 8 - width();
+    int x;
+    if (keyW > 0)
+        x = pr.x() + pr.width() / 2 - keyW / 2 - 8 - width();
+    else
+        x = pr.x() + (pr.width() - width()) / 2;
     int y = pr.y() - height() - 10;
     QScreen *sc = QGuiApplication::screenAt(pr.center());
     if (sc)
     {
         const QRect avail = sc->availableGeometry();
+        // 上方无空间时移到宠物下方（不遮挡宠物）
+        if (y < avail.top())
+            y = pr.y() + pr.height() + 10;
         x = qBound(avail.left(), x, avail.left() + avail.width() - width());
         y = qBound(avail.top(), y, avail.top() + avail.height() - height());
     }

@@ -28,6 +28,8 @@ void KeyDisplayWindow::showKey(const QString &text)
     show();
     raise();
     m_hideTimer->start();
+    // 键位气泡出现后通知其他侧窗（手柄/音乐）立即重排，避免互相遮挡
+    m_pet->updateSideWindowPositions();
 }
 
 void KeyDisplayWindow::updateScaleAndPosition(float scale)
