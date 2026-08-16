@@ -43,9 +43,19 @@ bool loadXInput()
 // ── DirectInput ────────────────────────────────────────────────────
 LPDIRECTINPUT8 s_dinput = nullptr;
 LPDIRECTINPUTDEVICE8 s_diDevice = nullptr;
+// 健康判定：见过轴在标称范围内的正常数据才算真手柄（幽灵/虚拟设备轴恒满偏
+// 32767 或恒 0 以外的异常值，永不健康——诊断确认部分机器上存在此类设备）
+bool s_diHealthy = false;
+// DI 轴标称量程约 -1000..1000；留 8 倍余量容忍真实设备差异，满偏 32767 不在此范围内
+constexpr LONG kDiAxisMax = 8000;
 
 BOOL CALLBACK enumGameCtrl(LPCDIDEVICEINSTANCE inst, LPVOID context)
 {
+    // 只接受真实游戏设备类型：跳过 SUPPLEMENTAL/DEVICECTRL 等系统虚拟设备
+    const DWORD t = inst->dwDevType & 0xFF;
+    if (t != DI8DEVTYPE_GAMEPAD && t != DI8DEVTYPE_JOYSTICK && t != DI8DEVTYPE_DRIVING && t != DI8DEVTYPE_FLIGHT &&
+        t != DI8DEVTYPE_1STPERSON && t != DI8DEVTYPE_REMOTE)
+        return DIENUM_CONTINUE;
     auto *guid = static_cast<GUID *>(context);
     *guid = inst->guidInstance;
     return DIENUM_STOP; // 取第一个已连接的游戏控制器
@@ -122,6 +132,14 @@ bool pollDirectInput(GamepadState &out)
     DIJOYSTATE2 js = {};
     if (FAILED(hr) || FAILED(s_diDevice->GetDeviceState(sizeof(js), &js)))
         return false;
+    // 健康判定：任一轴在标称范围（含空闲 0）即健康，之后保持（容忍真实手柄满推）。
+    // 幽灵设备轴恒满偏 32767 且从未给过正常数据 → 永不健康 → 视为无手柄。
+    const bool axisOk = abs(js.lX) <= kDiAxisMax && abs(js.lY) <= kDiAxisMax && abs(js.lZ) <= kDiAxisMax &&
+                        abs(js.lRx) <= kDiAxisMax && abs(js.lRy) <= kDiAxisMax && abs(js.lRz) <= kDiAxisMax;
+    if (!axisOk && !s_diHealthy)
+        return false;
+    if (axisOk)
+        s_diHealthy = true;
     mapDiButtons(js.rgbButtons, out);
     mapDiAxes(js, out);
     out.controllerIndex = -2;
@@ -218,6 +236,7 @@ void shutdownGamepad()
     s_xiGetState = nullptr;
     s_activePad = static_cast<DWORD>(-1);
     s_wasConnected = false;
+    s_diHealthy = false; // 设备更换后重新做健康判定
 }
 
 bool pollGamepad(GamepadState &out)
